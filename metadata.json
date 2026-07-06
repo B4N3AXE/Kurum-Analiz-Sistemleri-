@@ -1,0 +1,6 @@
+{
+  "name": "Kurum Analiz Sistemi (K.A.S)",
+  "description": "Eğitim kurumları için öğrenci performans takibi, YKS sayacı, veli bilgilendirme ve yapay zeka/OCR destekli deneme sonuçları (PDF) analiz platformu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
