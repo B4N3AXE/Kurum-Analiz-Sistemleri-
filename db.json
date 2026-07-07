@@ -1,0 +1,114 @@
+{
+  "kurumlar": [
+    {
+      "id": 1,
+      "ad": "Gelecek Koleji",
+      "tur": "Özel Anadolu Lisesi"
+    },
+    {
+      "id": 2,
+      "ad": "Atatürk Anadolu Lisesi",
+      "tur": "Anadolu Lisesi"
+    }
+  ],
+  "kullanicilar": [
+    {
+      "id": 1,
+      "ad_soyad": "Ahmet Yılmaz",
+      "email": "admin@kas.com",
+      "sifre": "admin123",
+      "rol": "admin",
+      "kurum_id": 1,
+      "telefon": "0555 111 2233"
+    },
+    {
+      "id": 2,
+      "ad_soyad": "Süleyman Kaya",
+      "email": "teacher@kas.com",
+      "sifre": "ogretmen123",
+      "rol": "ogretmen",
+      "kurum_id": 1,
+      "telefon": "0555 123 4567"
+    },
+    {
+      "id": 3,
+      "ad_soyad": "Esra Güneş",
+      "email": "rehber@kas.com",
+      "sifre": "rehber123",
+      "rol": "rehber",
+      "kurum_id": 1,
+      "telefon": "0555 987 6543"
+    },
+    {
+      "id": 4,
+      "ad_soyad": "Murat Aksoy",
+      "email": "veli@kas.com",
+      "sifre": "veli123",
+      "rol": "veli",
+      "kurum_id": 1,
+      "telefon": "0555 456 7890"
+    },
+    {
+      "id": 5,
+      "ad_soyad": "Zeynep Öztürk",
+      "email": "veli2@kas.com",
+      "sifre": "veli123",
+      "rol": "veli",
+      "kurum_id": 1,
+      "telefon": "0555 654 3210"
+    },
+    {
+      "id": 6,
+      "ad_soyad": "Efe Erdinç ",
+      "email": "admin@birsem.com",
+      "sifre": "admin123",
+      "rol": "admin",
+      "telefon": "55555555555",
+      "kurum_id": 2
+    }
+  ],
+  "siniflar": [
+    {
+      "id": 1,
+      "ad": "12-A",
+      "seviye": 12,
+      "kurum_id": 1
+    },
+    {
+      "id": 2,
+      "ad": "12-B",
+      "seviye": 12,
+      "kurum_id": 1
+    },
+    {
+      "id": 3,
+      "ad": "12-C",
+      "seviye": 12,
+      "kurum_id": 1
+    },
+    {
+      "id": 4,
+      "ad": "11-A",
+      "seviye": 11,
+      "kurum_id": 1
+    }
+  ],
+  "ogrenciler": [],
+  "sinav_tanimlari": [],
+  "sinav_sonuclari": [],
+  "ogretmen_sinif": [
+    {
+      "id": 1,
+      "ogretmen_id": 2,
+      "sinif_id": 1
+    },
+    {
+      "id": 2,
+      "ogretmen_id": 2,
+      "sinif_id": 2
+    }
+  ],
+  "rehberlik_notlari": [],
+  "mesajlar": [],
+  "ders_programlari": []
+}

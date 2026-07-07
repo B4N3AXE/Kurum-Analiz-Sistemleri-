@@ -12,6 +12,7 @@ export default function App() {
   const [token, setToken] = useState<string>('');
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [showAuthScreen, setShowAuthScreen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Form Fields
@@ -227,13 +228,13 @@ export default function App() {
       {/* Main UI body */}
       {!isLoggedIn ? (
         /* PREMIUM HIGH-CONVERTING SaaS LANDING & AUTH PAGE */
-        <div className="flex-1 flex flex-col lg:flex-row min-h-screen bg-slate-950">
+        <div className="flex-1 flex flex-col min-h-screen bg-slate-950">
           
           {/* Left Side: Professional SaaS Marketing & Pitch Panel (Scrollable) */}
-          <div className="flex-1 lg:h-screen lg:overflow-y-auto px-6 md:px-12 lg:px-16 py-12 lg:py-20 space-y-16 scrollbar-thin border-r border-slate-900/50 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+          <div className={`flex-1 ${showAuthScreen ? 'hidden' : 'flex flex-col'} lg:h-screen lg:overflow-y-auto px-6 md:px-12 lg:px-16 py-12 lg:py-20 space-y-16 scrollbar-thin bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950`}>
             
             {/* Header / Brand */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between border-b border-slate-900/40 pb-4 max-w-5xl mx-auto w-full">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-blue-600/10 text-blue-400 rounded-xl border border-blue-500/20 shadow-lg shadow-blue-500/5">
                   <Layers size={22} className="animate-pulse" />
@@ -245,15 +246,41 @@ export default function App() {
                   </h1>
                 </div>
               </div>
-              <div className="hidden sm:flex items-center gap-4 text-xs font-bold text-slate-400">
-                <a href="#nasil-calisir" className="hover:text-blue-400 transition">Nasıl Çalışır?</a>
-                <a href="#ozellikler" className="hover:text-blue-400 transition">Özellikler</a>
-                <a href="#fiyatlandirma" className="hover:text-blue-400 transition">Fiyatlar</a>
+              <div className="flex items-center gap-4">
+                <div className="hidden lg:flex items-center gap-6 text-xs font-bold text-slate-400">
+                  <a href="#nasil-calisir" className="hover:text-blue-400 transition">Nasıl Çalışır?</a>
+                  <a href="#ozellikler" className="hover:text-blue-400 transition">Özellikler</a>
+                  <a href="#fiyatlandirma" className="hover:text-blue-400 transition">Fiyatlar</a>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRegistering(false);
+                    setShowAuthScreen(true);
+                  }}
+                  className="px-3.5 py-1.5 bg-transparent border border-slate-800 hover:border-blue-500/40 text-slate-300 hover:text-white rounded-lg text-xs font-bold transition cursor-pointer"
+                >
+                  Giriş Yap
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRegistering(true);
+                    setShowAuthScreen(true);
+                  }}
+                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition shadow-md shadow-blue-500/10 cursor-pointer"
+                >
+                  Kurum Kaydı (Ücretsiz)
+                </button>
               </div>
             </div>
 
-            {/* Hero Section */}
-            <div className="space-y-6">
+            {/* Inner Marketing Wrapper (Centers and boundaries the content when full-width) */}
+            <div className="max-w-5xl mx-auto w-full space-y-16 flex-1">
+
+              {/* Hero Section */}
+              <div className="space-y-6">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest text-blue-400 bg-blue-500/10 rounded-full border border-blue-500/10 shadow-inner">
                 <Sparkles size={11} className="animate-pulse text-blue-400" /> %94 Zaman Tasarrufu & Akıllı Eğitim Otomasyonu
               </span>
@@ -297,7 +324,7 @@ export default function App() {
                   {
                     step: "1",
                     title: "Yönetici Olarak Kaydolun",
-                    desc: "Sağ taraftaki 'Kurum Kaydı' formunu kullanarak kurumunuzu saniyeler içinde kaydedin ve ilk yönetici (Admin) hesabınızı oluşturun.",
+                    desc: "Sağ üst köşedeki 'Kurum Kaydı' butonunu kullanarak kurumunuzu saniyeler içinde kaydedin ve ilk yönetici (Admin) hesabınızı oluşturun.",
                     badge: "Admin Adımı",
                     badgeColor: "text-blue-400 border-blue-500/10 bg-blue-500/5"
                   },
@@ -531,8 +558,7 @@ export default function App() {
                       onClick={() => {
                         setIsRegistering(true);
                         setRegKurum(`Atatürk Anadolu Lisesi (SaaS ${plan.title.split(' ')[0]})`);
-                        const scrollForm = document.getElementById("auth-form-card");
-                        if (scrollForm) scrollForm.scrollIntoView({ behavior: 'smooth' });
+                        setShowAuthScreen(true);
                       }}
                       className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         plan.popular 
@@ -632,14 +658,39 @@ export default function App() {
               © 2026 K.A.S SaaS Inc. Tüm hakları saklıdır. Eğitim Kurumları Yönetim ve Birebir Ders Otomasyon Platformu.
             </div>
 
-          </div>
+            </div> {/* Inner Marketing Wrapper end */}
+          </div> {/* Left Side end */}
 
-          {/* Right Side: Fixed Sticky Login / Signup Form Console */}
-          <div id="auth-form-card" className="w-full lg:w-[460px] bg-slate-900/60 backdrop-blur-lg border-t lg:border-t-0 lg:border-l border-slate-800/80 p-6 md:p-8 flex flex-col justify-center relative overflow-hidden scroll-mt-6">
-            <div className="absolute top-0 left-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl"></div>
+          {/* Right Side: Centered Standalone Login / Signup Console */}
+          <div 
+            id="auth-form-card" 
+            className={`w-full ${!showAuthScreen ? 'hidden' : 'flex-1 flex flex-col items-center justify-center min-h-screen bg-slate-950 px-4 py-12'} relative overflow-hidden`}
+          >
+            <div className="absolute top-0 left-0 w-full h-full bg-slate-950 -z-10"></div>
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-3xl"></div>
 
-            {/* Premium Header Tab Switcher */}
-            <div className="flex bg-slate-950 p-1.5 rounded-xl border border-slate-850 mb-6 relative z-10">
+            <div className="w-full max-w-[460px] bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 p-6 md:p-8 rounded-3xl relative z-10 shadow-2xl space-y-6">
+              
+              {/* Back to Home Header */}
+              <div className="flex justify-between items-center border-b border-slate-800/60 pb-4">
+                <button
+                  type="button"
+                  onClick={() => { setShowAuthScreen(false); setLoginError(''); setRegError(''); }}
+                  className="text-xs font-bold text-slate-400 hover:text-slate-100 transition flex items-center gap-1.5 bg-slate-950/60 px-3 py-1.5 rounded-xl border border-slate-850 cursor-pointer"
+                >
+                  ← Ana Sayfaya Dön
+                </button>
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-blue-600/10 text-blue-400 rounded-lg border border-blue-500/20">
+                    <Layers size={14} />
+                  </div>
+                  <span className="text-[10px] font-black text-slate-300 tracking-wider">K.A.S PORTAL</span>
+                </div>
+              </div>
+
+              {/* Premium Header Tab Switcher */}
+              <div className="flex bg-slate-950 p-1.5 rounded-xl border border-slate-850 mb-4 relative z-10">
               <button
                 type="button"
                 onClick={() => { setIsRegistering(false); setLoginError(''); }}
@@ -831,6 +882,7 @@ export default function App() {
                 </form>
               </div>
             )}
+            </div>
           </div>
         </div>
       ) : (
