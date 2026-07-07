@@ -1,39 +1,45 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1e1b4b" />
-      <stop offset="40%" stop-color="#1e3a8a" />
-      <stop offset="100%" stop-color="#0284c7" />
-    </linearGradient>
-    <linearGradient id="logoGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#2563eb" />
+    <!-- Blue Brand Gradient (Glowing high-tech) -->
+    <linearGradient id="blueGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1d4ed8" />
+      <stop offset="50%" stop-color="#2563eb" />
       <stop offset="100%" stop-color="#38bdf8" />
     </linearGradient>
-    <filter id="shadow" x="-15%" y="-15%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.4"/>
+
+    <!-- Glow Effect filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    
+    <!-- Subtle Shadow -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.4"/>
     </filter>
   </defs>
-  
-  <!-- Rounded Base Background -->
-  <rect width="512" height="512" rx="140" fill="url(#bgGrad)" />
-  
-  <!-- Stylized Chart/Layers/K.A.S. Logo Icon in the Center -->
-  <g transform="translate(106, 106)" filter="url(#shadow)">
-    <!-- Main emblem shape (represents a data bar and shield/book fusion) -->
-    <!-- Left bar / vertical structure -->
-    <rect x="40" y="80" width="40" height="160" rx="20" fill="#ffffff" opacity="0.9" />
-    <!-- Middle bar (taller, analyzing/growing) -->
-    <rect x="130" y="20" width="40" height="220" rx="20" fill="url(#logoGrad)" />
-    <!-- Right bar -->
-    <rect x="220" y="120" width="40" height="120" rx="20" fill="#38bdf8" />
-    
-    <!-- Connection lines -->
-    <line x1="60" y1="80" x2="150" y2="20" stroke="#ffffff" stroke-width="8" opacity="0.9" />
-    <line x1="150" y1="20" x2="240" y2="120" stroke="#38bdf8" stroke-width="8" opacity="0.9" />
 
-    <!-- Connected elegant network data nodes -->
-    <circle cx="60" cy="80" r="18" fill="#1d4ed8" stroke="#ffffff" stroke-width="6" />
-    <circle cx="150" cy="20" r="18" fill="#38bdf8" stroke="#ffffff" stroke-width="6" />
-    <circle cx="240" cy="120" r="18" fill="#0ea5e9" stroke="#ffffff" stroke-width="6" />
-  </g>
+  <!-- Outer circular glowing arc (representing analysis orbit) -->
+  <path d="M 125 315 A 160 160 0 1 1 387 315" fill="none" stroke="url(#blueGrad)" stroke-width="20" stroke-linecap="round" filter="url(#glow)" />
+  <path d="M 125 315 A 160 160 0 1 1 387 315" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.3" />
+
+  <!-- The Bar Chart Columns -->
+  <!-- Left Column -->
+  <rect x="180" y="240" width="30" height="70" rx="8" fill="url(#blueGrad)" filter="url(#shadow)" />
+  <!-- Middle Column -->
+  <rect x="230" y="190" width="30" height="120" rx="8" fill="url(#blueGrad)" filter="url(#shadow)" />
+  <!-- Right Column -->
+  <rect x="280" y="130" width="30" height="180" rx="8" fill="url(#blueGrad)" filter="url(#shadow)" />
+
+  <!-- Upward Trend Line & Arrow -->
+  <line x1="195" y1="240" x2="345" y2="90" stroke="#ffffff" stroke-width="10" stroke-linecap="round" filter="url(#glow)" />
+  <line x1="195" y1="240" x2="345" y2="90" stroke="#ffffff" stroke-width="10" stroke-linecap="round" />
+  
+  <!-- Trend Line Nodes -->
+  <circle cx="195" cy="240" r="10" fill="#ffffff" stroke="#2563eb" stroke-width="4" />
+  <circle cx="245" cy="190" r="10" fill="#ffffff" stroke="#2563eb" stroke-width="4" />
+  <circle cx="295" cy="130" r="10" fill="#ffffff" stroke="#2563eb" stroke-width="4" />
+  
+  <!-- Glowing arrowhead -->
+  <path d="M 315 90 L 345 90 L 345 120" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
 </svg>

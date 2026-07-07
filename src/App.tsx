@@ -201,8 +201,8 @@ export default function App() {
       {isLoggedIn && user && (
         <header className="bg-slate-900 border-b border-slate-800/80 px-6 py-3.5 flex justify-between items-center z-20 shadow-md">
           <div className="flex items-center gap-2.5">
-            <div className="p-1.5 bg-blue-600/10 text-blue-400 rounded-lg border border-blue-500/20">
-              <Layers size={18} />
+            <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
+              <img src="/favicon.svg" alt="K.A.S" className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
             </div>
             <div>
               <span className="text-xs text-blue-400 font-bold uppercase tracking-wider block">Kurum Analiz Sistemi</span>
@@ -236,13 +236,13 @@ export default function App() {
             {/* Header / Brand */}
             <div className="flex items-center justify-between border-b border-slate-900/40 pb-4 max-w-5xl mx-auto w-full">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-blue-600/10 text-blue-400 rounded-xl border border-blue-500/20 shadow-lg shadow-blue-500/5">
-                  <Layers size={22} className="animate-pulse" />
+                <div className="p-1 bg-blue-600/5 rounded-xl border border-slate-800 shadow-lg shadow-blue-500/5">
+                  <img src="/favicon.svg" alt="K.A.S Logo" className="w-9 h-9 object-contain" referrerPolicy="no-referrer" />
                 </div>
                 <div>
                   <span className="text-[10px] font-black tracking-widest text-blue-400 uppercase">Kişiselleştirilmiş Eğitim Yönetimi</span>
                   <h1 className="text-lg font-black text-slate-100 flex items-center gap-1.5 leading-none">
-                    K.A.S <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/15 font-black px-1.5 py-0.5 rounded-md">PRO SaaS v2.1</span>
+                    K.A.S <span className="text-[10px] bg-slate-900 text-slate-400 border border-slate-800/80 font-semibold px-2 py-0.5 rounded-full tracking-wide">Kurumsal Portal</span>
                   </h1>
                 </div>
               </div>
@@ -279,35 +279,51 @@ export default function App() {
             {/* Inner Marketing Wrapper (Centers and boundaries the content when full-width) */}
             <div className="max-w-5xl mx-auto w-full space-y-16 flex-1">
 
-              {/* Hero Section */}
-              <div className="space-y-6">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest text-blue-400 bg-blue-500/10 rounded-full border border-blue-500/10 shadow-inner">
-                <Sparkles size={11} className="animate-pulse text-blue-400" /> %94 Zaman Tasarrufu & Akıllı Eğitim Otomasyonu
-              </span>
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] text-transparent bg-clip-text bg-gradient-to-r from-slate-50 via-slate-100 to-slate-400">
-                Eğitim Kurumunuz İçin <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500">Uçtan Uca Takip & Satış</span> SaaS Çözümü
-              </h2>
-              <p className="text-sm md:text-base text-slate-400 leading-relaxed font-medium max-w-2xl">
-                YKS hazırlık sınavı PDF'lerini 3 saniyede okuyun, öğrencilerinize özel 1-1 birebir dersleri ve haftalık programları saniyeler içinde planlayın. Velilere otomatik gelişim raporları ve gerçek zamanlı bildirimler göndererek okulunuzun marka değerini katlayın.
-              </p>
-              
-              {/* Trust Badge Metrics */}
-              <div className="grid grid-cols-3 gap-4 pt-4 max-w-xl">
-                {[
-                  { value: "%94", label: "Zaman Tasarrufu", desc: "Sınav girişi & planlama" },
-                  { value: "3 Sn", label: "Yapay Zeka Analiz", desc: "PDF/OCR okuma hızı" },
-                  { value: "50+", label: "Aktif Eğitim Kurumu", desc: "Atatürk, Limit vb." }
-                ].map((stat, i) => (
-                  <div key={i} className="bg-slate-900/30 border border-slate-900 p-3.5 rounded-2xl relative overflow-hidden group hover:border-slate-800 transition-all">
-                    <div className="absolute top-0 right-0 w-12 h-12 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-all"></div>
-                    <span className="block text-2xl font-black text-blue-400 tracking-tight">{stat.value}</span>
-                    <span className="block text-[11px] font-extrabold text-slate-200 mt-0.5">{stat.label}</span>
-                    <span className="block text-[9px] text-slate-500 mt-0.5 font-medium leading-none">{stat.desc}</span>
+              {/* Hero Section with 2-Column Layout */}
+              <div className="flex flex-col lg:flex-row gap-12 items-center justify-between">
+                {/* Hero Text Column */}
+                <div className="flex-1 space-y-6">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest text-blue-400 bg-blue-500/10 rounded-full border border-blue-500/10 shadow-inner">
+                    <Sparkles size={11} className="animate-pulse text-blue-400" /> %94 Zaman Tasarrufu & Akıllı Eğitim Otomasyonu
+                  </span>
+                  <h2 className="text-4xl md:text-5xl lg:text-6.5xl font-black tracking-tight leading-[1.08] text-transparent bg-clip-text bg-gradient-to-r from-slate-50 via-slate-100 to-slate-400">
+                    Eğitim Kurumunuz İçin <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500">Uçtan Uca Takip & Satış</span> SaaS Çözümü
+                  </h2>
+                  <p className="text-sm md:text-base text-slate-400 leading-relaxed font-medium max-w-xl">
+                    YKS hazırlık sınavı PDF'lerini 3 saniyede okuyun, öğrencilerinize özel 1-1 birebir dersleri ve haftalık programları saniyeler içinde planlayın. Velilere otomatik gelişim raporları ve gerçek zamanlı bildirimler göndererek okulunuzun marka değerini katlayın.
+                  </p>
+                  
+                  {/* Trust Badge Metrics */}
+                  <div className="grid grid-cols-3 gap-4 pt-4 max-w-xl">
+                    {[
+                      { value: "%94", label: "Zaman Tasarrufu", desc: "Sınav girişi & planlama" },
+                      { value: "3 Sn", label: "Yapay Zeka Analiz", desc: "PDF/OCR okuma hızı" },
+                      { value: "50+", label: "Aktif Eğitim Kurumu", desc: "Atatürk, Limit vb." }
+                    ].map((stat, i) => (
+                      <div key={i} className="bg-slate-900/30 border border-slate-900 p-3.5 rounded-2xl relative overflow-hidden group hover:border-slate-800 transition-all">
+                        <div className="absolute top-0 right-0 w-12 h-12 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-all"></div>
+                        <span className="block text-2xl font-black text-blue-400 tracking-tight">{stat.value}</span>
+                        <span className="block text-[11px] font-extrabold text-slate-200 mt-0.5">{stat.label}</span>
+                        <span className="block text-[9px] text-slate-500 mt-0.5 font-medium leading-none">{stat.desc}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                 {/* Hero Logo Column */}
+                <div className="w-full lg:w-[420px] flex justify-center items-center">
+                  <div className="relative group p-1.5 bg-slate-950 rounded-[2.5rem] border border-slate-900 shadow-2xl overflow-hidden w-full max-w-sm lg:max-w-none">
+                    <div className="absolute -inset-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2.5rem] blur opacity-15 group-hover:opacity-30 transition duration-1000 group-hover:duration-200"></div>
+                    <img 
+                      src="/logo.svg" 
+                      alt="Kurum Analiz Sistemleri Logo" 
+                      className="w-full aspect-square object-contain rounded-[2.2rem] shadow-inner transform group-hover:scale-[1.02] transition-transform duration-500"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
 
             {/* Nasıl Çalışır? - İlk Defa Girenler İçin Hızlı Başlangıç Kılavuzu */}
             <div id="nasil-calisir" className="space-y-6 scroll-mt-6">
@@ -682,8 +698,8 @@ export default function App() {
                   ← Ana Sayfaya Dön
                 </button>
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-blue-600/10 text-blue-400 rounded-lg border border-blue-500/20">
-                    <Layers size={14} />
+                  <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
+                    <img src="/favicon.svg" alt="K.A.S" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />
                   </div>
                   <span className="text-[10px] font-black text-slate-300 tracking-wider">K.A.S PORTAL</span>
                 </div>
