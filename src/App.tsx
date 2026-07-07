@@ -312,34 +312,34 @@ export default function App() {
             {/* Nasıl Çalışır? - İlk Defa Girenler İçin Hızlı Başlangıç Kılavuzu */}
             <div id="nasil-calisir" className="space-y-6 scroll-mt-6">
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 text-[9px] bg-blue-500/10 border border-blue-500/20 text-blue-400 font-black rounded-md uppercase tracking-wider">HIZLI BAŞLANGIÇ</span>
-                <h3 className="text-sm font-bold text-slate-200">Sistem Nasıl Çalışır? (İlk Adımlar)</h3>
+                <span className="px-2 py-0.5 text-[9px] bg-blue-500/10 border border-blue-500/20 text-blue-400 font-black rounded-md uppercase tracking-wider">PRESTİJLİ BAŞLANGIÇ</span>
+                <h3 className="text-sm font-bold text-slate-200">K.A.S Nasıl Çalışır? (3 Adımda Tam Otomasyon)</h3>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed max-w-2xl">
-                K.A.S Kurum Analiz ve Birebir Ders Yönetim Platformu'nu kullanmaya başlamak oldukça basittir. İşte ilk kez giren kullanıcılarımız için 3 adımda hızlı başlangıç rehberi:
+                K.A.S Kurum Analiz ve Birebir Ders Yönetim Platformu ile dijital dönüşümünüzü tamamlamak çok kolay. Karmaşık kurulum süreçleriyle vakit kaybetmeden, sadece 3 basit adımda geleceğin eğitim teknolojisine geçiş yapın:
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
                   {
                     step: "1",
-                    title: "Yönetici Olarak Kaydolun",
-                    desc: "Sağ üst köşedeki 'Kurum Kaydı' butonunu kullanarak kurumunuzu saniyeler içinde kaydedin ve ilk yönetici (Admin) hesabınızı oluşturun.",
-                    badge: "Admin Adımı",
+                    title: "Saniyeler İçinde Dijitalleşin",
+                    desc: "Sağ üstteki 'Kurum Kaydı' butonuyla kurumunuzu hemen kaydedin. Bürokrasiyi ve evrak işlerini sıfıra indirerek, kurumunuza özel şık ve prestijli dijital paneli saniyeler içinde yayına alın.",
+                    badge: "Yönetici Kurulumu",
                     badgeColor: "text-blue-400 border-blue-500/10 bg-blue-500/5"
                   },
                   {
                     step: "2",
-                    title: "Öğretmen ve Sınıfları Ekleyin",
-                    desc: "Yönetici panelinizden öğretmenlerinizi, rehberlik kadronuzu ve öğrencilerinizi tanımlayın. Herkes için otomatik giriş hesapları oluşturulur.",
-                    badge: "Kurulum Adımı",
+                    title: "Eğitim Kadronuzu Dahil Edin",
+                    desc: "Öğretmen, rehber ve sınıf yapılarınızı zahmetsizce sisteme ekleyin. Eğitimcileriniz, öğrencileriniz ve velileriniz için özel, kurumsal şifreli giriş panelleri sistem tarafından otomatik üretilir.",
+                    badge: "Eğitimci & Sınıf Entegrasyonu",
                     badgeColor: "text-amber-400 border-amber-500/10 bg-amber-500/5"
                   },
                   {
                     step: "3",
-                    title: "Dersleri ve Sınavları Yönetin",
-                    desc: "PDF/OCR sınav sonuçlarını yükleyin, öğrencilerin gelişimini izleyin ve çakışmasız haftalık 1-1 ders programlarını anında dağıtın.",
-                    badge: "Süreç Yönetimi",
+                    title: "Analiz ve Birebir Gücünü Keşfedin",
+                    desc: "Çakışmasız 1-1 özel ders programlarını tek tıkla dağıtın. Sınav net analizlerini velilere otomatik ulaştırarak ve gelişim grafiklerini şeffafça paylaşarak veli memnuniyetinizi zirveye taşıyın.",
+                    badge: "Akıllı Süreç Yönetimi",
                     badgeColor: "text-emerald-400 border-emerald-500/10 bg-emerald-500/5"
                   }
                 ].map((item, idx) => (
