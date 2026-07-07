@@ -547,7 +547,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                 placeholder="Örn: Caner Çelik"
                 value={formData.ad_soyad}
                 onChange={e => setFormData({ ...formData, ad_soyad: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.8 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-100 font-medium focus:outline-none focus:border-blue-500 transition-all"
               />
             </div>
 
@@ -560,7 +560,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                   placeholder="Örn: 12345678901"
                   value={formData.tc_no}
                   onChange={e => setFormData({ ...formData, tc_no: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.8 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-100 font-medium focus:outline-none focus:border-blue-500 transition-all"
                 />
               </div>
 
@@ -569,7 +569,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                 <select
                   value={formData.alan}
                   onChange={e => setFormData({ ...formData, alan: e.target.value as any })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.8 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-200 font-medium focus:outline-none focus:border-blue-500 transition-all"
                 >
                   <option value="Sayısal">Sayısal</option>
                   <option value="Sözel">Sözel</option>
@@ -585,7 +585,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                 <select
                   value={formData.sinif_id}
                   onChange={e => setFormData({ ...formData, sinif_id: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.8 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-200 font-medium focus:outline-none focus:border-blue-500 transition-all"
                 >
                   {classes.map(c => <option key={c.id} value={c.id}>{c.ad}</option>)}
                 </select>
@@ -596,7 +596,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                 <select
                   value={formData.veli_id}
                   onChange={e => setFormData({ ...formData, veli_id: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.8 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-200 font-medium focus:outline-none focus:border-blue-500 transition-all"
                 >
                   <option value="">-- Veli Yok / Sonra Ata --</option>
                   {parents.map(p => <option key={p.id} value={p.id}>{p.ad_soyad} ({p.email})</option>)}

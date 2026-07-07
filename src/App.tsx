@@ -40,6 +40,14 @@ export default function App() {
   const [isAnnualBilling, setIsAnnualBilling] = useState(false);
   const [studentCountSlider, setStudentCountSlider] = useState(150);
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const clockTimer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(clockTimer);
+  }, []);
 
   useEffect(() => {
     // Check local storage for persistent login session
@@ -240,7 +248,6 @@ export default function App() {
               <div className="hidden sm:flex items-center gap-4 text-xs font-bold text-slate-400">
                 <a href="#nasil-calisir" className="hover:text-blue-400 transition">Nasıl Çalışır?</a>
                 <a href="#ozellikler" className="hover:text-blue-400 transition">Özellikler</a>
-                <a href="#hesaplayici" className="hover:text-blue-400 transition">Kazanç Hesapla</a>
                 <a href="#fiyatlandirma" className="hover:text-blue-400 transition">Fiyatlar</a>
               </div>
             </div>
@@ -372,92 +379,51 @@ export default function App() {
               </div>
             </div>
 
-            {/* Interactive ROI Calculator Widget (Adds incredible market appeal!) */}
-            <div id="hesaplayici" className="bg-slate-900/30 border border-slate-900 rounded-3xl p-6 lg:p-8 space-y-6 relative overflow-hidden scroll-mt-6">
+            {/* Biz Kimiz & Neden Biz? Section */}
+            <div id="biz-kimiz" className="bg-slate-900/30 border border-slate-900 rounded-3xl p-6 lg:p-8 space-y-6 relative overflow-hidden scroll-mt-6">
               <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl"></div>
               
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="space-y-1">
                   <span className="text-[10px] font-black text-blue-400 uppercase tracking-wider flex items-center gap-1">
-                    <Coins size={12} /> YATIRIM GERİ DÖNÜŞÜ (ROI) HESAPLAYICI
+                    <Award size={12} /> BİZ KİMİZ & NEDEN BİZ?
                   </span>
-                  <h3 className="text-lg font-black text-slate-100">K.A.S Kurumunuza Ne Kadar Tasarruf Sağlar?</h3>
+                  <h3 className="text-xl font-black text-slate-100">K.A.S Eğitim Teknolojileri</h3>
                 </div>
                 <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 font-black text-xs rounded-full">
-                  İnteraktif Simülatör
+                  Güvenilir Eğitim Çözümü
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                {/* Control Column */}
-                <div className="md:col-span-7 space-y-5">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center text-xs">
-                      <label className="text-slate-300 font-extrabold">Aktif Öğrenci Sayınız:</label>
-                      <span className="text-blue-400 font-black text-base">{studentCountSlider} Öğrenci</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="10"
-                      max="1000"
-                      step="10"
-                      value={studentCountSlider}
-                      onChange={(e) => setStudentCountSlider(Number(e.target.value))}
-                      className="w-full accent-blue-500 bg-slate-950 rounded-lg cursor-pointer h-2"
-                    />
-                    <div className="flex justify-between text-[9px] text-slate-500 font-bold">
-                      <span>10 Öğrenci</span>
-                      <span>500 Öğrenci</span>
-                      <span>1000+ Öğrenci</span>
-                    </div>
-                  </div>
+              <div className="space-y-5">
+                <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                  K.A.S, eğitim sektörünün içinden gelen deneyimli eğitimciler, rehberlik koordinatörleri ve yazılım mühendisleri tarafından kurulan profesyonel bir eğitim otomasyon platformudur. Amacımız, modern teknolojiyi geleneksel eğitim disipliniyle birleştirerek kurumların yönetimsel yükünü azaltmak ve başarı oranlarını artırmaktır.
+                </p>
 
-                  <div className="p-4 bg-slate-950/60 border border-slate-850 rounded-xl space-y-1 text-[11px] text-slate-400">
-                    <span className="font-extrabold text-slate-300 block">📊 Nasıl Hesaplanıyor?</span>
-                    Sınav başı veri girişi, 1-1 ders çakışması engelleme, haftalık veli Whatsapp raporlamaları ve optik okuma süreçlerinde harcanan ortalama süreler baz alınmıştır.
-                  </div>
-                </div>
-
-                {/* Results Column */}
-                <div className="md:col-span-5 bg-slate-950/85 border border-slate-850 p-5 rounded-2xl flex flex-col justify-between space-y-4">
-                  <div className="space-y-3">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block border-b border-slate-850 pb-2">KAZANIM TABLONUZ</span>
-                    
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400 font-semibold">Kazanılan Süre / Ay:</span>
-                      <span className="font-black text-slate-100 flex items-center gap-1">
-                        <Clock size={12} className="text-amber-400" /> ~{Math.round(studentCountSlider * 2.1)} Saat
-                      </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    {
+                      title: "Eğitimci Odaklı Yaklaşım",
+                      desc: "Biz de sahada çalıştık! Sınav takipleri, ders çakışmaları ve veli bildirimlerinin yarattığı stresi çok iyi bildiğimiz için sistemi tamamen pratiklik üzerine kurguladık."
+                    },
+                    {
+                      title: "Zaman ve Maliyet Tasarrufu",
+                      desc: "Haftalık manuel ders dağıtımları günlerinizi değil saniyelerinizi alır. Kağıt karneleri, SMS maliyetlerini ve karmaşık Excel tablolarını hayatınızdan tamamen çıkarıyoruz."
+                    },
+                    {
+                      title: "%100 Veli Memnuniyeti",
+                      desc: "Öğrencilerin gelişim grafiklerini ve ders planlarını şeffaf bir şekilde velilerle paylaşarak kurumunuzun veli nezdindeki kurumsal ciddiyetini ve bağlılığını en üst seviyeye çıkarıyoruz."
+                    },
+                    {
+                      title: "Sürekli Gelişen Bulut Altyapısı",
+                      desc: "Yedekleme ve sunucu kurulumu gerektirmeden, her hafta eklenen yeni analiz araçları ve özelliklerle sisteminizi her zaman güncel ve güvende tutuyoruz."
+                    }
+                  ].map((feat, idx) => (
+                    <div key={idx} className="bg-slate-950/40 border border-slate-850 p-4 rounded-xl space-y-1.5 hover:border-blue-500/20 transition-all">
+                      <span className="text-xs font-black text-blue-400 block">{feat.title}</span>
+                      <p className="text-[10px] text-slate-400 font-medium leading-normal">{feat.desc}</p>
                     </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400 font-semibold">Hatalı Ders Planlama:</span>
-                      <span className="font-black text-emerald-400">%0 Risk (Sıfır Hata)</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400 font-semibold">Yıllık Kağıt Tasarrufu:</span>
-                      <span className="font-black text-slate-100 flex items-center gap-1">
-                        <TrendingUp size={12} className="text-blue-400" /> ~{(studentCountSlider * 90).toLocaleString('tr-TR')} TL
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs pt-1.5 border-t border-slate-850/60">
-                      <span className="text-slate-400 font-semibold">Önerilen Lisans:</span>
-                      <span className="font-black text-blue-400 uppercase tracking-wider text-[10px]">
-                        {studentCountSlider <= 120 ? "GROWTH (GELİŞİM)" : studentCountSlider <= 350 ? "PRO (PROFESYONEL)" : "ENTERPRISE (KURUMSAL)"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsRegistering(true);
-                      const scrollForm = document.getElementById("auth-form-card");
-                      if (scrollForm) scrollForm.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-xl text-[11px] transition shadow-md shadow-blue-500/10 flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Sparkles size={12} /> Şimdi Hemen Dene
-                  </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -495,8 +461,8 @@ export default function App() {
                   {
                     title: "Gelişim (Growth)",
                     limit: "Maksimum 120 Öğrenci",
-                    priceMonthly: 1499,
-                    priceAnnual: 1199,
+                    priceMonthly: 750,
+                    priceAnnual: 599,
                     features: ["Yönetici & Öğretmen Girişleri", "Canlı YKS Sınav Analizi", "OCR / PDF Sonuç Taraması", "Öğrenci & Veli Raporları", "Haftalık Birebir Ders Planlama", "E-posta Destek Hattı"],
                     cta: "Gelişim'i Dene",
                     popular: false,
@@ -505,8 +471,8 @@ export default function App() {
                   {
                     title: "Profesyonel (Pro)",
                     limit: "Maksimum 350 Öğrenci",
-                    priceMonthly: 2999,
-                    priceAnnual: 2399,
+                    priceMonthly: 1500,
+                    priceAnnual: 1199,
                     features: ["Gelişim'deki Tüm Özellikler", "Akıllı Rehberlik & Görüşme Günlüğü", "Gelişmiş SVG Grafik Çıktıları", "YKS Hedef ve Sayaç Entegrasyonu", "7/24 Telefon & Whatsapp Desteği", "Özel Veri Aktarım Desteği"],
                     cta: "En Popüler Seçenek",
                     popular: true,
@@ -515,8 +481,8 @@ export default function App() {
                   {
                     title: "Kurumsal (Enterprise)",
                     limit: "Sınırsız Öğrenci & Çoklu Şube",
-                    priceMonthly: 4999,
-                    priceAnnual: 3999,
+                    priceMonthly: 2500,
+                    priceAnnual: 1999,
                     features: ["Profesyonel'deki Tüm Özellikler", "Multi-Şube Yönetim Portalı", "Özel Kurum Logosu & Domain", "Özel API ve Dışa Aktarımlar", "Yıllık Taahhüt Avantajları", "Özel Müşteri Başarı Temsilcisi"],
                     cta: "Kurumsal İletişim",
                     popular: false,
@@ -538,10 +504,10 @@ export default function App() {
                       <div className="flex items-baseline gap-1">
                         <span className="text-3xl font-black text-slate-50 tracking-tight">
                           {plan.popular && plan.popular 
-                            ? (isAnnualBilling ? "₺2.399" : "₺2.999") 
+                            ? (isAnnualBilling ? "₺1.199" : "₺1.500") 
                             : plan.title.includes("Gelişim") 
-                              ? (isAnnualBilling ? "₺1.199" : "₺1.499") 
-                              : (isAnnualBilling ? "₺3.999" : "₺4.999")
+                              ? (isAnnualBilling ? "₺599" : "₺750") 
+                              : (isAnnualBilling ? "₺1.999" : "₺2.500")
                           }
                         </span>
                         <span className="text-[10px] font-bold text-slate-500">/aylık</span>
@@ -874,41 +840,6 @@ export default function App() {
           {/* Sidebar Navigation */}
           <aside className="w-full md:w-64 bg-slate-900 md:border-r border-b md:border-b-0 border-slate-800/80 p-4 space-y-4 z-10 flex flex-row md:flex-col justify-between md:justify-start gap-2 overflow-x-auto md:overflow-visible">
             
-            {/* Logo & Kurum Başlığı (Desktop Only) */}
-            <div className="hidden md:flex items-center gap-3 px-1.5 py-1 mb-1 shrink-0">
-              <div className="p-2.5 bg-blue-600/10 text-blue-400 rounded-xl border border-blue-500/20 shadow-md shadow-blue-500/5">
-                <GraduationCap size={18} className="animate-pulse" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-xs font-black text-slate-100 uppercase tracking-wider truncate">
-                  {user.kurum_adi || "K.A.S Portal"}
-                </h2>
-                <span className="text-[9px] text-slate-500 font-bold block uppercase tracking-wider">Kurum Analiz Sistemi</span>
-              </div>
-            </div>
-
-            {/* User Profile Card (Desktop Only) */}
-            <div className="hidden md:flex items-center gap-3 p-3 bg-slate-950/40 border border-slate-850/80 rounded-2xl shrink-0">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-xs font-black text-white shadow-md shadow-blue-500/10 shrink-0 select-none">
-                {user.ad_soyad ? user.ad_soyad.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'US'}
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-xs font-bold text-slate-200 truncate">{user.ad_soyad}</h4>
-                <span className={`inline-block text-[8px] font-extrabold px-2 py-0.5 mt-0.5 rounded-full border ${
-                  user.rol === 'admin' ? 'bg-rose-500/10 border-rose-500/15 text-rose-400' :
-                  user.rol === 'ogretmen' ? 'bg-blue-500/10 border-blue-500/15 text-blue-400' :
-                  user.rol === 'rehber' ? 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400' :
-                  user.rol === 'veli' ? 'bg-amber-500/10 border-amber-500/15 text-amber-400' :
-                  'bg-purple-500/10 border-purple-500/15 text-purple-400'
-                }`}>
-                  {user.rol === 'admin' ? 'YÖNETİCİ' :
-                   user.rol === 'ogretmen' ? 'ÖĞRETMEN' :
-                   user.rol === 'rehber' ? 'REHBERLİK' :
-                   user.rol === 'veli' ? 'VELİ' : 'ÖĞRENCİ'}
-                </span>
-              </div>
-            </div>
-
             {/* Nav tabs list */}
             <div className="flex md:flex-col gap-1 w-full overflow-x-auto md:overflow-visible scrollbar-none">
               
@@ -1009,26 +940,21 @@ export default function App() {
               )}
             </div>
 
-            {/* System Status & Version details (Desktop Only) */}
-            <div className="hidden md:block pt-3 border-t border-slate-800/60 mt-auto space-y-3.5 shrink-0">
-              <div className="bg-slate-950/30 border border-slate-850/60 p-3 rounded-xl space-y-2">
+            {/* Canlı Saat ve Tarih Göstergesi (Desktop Only) */}
+            <div className="hidden md:block pt-3 border-t border-slate-800/60 mt-auto space-y-3 shrink-0">
+              <div className="bg-slate-950/40 border border-slate-850/60 p-3.5 rounded-2xl space-y-2.5">
                 <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase tracking-wider">
-                  <span>Sistem Durumu</span>
-                  <span className="flex items-center gap-1.5 text-emerald-400">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                    </span>
-                    Aktif
+                  <span className="flex items-center gap-1"><Clock size={10} className="text-blue-400" /> Güncel Zaman</span>
+                  <span className="text-blue-400 font-mono font-bold">CANLI</span>
+                </div>
+                
+                <div className="space-y-0.5">
+                  <span className="block text-2xl font-black text-slate-100 font-mono tracking-tight leading-none">
+                    {currentTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
-                </div>
-                <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
-                  <span className="flex items-center gap-1 text-slate-500"><Activity size={10} /> Sürüm Gecikmesi</span>
-                  <span>14ms</span>
-                </div>
-                <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
-                  <span>Bağlantı</span>
-                  <span className="text-blue-400 font-bold">Secure SSL</span>
+                  <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wide">
+                    {currentTime.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  </span>
                 </div>
               </div>
 

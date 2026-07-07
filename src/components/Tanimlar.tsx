@@ -333,7 +333,7 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
                   placeholder="Örn: 12-C SAY"
                   value={classAd}
                   onChange={e => setClassAd(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-100 font-medium focus:outline-none focus:border-blue-500 transition-all"
                 />
               </div>
               <div>
@@ -341,7 +341,7 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
                 <select
                   value={classSeviye}
                   onChange={e => setClassSeviye(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-200 font-medium focus:outline-none focus:border-blue-500 transition-all"
                 >
                   <option value="9">9. Sınıf</option>
                   <option value="10">10. Sınıf</option>
@@ -364,7 +364,7 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
                   placeholder="Örn: Burak Kaya"
                   value={staffName}
                   onChange={e => setStaffName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-100 font-medium focus:outline-none focus:border-blue-500 transition-all"
                 />
               </div>
 
@@ -376,7 +376,7 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
                   placeholder="Örn: 0555..."
                   value={staffPhone}
                   onChange={e => setStaffPhone(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-100 font-medium focus:outline-none focus:border-blue-500 transition-all"
                 />
               </div>
 
@@ -389,7 +389,7 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
                     placeholder="burak@kas.com"
                     value={staffEmail}
                     onChange={e => setStaffEmail(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-100 font-medium focus:outline-none focus:border-blue-500 transition-all"
                   />
                 </div>
                 <div>
@@ -400,7 +400,7 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
                     placeholder="Şifre"
                     value={staffPassword}
                     onChange={e => setStaffPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-100 font-medium focus:outline-none focus:border-blue-500 transition-all"
                   />
                 </div>
               </div>
