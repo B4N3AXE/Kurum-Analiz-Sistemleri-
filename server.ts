@@ -8,7 +8,7 @@ import { db, Kullanici, SinavSonuc, Ogrenci } from './server/db';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
+const PORT = process.env.NODE_ENV === 'production' ? (Number(process.env.PORT) || 3000) : 3001;
 
 // Setup JSON and multipart body parsing
 app.use(express.json({ limit: '15mb' }));

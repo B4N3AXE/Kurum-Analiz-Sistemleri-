@@ -5,7 +5,8 @@ import OgrenciPaneli from './components/OgrenciPaneli';
 import PdfOkuyucu from './components/PdfOkuyucu';
 import Mesajlar from './components/Mesajlar';
 import Tanimlar from './components/Tanimlar';
-import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star } from 'lucide-react';
+import Abonelik from './components/Abonelik';
+import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -38,9 +39,12 @@ export default function App() {
   const [loadingStudent, setLoadingStudent] = useState(false);
 
   // SaaS Marketing & Sales states
+  const [currentSubscription, setCurrentSubscription] = useState<string>(() => localStorage.getItem('kas_subscription_plan') || 'trial');
   const [isAnnualBilling, setIsAnnualBilling] = useState(false);
   const [studentCountSlider, setStudentCountSlider] = useState(150);
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null);
+  const [previewTab, setPreviewTab] = useState<'admin' | 'student' | 'pdf' | 'birebir'>('admin');
+  const [activePolicy, setActivePolicy] = useState<'privacy' | 'kvkk' | 'terms' | 'legal' | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -286,12 +290,12 @@ export default function App() {
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest text-blue-400 bg-blue-500/10 rounded-full border border-blue-500/10 shadow-inner">
                     <Sparkles size={11} className="animate-pulse text-blue-400" /> %94 Zaman Tasarrufu & Akıllı Eğitim Otomasyonu
                   </span>
-                  <h2 className="text-4xl md:text-5xl lg:text-6.5xl font-black tracking-tight leading-[1.08] text-transparent bg-clip-text bg-gradient-to-r from-slate-50 via-slate-100 to-slate-400">
-                    Eğitim Kurumunuz İçin <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500">Uçtan Uca Takip & Satış</span> SaaS Çözümü
+                  <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-transparent bg-clip-text bg-gradient-to-r from-slate-50 via-slate-100 to-slate-400">
+                    Eğitim Kurumları İçin <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500">Akıllı Takip & Analiz</span> Portali
                   </h2>
-                  <p className="text-sm md:text-base text-slate-400 leading-relaxed font-medium max-w-xl">
-                    YKS hazırlık sınavı PDF'lerini 3 saniyede okuyun, öğrencilerinize özel 1-1 birebir dersleri ve haftalık programları saniyeler içinde planlayın. Velilere otomatik gelişim raporları ve gerçek zamanlı bildirimler göndererek okulunuzun marka değerini katlayın.
+                  <p className="text-xs md:text-sm text-slate-400 leading-relaxed font-semibold max-w-xl">
+                    Sınav analizlerini, birebir ders programlarını ve veli bilgilendirmelerini tek ekrandan yönetin. Kurumunuza zaman kazandırın, veli memnuniyetini zirveye taşıyın.
                   </p>
                   
                   {/* Trust Badge Metrics */}
@@ -376,6 +380,281 @@ export default function App() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Interactive Product Preview & Live Tour Mockup Section */}
+            <div id="panel-onizleme" className="space-y-6 scroll-mt-6">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div className="space-y-1">
+                  <span className="text-xs font-extrabold text-blue-500 uppercase tracking-wider">CANLI SİSTEM DEMOLARI</span>
+                  <h3 className="text-2xl font-extrabold text-slate-100">K.A.S Panel Tasarımını Keşfedin</h3>
+                  <p className="text-xs text-slate-400 font-semibold max-w-xl">
+                    Sistemimizin nasıl göründüğünü ve çalıştığını merak mı ediyorsunuz? Aşağıdaki interaktif sekmelere tıklayarak modüllerimizin canlı arayüz tasarımlarını inceleyin.
+                  </p>
+                </div>
+                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider animate-pulse flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Canlı Demo Modu
+                </div>
+              </div>
+
+              {/* Tour Navigation Tabs */}
+              <div className="flex flex-wrap gap-2 bg-slate-900/60 p-2 rounded-2xl border border-slate-900">
+                {[
+                  { id: "admin", label: "Yönetici Paneli" },
+                  { id: "student", label: "Öğrenci & Veli Ekranı" },
+                  { id: "pdf", label: "PDF Sınav Okuyucu" },
+                  { id: "birebir", label: "Birebir Planlama" }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setPreviewTab(tab.id as any)}
+                    className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                      previewTab === tab.id
+                        ? "bg-blue-600 text-white shadow"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Browser / Mockup Container Frame */}
+              <div className="bg-slate-900/40 border border-slate-900 rounded-3xl p-1 shadow-2xl relative overflow-hidden">
+                
+                {/* Browser window top bar */}
+                <div className="bg-slate-950 px-4 py-3 border-b border-slate-900 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full bg-red-500/60"></span>
+                    <span className="w-3 h-3 rounded-full bg-yellow-500/60"></span>
+                    <span className="w-3 h-3 rounded-full bg-green-500/60"></span>
+                  </div>
+                  <div className="bg-slate-900 border border-slate-850 px-3 py-1 rounded-lg text-[10px] font-mono text-slate-500 select-none w-1/2 text-center truncate">
+                    https://app.kurumanalizsistemleri.com/demo/{previewTab}-portal
+                  </div>
+                  <div className="w-12"></div>
+                </div>
+
+                {/* Mock Content depending on selected tab */}
+                <div className="p-6 min-h-[340px] bg-slate-950/90 text-slate-200 flex flex-col justify-between">
+                  {previewTab === 'admin' && (
+                    <div className="space-y-6 animate-fade-in">
+                      <div className="flex justify-between items-center border-b border-slate-900 pb-3">
+                        <div>
+                          <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">YÖNETİCİ PANELİ</span>
+                          <h4 className="text-sm font-extrabold text-slate-100">Eğitim Kurumu Yönetim Merkezi</h4>
+                        </div>
+                        <span className="text-[10px] bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded font-black">Admin Aktif</span>
+                      </div>
+
+                      {/* Mock Metrics Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[
+                          { label: "Toplam Öğrenci", val: "148 Öğrenci", trend: "+%12 bu ay", color: "text-blue-400" },
+                          { label: "Haftalık Birebir", val: "412 Atama", trend: "%98.2 katılım", color: "text-purple-400" },
+                          { label: "Ortalama Sınav Başarısı", val: "%76.4 Başarı", trend: "%3.2 artış", color: "text-emerald-400" },
+                          { label: "Aktif Öğretmen", val: "18 Öğretmen", trend: "%100 doluluk", color: "text-amber-400" }
+                        ].map((m, idx) => (
+                          <div key={idx} className="bg-slate-900/50 border border-slate-900 p-3 rounded-xl space-y-1">
+                            <span className="text-[9px] text-slate-500 font-bold block">{m.label}</span>
+                            <span className={`text-sm font-black block ${m.color}`}>{m.val}</span>
+                            <span className="text-[8px] text-slate-600 block font-semibold">{m.trend}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Mock Table */}
+                      <div className="space-y-2">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Son Sınav Sonuçları (TYT-1 Deneme)</span>
+                        <div className="bg-slate-900/30 border border-slate-900 rounded-xl overflow-hidden text-[10px]">
+                          <div className="grid grid-cols-4 bg-slate-900 px-3 py-2 text-slate-400 font-extrabold border-b border-slate-900">
+                            <span>Öğrenci Adı</span>
+                            <span>Sınıfı</span>
+                            <span>Branş Dağılımı</span>
+                            <span className="text-right">Toplam Net</span>
+                          </div>
+                          {[
+                            { name: "Canan Demir", cls: "12-SAY", br: "Türkçe: 35D, Mat: 34D, Fen: 18D", net: "94.50" },
+                            { name: "Burak Yılmaz", cls: "12-EA", br: "Türkçe: 32D, Mat: 28D, Sos: 17D", net: "82.25" },
+                            { name: "Gizem Çelik", cls: "Mezun-SAY", br: "Türkçe: 38D, Mat: 36D, Fen: 19D", net: "103.75" }
+                          ].map((row, idx) => (
+                            <div key={idx} className="grid grid-cols-4 px-3 py-2.5 border-b border-slate-900/50 text-slate-300 font-medium hover:bg-slate-900/20">
+                              <span className="font-bold text-slate-200">{row.name}</span>
+                              <span className="text-slate-500">{row.cls}</span>
+                              <span className="text-slate-400 truncate">{row.br}</span>
+                              <span className="text-right text-blue-400 font-black">{row.net}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {previewTab === 'student' && (
+                    <div className="space-y-6 animate-fade-in">
+                      <div className="flex justify-between items-center border-b border-slate-900 pb-3">
+                        <div>
+                          <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest">ÖĞRENCİ & VELİ EKRANI</span>
+                          <h4 className="text-sm font-extrabold text-slate-100">Öğrenci Gelişim Karnesi & Programı</h4>
+                        </div>
+                        <span className="text-[10px] bg-purple-500/10 border border-purple-500/20 text-purple-400 px-2 py-0.5 rounded font-black">Mobil Uyumlu</span>
+                      </div>
+
+                      {/* Mock Student Stats */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Student Info Card */}
+                        <div className="bg-slate-900/40 border border-slate-900 p-4 rounded-2xl space-y-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-xs font-black text-blue-400">
+                              AY
+                            </div>
+                            <div>
+                              <span className="text-xs font-black text-slate-200 block">Ahmet Yılmaz</span>
+                              <span className="text-[9px] text-slate-500 font-bold block">12-Sayısal • No: 1245</span>
+                            </div>
+                          </div>
+                          
+                          {/* Subject Breakdown Bars */}
+                          <div className="space-y-2 pt-1">
+                            {[
+                              { sub: "Türkçe", net: "32.50 Net", pct: "w-[82%]", color: "bg-blue-500" },
+                              { sub: "Matematik", net: "31.75 Net", pct: "w-[79%]", color: "bg-purple-500" },
+                              { sub: "Fen Bilimleri", net: "14.25 Net", pct: "w-[55%]", color: "bg-emerald-500" }
+                            ].map((s, idx) => (
+                              <div key={idx} className="space-y-1">
+                                <div className="flex justify-between text-[8px] font-bold text-slate-400">
+                                  <span>{s.sub}</span>
+                                  <span>{s.net}</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
+                                  <div className={`h-full ${s.color} ${s.pct} rounded-full`}></div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Lessons Schedule Box */}
+                        <div className="bg-slate-900/40 border border-slate-900 p-4 rounded-2xl space-y-2.5">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Haftalık Birebir Programı</span>
+                          <div className="space-y-2">
+                            {[
+                              { day: "Salı", time: "14:30", teacher: "Elif Kaya (Matematik)", topic: "Türev ve Limit Çözümü" },
+                              { day: "Çarşamba", time: "16:15", teacher: "Canan Koç (Fizik)", topic: "Optik ve Dalgalar Soru Analizi" }
+                            ].map((sched, idx) => (
+                              <div key={idx} className="bg-slate-950 p-2.5 rounded-xl border border-slate-850 flex items-center justify-between text-[9px]">
+                                <div className="space-y-0.5">
+                                  <span className="text-slate-200 block font-black">{sched.teacher}</span>
+                                  <span className="text-slate-500 font-medium block">{sched.topic}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="bg-blue-500/10 text-blue-400 border border-blue-500/10 px-1.5 py-0.5 rounded font-black block">{sched.day}</span>
+                                  <span className="text-slate-400 block font-mono mt-0.5 font-bold">{sched.time}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {previewTab === 'pdf' && (
+                    <div className="space-y-6 animate-fade-in">
+                      <div className="flex justify-between items-center border-b border-slate-900 pb-3">
+                        <div>
+                          <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">YAPAY ZEKA PDF OKUYUCU</span>
+                          <h4 className="text-sm font-extrabold text-slate-100">OCR Sınav Dosyası Analiz Sihirbazı</h4>
+                        </div>
+                        <span className="text-[10px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-black">Otomatik Eşleştirme</span>
+                      </div>
+
+                      {/* Drag Drop Mockup */}
+                      <div className="border border-dashed border-slate-800 bg-slate-900/10 rounded-2xl p-6 text-center space-y-2 flex flex-col items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-blue-500/5 border border-slate-850 flex items-center justify-center text-blue-400 animate-pulse">
+                          <Sparkles size={16} />
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-xs font-black text-slate-200 block">Sınav Dosyasını Sürükleyip Bırakın</span>
+                          <span className="text-[9px] text-slate-500 block">3D, Bilgi Sarmal, Özdebir PDF veya Excel listeleri desteklenir</span>
+                        </div>
+                      </div>
+
+                      {/* AI Parsing log console */}
+                      <div className="bg-slate-950 border border-slate-900 p-3 rounded-xl font-mono text-[9px] text-slate-400 space-y-1">
+                        <div className="flex items-center gap-1.5 text-blue-400">
+                          <span>[OKU]</span>
+                          <span>'BilgiSarmal_TYT_Deneme_1.pdf' dosyası analiz ediliyor...</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-500">
+                          <span>[OKU]</span>
+                          <span>Dosya yapısı belirlendi. 142 satır / veri algılandı.</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-500">
+                          <span>[OKU]</span>
+                          <span>T.C. No ve Öğrenci ad-soyad sütunları otomatik eşleştirildi.</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-emerald-400">
+                          <span>[OKU]</span>
+                          <span>✓ Tamamlandı. Veriler sisteme aktarıldı, 142 veli SMS'i hazırlandı!</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {previewTab === 'birebir' && (
+                    <div className="space-y-6 animate-fade-in">
+                      <div className="flex justify-between items-center border-b border-slate-900 pb-3">
+                        <div>
+                          <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">BİREBİR PLANLAMA MOTORU</span>
+                          <h4 className="text-sm font-extrabold text-slate-100">Çakışma Kontrollü Akıllı Haftalık Planlayıcı</h4>
+                        </div>
+                        <span className="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2 py-0.5 rounded font-black">Çakışmasız Atama</span>
+                      </div>
+
+                      {/* Mock Appointment Creator Form */}
+                      <div className="bg-slate-900/40 border border-slate-900 p-4 rounded-2xl space-y-4">
+                        <div className="grid grid-cols-2 gap-3 text-[10px]">
+                          <div className="space-y-1">
+                            <span className="text-slate-400 font-bold block">ÖĞRENCİ SEÇİN</span>
+                            <div className="bg-slate-950 border border-slate-850 px-3 py-2 rounded-lg text-slate-200 font-semibold">
+                              Gizem Çelik (Mezun-SAY)
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-slate-400 font-bold block">ÖĞRETMEN VE BRANŞ SEÇİN</span>
+                            <div className="bg-slate-950 border border-slate-850 px-3 py-2 rounded-lg text-slate-200 font-semibold">
+                              Murat Yalçın (Geometri)
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Interactive Status Indicator bar */}
+                        <div className="flex items-center justify-between p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl text-[10px] font-bold text-emerald-400">
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle size={13} />
+                            <span>Öğrenci ve Öğretmen için bu saat dilimi uygun. Çakışma bulunmadı.</span>
+                          </div>
+                          <span className="bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-black uppercase text-[8px]">SAAT UYGUN</span>
+                        </div>
+
+                        <div className="flex justify-end">
+                          <button type="button" className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] px-4 py-2 rounded-xl transition">
+                            Birebir Dersi Kaydet & Veliyi Bilgilendir
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Trust footer block inside mockup */}
+                  <div className="border-t border-slate-900/80 pt-4 flex justify-between items-center text-[9px] text-slate-500 font-bold mt-4">
+                    <span>Eğitim Kurumları Yönetim ve Analiz Altyapısı</span>
+                    <span>Güvenli • SSL Korumalı</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -475,8 +754,8 @@ export default function App() {
             <div id="fiyatlandirma" className="space-y-6 scroll-mt-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="space-y-1">
-                  <span className="text-xs font-extrabold text-blue-500 uppercase tracking-wider">ŞEFFAF LİSANSLAMA</span>
-                  <h3 className="text-2xl font-extrabold text-slate-100">Büyümenize Uygun Fiyatlandırma</h3>
+                  <span className="text-xs font-extrabold text-blue-500 uppercase tracking-wider font-sans">ŞEFFAF VE TEK FİYAT</span>
+                  <h3 className="text-2xl font-extrabold text-slate-100 font-sans tracking-tight">K.A.S Sınırsız Portal Lisansı</h3>
                 </div>
 
                 {/* Billing Toggle Switcher */}
@@ -498,94 +777,125 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Pricing Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                  {
-                    title: "Gelişim (Growth)",
-                    limit: "Maksimum 120 Öğrenci",
-                    priceMonthly: 750,
-                    priceAnnual: 599,
-                    features: ["Yönetici & Öğretmen Girişleri", "Canlı YKS Sınav Analizi", "OCR / PDF Sonuç Taraması", "Öğrenci & Veli Raporları", "Haftalık Birebir Ders Planlama", "E-posta Destek Hattı"],
-                    cta: "Gelişim'i Dene",
-                    popular: false,
-                    color: "border-slate-900 bg-slate-900/10"
-                  },
-                  {
-                    title: "Profesyonel (Pro)",
-                    limit: "Maksimum 350 Öğrenci",
-                    priceMonthly: 1500,
-                    priceAnnual: 1199,
-                    features: ["Gelişim'deki Tüm Özellikler", "Akıllı Rehberlik & Görüşme Günlüğü", "Gelişmiş SVG Grafik Çıktıları", "YKS Hedef ve Sayaç Entegrasyonu", "7/24 Telefon & Whatsapp Desteği", "Özel Veri Aktarım Desteği"],
-                    cta: "En Popüler Seçenek",
-                    popular: true,
-                    color: "border-blue-500/45 bg-blue-500/5 shadow-lg shadow-blue-500/5"
-                  },
-                  {
-                    title: "Kurumsal (Enterprise)",
-                    limit: "Sınırsız Öğrenci & Çoklu Şube",
-                    priceMonthly: 2500,
-                    priceAnnual: 1999,
-                    features: ["Profesyonel'deki Tüm Özellikler", "Multi-Şube Yönetim Portalı", "Özel Kurum Logosu & Domain", "Özel API ve Dışa Aktarımlar", "Yıllık Taahhüt Avantajları", "Özel Müşteri Başarı Temsilcisi"],
-                    cta: "Kurumsal İletişim",
-                    popular: false,
-                    color: "border-slate-900 bg-slate-900/10"
-                  }
-                ].map((plan, i) => (
-                  <div key={i} className={`border rounded-3xl p-6 space-y-6 flex flex-col justify-between relative ${plan.color} hover:border-slate-750 transition-all duration-300`}>
-                    {plan.popular && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-full tracking-wider border border-blue-400">
-                        EN POPÜLER
+              {/* Pricing Grid (2 Cards layout) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                
+                {/* Free Trial Card */}
+                <div className="border border-slate-850 bg-slate-900/10 rounded-3xl p-6 space-y-6 flex flex-col justify-between hover:border-slate-800 transition-all duration-300">
+                  <div className="space-y-4">
+                    <div>
+                      <span className="bg-slate-800/80 text-slate-300 text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider">
+                        KART GEREKMEZ
                       </span>
-                    )}
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="text-sm font-black text-slate-100">{plan.title}</h4>
-                        <span className="text-[10px] text-slate-400 font-bold block mt-0.5">{plan.limit}</span>
-                      </div>
-                      
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black text-slate-50 tracking-tight">
-                          {plan.popular && plan.popular 
-                            ? (isAnnualBilling ? "₺1.199" : "₺1.500") 
-                            : plan.title.includes("Gelişim") 
-                              ? (isAnnualBilling ? "₺599" : "₺750") 
-                              : (isAnnualBilling ? "₺1.999" : "₺2.500")
-                          }
-                        </span>
-                        <span className="text-[10px] font-bold text-slate-500">/aylık</span>
-                      </div>
-                      <span className="text-[10px] text-slate-500 block font-bold">
-                        {isAnnualBilling ? "*Yıllık peşin faturalandırılır." : "*Aylık faturalandırılır, iptal edilebilir."}
-                      </span>
-
-                      <div className="border-t border-slate-900/60 pt-4 space-y-2">
-                        {plan.features.map((f, idx) => (
-                          <div key={idx} className="flex items-center gap-2 text-[11px] text-slate-300 font-medium">
-                            <CheckCircle size={12} className="text-blue-500 shrink-0" />
-                            <span>{f}</span>
-                          </div>
-                        ))}
-                      </div>
+                      <h4 className="text-base font-black text-slate-100 mt-2">14 Günlük Ücretsiz Deneme</h4>
+                      <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Sistemi risksiz test edin</span>
                     </div>
+                    
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-slate-50 tracking-tight">₺0</span>
+                      <span className="text-[10px] font-bold text-slate-500">/ 14 gün</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 block font-bold">
+                      *Hiçbir taahhüt veya kredi kartı bilgisi gerekmez.
+                    </span>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsRegistering(true);
-                        setRegKurum(`Atatürk Anadolu Lisesi (SaaS ${plan.title.split(' ')[0]})`);
-                        setShowAuthScreen(true);
-                      }}
-                      className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        plan.popular 
-                          ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/10"
-                          : "bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-850"
-                      }`}
-                    >
-                      {plan.cta}
-                    </button>
+                    <div className="border-t border-slate-900/60 pt-4 space-y-2">
+                      {[
+                        "Tüm Gelişmiş Modüllere Erişim",
+                        "Öğrenci & Öğretmen Tanımlama",
+                        "Sınırlandırılmamış PDF Analiz Hakkı",
+                        "Birebir Ders ve Etüt Programlama",
+                        "Rehberlik Görüşme Günlükleri",
+                        "Deneme Sonrası Verileriniz Silinmez"
+                      ].map((f, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-[11px] text-slate-300 font-medium">
+                          <CheckCircle size={12} className="text-blue-500 shrink-0" />
+                          <span>{f}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRegistering(true);
+                      setRegKurum("");
+                      setShowAuthScreen(true);
+                      setTimeout(() => {
+                        document.getElementById('auth-form-card')?.scrollIntoView({ behavior: 'smooth' });
+                      }, 100);
+                    }}
+                    className="w-full py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-850"
+                  >
+                    Ücretsiz Denemeyi Başlat ⚡
+                  </button>
+                </div>
+
+                {/* Sınırsız Premium Card */}
+                <div className="border border-blue-500/30 bg-blue-500/5 shadow-lg shadow-blue-500/5 rounded-3xl p-6 space-y-6 flex flex-col justify-between relative hover:border-blue-500/50 transition-all duration-300">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-full tracking-wider border border-blue-400">
+                    EN POPÜLER • TEK LİSANS
+                  </span>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-base font-black text-slate-100 mt-2">K.A.S Sınırsız Premium</h4>
+                      <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Sınırsız Öğrenci, Veli ve Şube</span>
+                    </div>
+                    
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-slate-50 tracking-tight">
+                        {isAnnualBilling ? "₺750" : "₺950"}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-500">/aylık</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 block font-bold">
+                      {isAnnualBilling ? "*Yıllık peşin (₺9.000) faturalandırılır." : "*Aylık faturalandırılır, iptal edilebilir."}
+                    </span>
+
+                    <div className="border-t border-slate-900/60 pt-4 space-y-2">
+                      {[
+                        "Tüm SaaS Özellikleri & Modüller Sınırsız",
+                        "Yapay Zeka Destekli PDF Sınav Okuyucu",
+                        "Akıllı Birebir Ders Çakışma Engelleyici",
+                        "Veli Gelişim Raporları & Anlık Karneler",
+                        "Rehberlik & Görüşme Günlükleri",
+                        "7/24 WhatsApp & Telefon Destek Hattı",
+                        "Sürekli Güncellenen Bulut Altyapısı"
+                      ].map((f, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-[11px] text-slate-300 font-medium">
+                          <CheckCircle size={12} className="text-blue-500 shrink-0" />
+                          <span>{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRegistering(true);
+                      setRegKurum("");
+                      setShowAuthScreen(true);
+                      setTimeout(() => {
+                        document.getElementById('auth-form-card')?.scrollIntoView({ behavior: 'smooth' });
+                      }, 100);
+                    }}
+                    className="w-full py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/15"
+                  >
+                    Deneme Başlat & Premium'a Geç 💎
+                  </button>
+                </div>
+
+              </div>
+
+              {/* Informational Guidance Warning Banner for payments */}
+              <div className="max-w-4xl mx-auto bg-slate-950/80 border border-slate-850 p-4 rounded-2xl space-y-2 text-center">
+                <span className="font-extrabold uppercase text-[10px] text-blue-400 tracking-wider block">💳 ÖDEME SİSTEMİ HAKKINDA BİLGİLENDİRME</span>
+                <p className="text-[10px] text-slate-400 font-semibold leading-relaxed max-w-2xl mx-auto">
+                  Güvenlik ve kurum-hesap eşleştirmesi nedeniyle kredi kartı ile lisans satın alma/yükseltme işlemleri <strong>yalnızca kayıt olup sisteme giriş yaptıktan sonra Kurum Paneli içerisindeki "Abonelik" sekmesinden</strong> yapılmaktadır. Kayıt esnasında sizden kredi kartı bilgisi kesinlikle istenmez.
+                </p>
               </div>
             </div>
 
@@ -613,6 +923,22 @@ export default function App() {
                   {
                     q: "Kendi kurum logomuzu ekleyebilir miyiz?",
                     a: "Evet, kurumsal lisansta kendi logonuzu, renklerinizi ekleyebilir ve veli bildirimlerini kendi kurumsal başlığınızla özelleştirebilirsiniz."
+                  },
+                  {
+                    q: "14 günlük deneme süresi bittiğinde ne olur? Otomatik ücret çekilir mi?",
+                    a: "Hayır, K.A.S'ta kayıt esnasında kredi kartı bilgisi istenmez. 14 gün boyunca tüm özellikleri tamamen ücretsiz ve sınırsız olarak test edersiniz. Süre sonunda memnun kalırsanız dilediğiniz paketi seçerek devam edebilirsiniz."
+                  },
+                  {
+                    q: "KVKK ve Veri Güvenliği mevzuatına uyumlu mu?",
+                    a: "Evet, sistemimiz %100 KVKK uyumludur. Öğrenci, öğretmen ve veli verileri güvenli bulut altyapımızda yüksek standartlarda şifrelenerek korunur ve üçüncü taraflarla kesinlikle paylaşılmaz."
+                  },
+                  {
+                    q: "Kullanım için ek donanım, barkod okuyucu veya sunucu gerekir mi?",
+                    a: "Kesinlikle hayır. K.A.S bulut tabanlı bir SaaS platformudur. Herhangi bir bilgisayar, tablet veya akıllı telefondan web tarayıcısı üzerinden sisteme anında erişebilirsiniz. Ek bir kuruluma veya donanıma ihtiyaç yoktur."
+                  },
+                  {
+                    q: "Veli ve öğrencilere bildirimler ücretsiz mi ulaştırılıyor?",
+                    a: "Evet. Tüm karne gönderimleri, birebir ders bildirimleri ve rehberlik raporları veli ve öğrenci paneline anlık, sınırsız ve tamamen ücretsiz ulaştırılır. Ekstra bir SMS maliyetiniz bulunmaz."
                   }
                 ].map((item, idx) => {
                   const isOpen = activeFaqIndex === idx;
@@ -670,9 +996,182 @@ export default function App() {
             </div>
 
             {/* Footer */}
-            <div className="text-center text-[10px] text-slate-500 font-bold pt-8 border-t border-slate-900/40">
-              © 2026 K.A.S SaaS Inc. Tüm hakları saklıdır. Eğitim Kurumları Yönetim ve Birebir Ders Otomasyon Platformu.
+            <div className="pt-12 border-t border-slate-900/60 mt-16 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+                
+                {/* Brand & Socials Column */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
+                      <img src="/favicon.svg" alt="K.A.S" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />
+                    </div>
+                    <span className="text-xs font-black text-slate-200 tracking-wider">K.A.S KURUMSAL</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
+                    Eğitim kurumlarında zaman tasarrufu, veri doğruluğu ve veli memnuniyeti sağlayan yeni nesil SaaS bulut otomasyonu.
+                  </p>
+                </div>
+
+                {/* Legal & Policies Column */}
+                <div className="space-y-3">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Yasal & Kurumsal</span>
+                  <div className="flex flex-col space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setActivePolicy('kvkk')}
+                      className="text-[10px] font-extrabold text-slate-400 hover:text-slate-200 text-left transition cursor-pointer"
+                    >
+                      KVKK Aydınlatma Metni
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivePolicy('privacy')}
+                      className="text-[10px] font-extrabold text-slate-400 hover:text-slate-200 text-left transition cursor-pointer"
+                    >
+                      Gizlilik Politikası
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivePolicy('terms')}
+                      className="text-[10px] font-extrabold text-slate-400 hover:text-slate-200 text-left transition cursor-pointer"
+                    >
+                      Kullanım Koşulları
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivePolicy('legal')}
+                      className="text-[10px] font-extrabold text-slate-400 hover:text-slate-200 text-left transition cursor-pointer"
+                    >
+                      Yasal Uyarı
+                    </button>
+                  </div>
+                </div>
+
+                {/* Contact Column */}
+                <div className="space-y-3">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">İletişim & Destek</span>
+                  <div className="space-y-2 text-[10px] text-slate-400 font-bold leading-normal">
+                    <p className="flex items-center gap-1.5">
+                      <span className="text-blue-400">✉</span> cagriiscen26@gmail.com
+                    </p>
+                    <p className="flex items-center gap-1.5">
+                      <span className="text-blue-400">📞</span> +90 542 610 5632
+                    </p>
+                    <p className="flex items-center gap-1.5">
+                      <span className="text-blue-400">📍</span> Türkiye (Online Hizmet)
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Bottom Copyright and disclaimer */}
+              <div className="pt-6 border-t border-slate-900/40 text-center space-y-2">
+                <p className="text-[10px] text-slate-500 font-bold">
+                  © 2026 K.A.S SaaS Inc. Tüm hakları saklıdır. Eğitim Kurumları Yönetim ve Birebir Ders Otomasyon Platformu.
+                </p>
+                <p className="text-[8px] text-slate-600 font-semibold leading-relaxed">
+                  * K.A.S platformu üzerindeki tüm analizler, grafikler ve istatistiksel raporlar eğitim standartlarına ve başarı kriterlerine uygun olarak hazırlanmakta olup, eğitim süreçlerinde yüksek verimlilik sağlamaktadır.
+                </p>
+              </div>
             </div>
+
+            {/* POLICY DIALOGS MODAL POPUP */}
+            {activePolicy && (
+              <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 w-full max-w-2xl max-h-[85vh] overflow-y-auto space-y-6 shadow-2xl relative">
+                  <button
+                    type="button"
+                    onClick={() => setActivePolicy(null)}
+                    className="absolute top-4 right-4 text-slate-400 hover:text-slate-100 bg-slate-950/50 p-2 rounded-xl border border-slate-800 transition cursor-pointer text-xs font-bold"
+                  >
+                    ✕ Kapat
+                  </button>
+
+                  {activePolicy === 'privacy' && (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-black text-slate-100 border-b border-slate-800 pb-3 flex items-center gap-2">
+                        <Shield className="text-blue-400" size={18} />
+                        <span>Gizlilik Politikası</span>
+                      </h3>
+                      <div className="text-xs text-slate-300 leading-relaxed space-y-3 font-semibold text-left">
+                        <p><strong>1. Veri Sorumlusu</strong></p>
+                        <p>K.A.S Eğitim Teknolojileri A.Ş. olarak kişisel verilerinizin güvenliğine ve gizliliğine büyük önem veriyoruz. Bu politika, platformumuz üzerinden toplanan verilerin nasıl işlendiğini açıklar.</p>
+                        <p><strong>2. Toplanan Veriler ve İşleme Amaçları</strong></p>
+                        <p>Kurum kayıt esnasında toplanan yönetici adı, telefon numarası, e-posta adresi ile öğrencilere ait sınav netleri, ders programı bilgileri yalnızca eğitim süreçlerinin analizi ve velilerin bilgilendirilmesi amacıyla işlenmektedir.</p>
+                        <p><strong>3. Verilerin Saklanması ve Güvenliği</strong></p>
+                        <p>Tüm verileriniz Türkiye lokasyonlu, SSL şifreli ve yüksek güvenlik standartlarına sahip güvenli bulut sunucularımızda saklanır. Yetkisiz erişimlerin engellenmesi için her türlü teknik tedbir alınmaktadır.</p>
+                        <p><strong>4. Üçüncü Taraflarla Paylaşım</strong></p>
+                        <p>Kişisel verileriniz yasal zorunluluklar haricinde hiçbir şekilde üçüncü şahıslarla, reklam verenlerle veya iş ortaklarıyla paylaşılmaz.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {activePolicy === 'kvkk' && (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-black text-slate-100 border-b border-slate-800 pb-3 flex items-center gap-2">
+                        <Shield className="text-blue-400" size={18} />
+                        <span>KVKK Aydınlatma Metni</span>
+                      </h3>
+                      <div className="text-xs text-slate-300 leading-relaxed space-y-3 font-semibold text-left">
+                        <p><strong>6698 Sayılı Kişisel Verilerin Korunması Kanunu (KVKK) Kapsamında Aydınlatma Beyanı</strong></p>
+                        <p>İşbu aydınlatma metni, veri sorumlusu sıfatıyla K.A.S Eğitim Teknolojileri tarafından, platformumuzu kullanan Kurum Yöneticileri, Öğretmenler, Veliler ve Öğrencileri bilgilendirmek amacıyla hazırlanmıştır.</p>
+                        <p><strong>1. Kişisel Verilerin İşlenme Amacı</strong></p>
+                        <p>Öğrencilerin eğitim performanslarının analizi, deneme sınavı sonuçlarının takibi, birebir derslerin planlanması, veli bilgilendirme süreçlerinin yönetilmesi ve sisteme güvenli giriş sağlanması amaçlarıyla sınırlı olarak işlenmektedir.</p>
+                        <p><strong>2. İşlenen Verilerin Kimlere Aktarılabileceği</strong></p>
+                        <p>Kişisel verileriniz, Kanun’un 8. ve 9. maddelerinde belirtilen şartlar dahilinde yalnızca yetkili kamu kurum ve kuruluşlarına yasal zorunluluk kapsamında aktarılabilecek olup, bunun dışında hiçbir özel kurumla paylaşılmamaktadır.</p>
+                        <p><strong>3. Veri Sahibinin Hakları</strong></p>
+                        <p>KVKK'nın 11. maddesi uyarınca dilediğiniz zaman veri sorumlusuna başvurarak kişisel verilerinizin; işlenip işlenmediğini öğrenme, işlenme amacına uygun kullanılıp kullanılmadığını sorma, eksik veya yanlış işlenmişse düzeltilmesini isteme ve silinmesini talep etme haklarına sahipsiniz.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {activePolicy === 'terms' && (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-black text-slate-100 border-b border-slate-800 pb-3 flex items-center gap-2">
+                        <FileText className="text-blue-400" size={18} />
+                        <span>Kullanım Koşulları</span>
+                      </h3>
+                      <div className="text-xs text-slate-300 leading-relaxed space-y-3 font-semibold text-left">
+                        <p><strong>1. Taraflar ve Tanımlar</strong></p>
+                        <p>K.A.S Eğitim Teknolojileri platformuna üye olan veya deneme sürümü başlatan tüm eğitim kurumları ve kullanıcılar, bu Kullanım Koşullarını peşinen kabul etmiş sayılır.</p>
+                        <p><strong>2. Hizmet Kapsamı ve Değişiklikler</strong></p>
+                        <p>K.A.S, eğitim kurumlarının sınav analizi, ders programlama ve veli takibi gibi süreçlerini bulut tabanlı bir yazılım aracılığıyla yönetmelerini sağlar. K.A.S, hizmet kalitesini artırmak amacıyla platform üzerinde güncelleme ve değişiklik yapma hakkını saklı tutar.</p>
+                        <p><strong>3. Fikri Mülkiyet ve Haklar</strong></p>
+                        <p>Sistemde yer alan tüm kodlar, tasarımlar, logolar ve yazılımsal altyapı K.A.S Eğitim Teknolojileri'ne aittir. İzinsiz kopyalanması, dağıtılması veya tersine mühendislik yapılması yasaktır.</p>
+                        <p><strong>4. Sorumluluk Sınırları</strong></p>
+                        <p>Kullanıcıların kendi şifrelerini güvenli bir şekilde saklamaları kendi sorumluluğundadır. Üçüncü şahısların eline geçen kullanıcı hesap bilgileri ve bunlardan doğan veri kayıplarından platformumuz sorumlu tutulamaz.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {activePolicy === 'legal' && (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-black text-slate-100 border-b border-slate-800 pb-3 flex items-center gap-2">
+                        <AlertCircle className="text-blue-400" size={18} />
+                        <span>Yasal Uyarı</span>
+                      </h3>
+                      <div className="text-xs text-slate-300 leading-relaxed space-y-3 font-semibold text-left">
+                        <p><strong>Yasal Sorumluluk Beyanı</strong></p>
+                        <p>K.A.S portalında yer alan tüm veriler, analiz sonuçları ve grafikler yalnızca eğitim kurumlarına yardımcı nitelikte istatistiksel raporlar sunmaktadır. Kararların veya akademik yönlendirmelerin nihai sorumluluğu eğitim kurumu yöneticilerine ve velilere aittir.</p>
+                        <p><strong>Marka ve Telif Hakları</strong></p>
+                        <p>'K.A.S' ve 'Kurum Analiz Sistemleri' tescilli markalar olup, sistem arayüzleri ve marka unsurlarının izinsiz ticari amaçla taklit edilmesi veya kullanılması durumunda yasal işlem başlatılacaktır.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-4 border-t border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setActivePolicy(null)}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+                    >
+                      Anladım, Kapat
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             </div> {/* Inner Marketing Wrapper end */}
           </div> {/* Left Side end */}
@@ -1006,6 +1505,20 @@ export default function App() {
                   <Settings size={15} /> Kurum Yönetimi
                 </button>
               )}
+
+              {/* Tab: Abonelik & Ödeme (Only Admin) */}
+              {user.rol === 'admin' && (
+                <button
+                  onClick={() => setCurrentTab('abonelik')}
+                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                    currentTab === 'abonelik'
+                      ? "bg-blue-600 text-white shadow shadow-blue-500/10"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                  }`}
+                >
+                  <Coins size={15} /> Abonelik & Ödeme
+                </button>
+              )}
             </div>
 
             {/* Canlı Saat ve Tarih Göstergesi (Desktop Only) */}
@@ -1024,6 +1537,24 @@ export default function App() {
                     {currentTime.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                   </span>
                 </div>
+              </div>
+
+              <div className="bg-slate-950/40 border border-slate-850/60 p-3 rounded-2xl space-y-1">
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Lisans Durumu</span>
+                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded block text-center ${
+                  currentSubscription === 'trial' ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' :
+                  'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                }`}>
+                  {currentSubscription === 'trial' ? "Deneme Sürümü (12 Gün)" : "Sınırsız Premium 💎"}
+                </span>
+                {user.rol === 'admin' && currentSubscription === 'trial' && (
+                  <button 
+                    onClick={() => setCurrentTab('abonelik')}
+                    className="text-[9px] text-blue-400 hover:text-blue-300 font-extrabold underline block text-center w-full mt-1 cursor-pointer"
+                  >
+                    Şimdi Paketini Yükselt ⚡
+                  </button>
+                )}
               </div>
 
               <div className="text-[10px] text-slate-500 font-bold space-y-0.5 px-1">
@@ -1059,6 +1590,19 @@ export default function App() {
             {/* MOUNT VIEW: Configurations & Staff management */}
             {currentTab === 'tanimlar' && user.rol === 'admin' && (
               <Tanimlar user={user} token={token} />
+            )}
+
+            {/* MOUNT VIEW: Abonelik & Ödeme */}
+            {currentTab === 'abonelik' && user.rol === 'admin' && (
+              <Abonelik 
+                user={user} 
+                token={token} 
+                currentPlan={currentSubscription}
+                onUpgradeSuccess={(newPlan) => {
+                  setCurrentSubscription(newPlan);
+                  localStorage.setItem('kas_subscription_plan', newPlan);
+                }} 
+              />
             )}
 
             {/* MOUNT VIEW: Individual Child performance report for Parent (Veli Paneli) */}
