@@ -198,8 +198,12 @@ app.get('/api/dashboard/stats', (req, res) => {
     averageTytNet = Number((totalNet / tytResults.length).toFixed(2));
   }
 
-  // Risk analysis: Students who dropped more than 3 nets in recent exams
-  // Let's analyze students having consecutive results
+  // Dynamic Risk Analysis based on custom thresholds
+  const thresholds = db.getRiskThresholds();
+  const tytThreshold = thresholds.find(t => t.tur === 'TYT') || { turkce_net: 25, sosyal_net: 12, matematik_net: 20, fen_net: 12, toplam_net: 60 };
+  const aytThreshold = thresholds.find(t => t.tur === 'AYT') || { turkce_net: 15, sosyal_net: 15, matematik_net: 15, fen_net: 15, toplam_net: 45 };
+  const lgsThreshold = thresholds.find(t => t.tur === 'LGS') || { turkce_net: 14, sosyal_net: 18, matematik_net: 10, fen_net: 12, toplam_net: 55 };
+
   const riskStudents: any[] = [];
   students.forEach(student => {
     const studentResults = results
@@ -215,13 +219,33 @@ app.get('/api/dashboard/stats', (req, res) => {
       })
       .sort((a, b) => b.date.localeCompare(a.date)); // newest first
 
-    if (studentResults.length >= 2) {
+    if (studentResults.length > 0) {
       const latest = studentResults[0];
-      const previous = studentResults[1];
-      const change = latest.toplam_net - previous.toplam_net;
-      
-      if (change <= -3.0) {
-        // Find if they have a guidance note
+      const isTyt = latest.examType === 'TYT';
+      const isAyt = latest.examType === 'AYT';
+      const th = isTyt ? tytThreshold : (isAyt ? aytThreshold : lgsThreshold);
+
+      const reasons: string[] = [];
+      const trLabel = isTyt ? 'Türkçe' : (isAyt ? 'Edebiyat' : 'Türkçe');
+      const sosLabel = latest.examType === 'LGS' ? 'İnkılap/Din/İng' : 'Sosyal';
+
+      if (latest.turkce_net < th.turkce_net) {
+        reasons.push(`${trLabel} (${latest.turkce_net} < ${th.turkce_net})`);
+      }
+      if (latest.sosyal_net < th.sosyal_net) {
+        reasons.push(`${sosLabel} (${latest.sosyal_net} < ${th.sosyal_net})`);
+      }
+      if (latest.matematik_net < th.matematik_net) {
+        reasons.push(`Matematik (${latest.matematik_net} < ${th.matematik_net})`);
+      }
+      if (latest.fen_net < th.fen_net) {
+        reasons.push(`Fen (${latest.fen_net} < ${th.fen_net})`);
+      }
+      if (latest.toplam_net < th.toplam_net) {
+        reasons.push(`Toplam (${latest.toplam_net} < ${th.toplam_net})`);
+      }
+
+      if (reasons.length > 0) {
         const note = guidanceNotes.find(n => n.ogrenci_id === student.id);
         const studentClass = classes.find(c => c.id === student.sinif_id);
         riskStudents.push({
@@ -231,10 +255,9 @@ app.get('/api/dashboard/stats', (req, res) => {
           sinif_adi: studentClass?.ad || 'Sınıf Yok',
           alan: student.alan,
           son_net: latest.toplam_net,
-          onceki_net: previous.toplam_net,
-          degisim: Number(change.toFixed(2)),
           son_sinav: latest.examName,
-          durum: 'Kritik Düşüş',
+          sinav_turu: latest.examType,
+          durum: reasons.join(', '),
           counseling_note: note ? note.not_metni : 'Not girilmemiş.'
         });
       }
@@ -289,6 +312,30 @@ app.get('/api/dashboard/stats', (req, res) => {
     totalClasses: classes.length,
     totalExams: exams.length
   });
+});
+
+// Risk Thresholds API Routes
+app.get('/api/risk-thresholds', (req, res) => {
+  res.json(db.getRiskThresholds());
+});
+
+app.post('/api/risk-thresholds', (req, res) => {
+  const { thresholds } = req.body;
+  if (!thresholds || !Array.isArray(thresholds)) {
+    return res.status(400).json({ error: 'Thresholds listesi zorunludur.' });
+  }
+
+  thresholds.forEach((t: any) => {
+    db.update('risk_thresholds', t.id, {
+      turkce_net: Number(t.turkce_net) || 0,
+      sosyal_net: Number(t.sosyal_net) || 0,
+      matematik_net: Number(t.matematik_net) || 0,
+      fen_net: Number(t.fen_net) || 0,
+      toplam_net: Number(t.toplam_net) || 0
+    });
+  });
+
+  res.json({ success: true, message: 'Risk limitleri başarıyla kaydedildi.', thresholds: db.getRiskThresholds() });
 });
 
 // Student API Routes
@@ -1193,7 +1240,7 @@ app.delete('/api/sinav/:id', (req, res) => {
   const id = Number(req.params.id);
   const success = db.delete('sinav_tanimlari', id);
   if (success) {
-    const associated = db.getSinavSonuclari().filter(r => r.ogrenci_id === id);
+    const associated = db.getSinavSonuclari().filter(r => r.sinav_id === id);
     associated.forEach(r => db.delete('sinav_sonuclari', r.id));
     res.json({ message: 'Sınav ve bağlı sonuçlar silindi.' });
   } else {

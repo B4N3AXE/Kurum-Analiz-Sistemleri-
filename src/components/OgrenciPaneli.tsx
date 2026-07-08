@@ -17,6 +17,8 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
   const [classes, setClasses] = useState<Sinif[]>([]);
   const [parents, setParents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirmStudentId, setDeleteConfirmStudentId] = useState<number | null>(null);
+  const [deleteConfirmNoteId, setDeleteConfirmNoteId] = useState<number | null>(null);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -179,7 +181,6 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
 
   // Delete student
   const handleDeleteStudent = async (id: number) => {
-    if (!window.confirm("Bu öğrenciyi ve ilişkili tüm sınav net geçmişini tamamen silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!")) return;
     try {
       const res = await fetch(`/api/ogrenci/${id}`, {
         method: 'DELETE',
@@ -247,7 +248,6 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
 
   // Delete counseling note
   const handleDeleteNote = async (noteId: number) => {
-    if (!window.confirm("Bu rehberlik notunu silmek istediğinizden emin misiniz?")) return;
     try {
       const res = await fetch(`/api/ogrenci/${selectedStudentId}/not/${noteId}`, {
         method: 'DELETE',
@@ -393,6 +393,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                 <option value="Sözel">Sözel</option>
                 <option value="Eşit Ağırlık">Eşit Ağırlık</option>
                 <option value="Yabancı Dil">Yabancı Dil</option>
+                <option value="LGS">LGS (Ortaokul)</option>
               </select>
             </div>
 
@@ -452,6 +453,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                             s.alan === 'Sayısal' ? 'bg-blue-500/10 text-blue-400' :
                             s.alan === 'Eşit Ağırlık' ? 'bg-indigo-500/10 text-indigo-400' :
+                            s.alan === 'LGS' ? 'bg-purple-500/10 text-purple-400' :
                             'bg-amber-500/10 text-amber-400'
                           }`}>
                             {s.alan}
@@ -502,14 +504,35 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                                 >
                                   <Edit size={13} />
                                 </button>
-                                {user.rol === 'admin' && (
-                                  <button
-                                    onClick={() => handleDeleteStudent(s.id)}
-                                    className="p-1 bg-slate-850 hover:bg-slate-800 text-red-400 rounded transition"
-                                    title="Sil"
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
+                                 {user.rol === 'admin' && (
+                                  deleteConfirmStudentId === s.id ? (
+                                    <div className="flex items-center gap-1 bg-slate-950 p-1 rounded border border-red-500/30">
+                                      <span className="text-[9px] text-red-400 font-bold px-1">Silinsin mi?</span>
+                                      <button
+                                        onClick={() => {
+                                          handleDeleteStudent(s.id);
+                                          setDeleteConfirmStudentId(null);
+                                        }}
+                                        className="px-1 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[8px] font-black rounded cursor-pointer"
+                                      >
+                                        Evet
+                                      </button>
+                                      <button
+                                        onClick={() => setDeleteConfirmStudentId(null)}
+                                        className="px-1 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[8px] font-black rounded cursor-pointer"
+                                      >
+                                        İptal
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => setDeleteConfirmStudentId(s.id)}
+                                      className="p-1 bg-slate-850 hover:bg-slate-800 text-red-400 rounded transition"
+                                      title="Sil"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  )
                                 )}
                               </>
                             )}
@@ -575,6 +598,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                   <option value="Sözel">Sözel</option>
                   <option value="Eşit Ağırlık">Eşit Ağırlık</option>
                   <option value="Yabancı Dil">Yabancı Dil</option>
+                  <option value="LGS">LGS (Ortaokul)</option>
                 </select>
               </div>
             </div>
@@ -890,14 +914,35 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                         <span className="text-[10px] font-bold text-blue-400">{n.rehber_adi}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-[9px] text-slate-500 font-medium">{n.tarih}</span>
-                          {(user.rol === 'admin' || user.rol === 'rehber') && (
-                            <button
-                              onClick={() => handleDeleteNote(n.id)}
-                              className="text-slate-600 hover:text-red-400 transition ml-1"
-                              title="Sil"
-                            >
-                              <Trash2 size={11} />
-                            </button>
+                           {(user.rol === 'admin' || user.rol === 'rehber') && (
+                            deleteConfirmNoteId === n.id ? (
+                              <div className="flex items-center gap-1 bg-slate-950 p-1 rounded border border-red-500/30">
+                                <span className="text-[9px] text-red-400 font-bold px-1">Silinsin mi?</span>
+                                <button
+                                  onClick={() => {
+                                    handleDeleteNote(n.id);
+                                    setDeleteConfirmNoteId(null);
+                                  }}
+                                  className="px-1 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[8px] font-black rounded cursor-pointer leading-none"
+                                >
+                                  Evet
+                                </button>
+                                <button
+                                  onClick={() => setDeleteConfirmNoteId(null)}
+                                  className="px-1 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[8px] font-black rounded cursor-pointer leading-none"
+                                >
+                                  İptal
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setDeleteConfirmNoteId(n.id)}
+                                className="text-slate-600 hover:text-red-400 transition ml-1"
+                                title="Sil"
+                              >
+                                <Trash2 size={11} />
+                              </button>
+                            )
                           )}
                         </div>
                       </div>

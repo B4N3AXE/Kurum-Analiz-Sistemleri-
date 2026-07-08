@@ -40,7 +40,7 @@ export interface Ogrenci {
 export interface SinavTanim {
   id: number;
   ad: string;
-  tur: 'TYT' | 'AYT';
+  tur: 'TYT' | 'AYT' | 'LGS';
   tarih: string;
   kurum_id: number;
   katilimci_sayisi?: number;
@@ -54,7 +54,7 @@ export interface SinavSonuc {
   sinav_id: number;
   sinav_adi?: string;
   sinav_tarih?: string;
-  sinav_turu?: 'TYT' | 'AYT';
+  sinav_turu?: 'TYT' | 'AYT' | 'LGS';
   turkce_net: number;
   sosyal_net: number;
   matematik_net: number;

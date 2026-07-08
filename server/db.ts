@@ -31,14 +31,14 @@ export interface Ogrenci {
   tc_no: string;
   sinif_id: number;
   veli_id: number | null;
-  alan: 'Sayısal' | 'Sözel' | 'Eşit Ağırlık';
+  alan: 'Sayısal' | 'Sözel' | 'Eşit Ağırlık' | 'Yabancı Dil' | 'LGS';
   aktif: boolean;
 }
 
 export interface SinavTanim {
   id: number;
   ad: string;
-  tur: 'TYT' | 'AYT';
+  tur: 'TYT' | 'AYT' | 'LGS';
   tarih: string;
   kurum_id: number;
 }
@@ -80,6 +80,16 @@ export interface Mesaj {
   tarih: string;
 }
 
+export interface RiskThreshold {
+  id: number;
+  tur: 'TYT' | 'AYT' | 'LGS';
+  turkce_net: number;
+  sosyal_net: number;
+  matematik_net: number;
+  fen_net: number;
+  toplam_net: number;
+}
+
 export interface DatabaseSchema {
   kullanicilar: Kullanici[];
   kurumlar: Kurum[];
@@ -91,6 +101,7 @@ export interface DatabaseSchema {
   rehberlik_notlari: RehberlikNotu[];
   mesajlar: Mesaj[];
   ders_programlari: DersProgrami[];
+  risk_thresholds: RiskThreshold[];
 }
 
 export interface DersProgrami {
@@ -110,28 +121,21 @@ const initialData: DatabaseSchema = {
     { id: 1, ad: "Gelecek Koleji", tur: "Özel Anadolu Lisesi" }
   ],
   kullanicilar: [
-    { id: 1, ad_soyad: "Ahmet Yılmaz", email: "admin@kas.com", sifre: "admin123", rol: "admin", kurum_id: 1, telefon: "0555 111 2233" },
-    { id: 2, ad_soyad: "Süleyman Kaya", email: "teacher@kas.com", sifre: "ogretmen123", rol: "ogretmen", kurum_id: 1, telefon: "0555 123 4567" },
-    { id: 3, ad_soyad: "Esra Güneş", email: "rehber@kas.com", sifre: "rehber123", rol: "rehber", kurum_id: 1, telefon: "0555 987 6543" },
-    { id: 4, ad_soyad: "Murat Aksoy", email: "veli@kas.com", sifre: "veli123", rol: "veli", kurum_id: 1, telefon: "0555 456 7890" },
-    { id: 5, ad_soyad: "Zeynep Öztürk", email: "veli2@kas.com", sifre: "veli123", rol: "veli", kurum_id: 1, telefon: "0555 654 3210" }
+    { id: 1, ad_soyad: "Ahmet Yılmaz", email: "admin@kas.com", sifre: "admin123", rol: "admin", kurum_id: 1, telefon: "0555 111 2233" }
   ],
-  siniflar: [
-    { id: 1, ad: "12-A", seviye: 12, kurum_id: 1 },
-    { id: 2, ad: "12-B", seviye: 12, kurum_id: 1 },
-    { id: 3, ad: "12-C", seviye: 12, kurum_id: 1 },
-    { id: 4, ad: "11-A", seviye: 11, kurum_id: 1 }
-  ],
+  siniflar: [],
   ogrenciler: [],
   sinav_tanimlari: [],
   sinav_sonuclari: [],
-  ogretmen_sinif: [
-    { id: 1, ogretmen_id: 2, sinif_id: 1 },
-    { id: 2, ogretmen_id: 2, sinif_id: 2 }
-  ],
+  ogretmen_sinif: [],
   rehberlik_notlari: [],
   mesajlar: [],
-  ders_programlari: []
+  ders_programlari: [],
+  risk_thresholds: [
+    { id: 1, tur: 'TYT', turkce_net: 25, sosyal_net: 12, matematik_net: 20, fen_net: 12, toplam_net: 60 },
+    { id: 2, tur: 'AYT', turkce_net: 15, sosyal_net: 15, matematik_net: 15, fen_net: 15, toplam_net: 45 },
+    { id: 3, tur: 'LGS', turkce_net: 14, sosyal_net: 18, matematik_net: 10, fen_net: 12, toplam_net: 55 }
+  ]
 };
 
 export class Database {
@@ -147,6 +151,22 @@ export class Database {
       if (fs.existsSync(DB_FILE_PATH)) {
         const fileContent = fs.readFileSync(DB_FILE_PATH, 'utf-8');
         const parsed = JSON.parse(fileContent);
+        
+        // Seed risk thresholds if not exists in parsed file or incomplete
+        if (!parsed.risk_thresholds || parsed.risk_thresholds.length === 0) {
+          parsed.risk_thresholds = [
+            { id: 1, tur: 'TYT', turkce_net: 25, sosyal_net: 12, matematik_net: 20, fen_net: 12, toplam_net: 60 },
+            { id: 2, tur: 'AYT', turkce_net: 15, sosyal_net: 15, matematik_net: 15, fen_net: 15, toplam_net: 45 },
+            { id: 3, tur: 'LGS', turkce_net: 14, sosyal_net: 18, matematik_net: 10, fen_net: 12, toplam_net: 55 }
+          ];
+        } else if (parsed.risk_thresholds.length < 3) {
+          // If existing but missing LGS (id 3)
+          const hasLgs = parsed.risk_thresholds.some((t: any) => t.tur === 'LGS');
+          if (!hasLgs) {
+            parsed.risk_thresholds.push({ id: 3, tur: 'LGS', turkce_net: 14, sosyal_net: 18, matematik_net: 10, fen_net: 12, toplam_net: 55 });
+          }
+        }
+
         this.data = {
           kurumlar: parsed.kurumlar || [],
           kullanicilar: parsed.kullanicilar || [],
@@ -157,13 +177,14 @@ export class Database {
           ogretmen_sinif: parsed.ogretmen_sinif || [],
           rehberlik_notlari: parsed.rehberlik_notlari || [],
           mesajlar: parsed.mesajlar || [],
-          ders_programlari: parsed.ders_programlari || []
+          ders_programlari: parsed.ders_programlari || [],
+          risk_thresholds: parsed.risk_thresholds
         };
         // Save back if some keys were missing so that they are saved in db.json too
         const schemaKeys = [
           'kurumlar', 'kullanicilar', 'siniflar', 'ogrenciler', 
           'sinav_tanimlari', 'sinav_sonuclari', 'ogretmen_sinif', 
-          'rehberlik_notlari', 'mesajlar', 'ders_programlari'
+          'rehberlik_notlari', 'mesajlar', 'ders_programlari', 'risk_thresholds'
         ];
         let hasMissingKeys = false;
         for (const key of schemaKeys) {
@@ -202,6 +223,7 @@ export class Database {
   public getRehberlikNotlari() { return this.data.rehberlik_notlari || []; }
   public getMesajlar() { return this.data.mesajlar || []; }
   public getDersProgramlari() { return this.data.ders_programlari || []; }
+  public getRiskThresholds() { return this.data.risk_thresholds || []; }
 
   // Mutation helper wrapper to auto-save after calls
   public insert<K extends keyof DatabaseSchema>(table: K, item: any): any {

@@ -38,7 +38,8 @@ export default function Dashboard({ user, token }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // YKS countdown state (June 19, 2027 at 10:15)
+  // YKS/LGS countdown state (June 19, 2027 at 10:15 vs June 6, 2027 at 09:30)
+  const [countdownType, setCountdownType] = useState<'YKS' | 'LGS'>('YKS');
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
 
   useEffect(() => {
@@ -48,11 +49,14 @@ export default function Dashboard({ user, token }: DashboardProps) {
   }, []);
 
   useEffect(() => {
-    // YKS 2027 countdown calculations
+    // Countdown calculations
     const yksDate = new Date('2027-06-19T10:15:00').getTime();
+    const lgsDate = new Date('2027-06-06T09:30:00').getTime();
+
     const updateCountdown = () => {
+      const targetDate = countdownType === 'YKS' ? yksDate : lgsDate;
       const now = Date.now();
-      const diff = yksDate - now;
+      const diff = targetDate - now;
       if (diff <= 0) {
         setCountdown({ days: 0, hours: 0, mins: 0, secs: 0 });
         return;
@@ -67,7 +71,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
     updateCountdown();
     const cInterval = setInterval(updateCountdown, 1000);
     return () => clearInterval(cInterval);
-  }, []);
+  }, [countdownType]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -153,25 +157,46 @@ export default function Dashboard({ user, token }: DashboardProps) {
     <div className="space-y-6">
       {/* Upper Widgets: Countdown and Clock */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* YKS Timer */}
+        {/* YKS/LGS Timer */}
         <div className="md:col-span-8 bg-gradient-to-r from-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl"></div>
           <div className="flex justify-between items-start z-10">
             <div>
               <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
                 <Clock className="text-blue-500 animate-pulse" size={20} />
-                2027 YKS Sayacı
+                {countdownType === 'YKS' ? '2027 YKS Sayacı' : '2027 LGS Sayacı'}
               </h2>
-              <p className="text-xs text-slate-400 mt-1">19 Haziran 2027 - Saat: 10:15 Hedefine Kalan Zaman</p>
+              <p className="text-xs text-slate-400 mt-1">
+                {countdownType === 'YKS'
+                  ? '19 Haziran 2027 - Saat: 10:15 Hedefine Kalan Zaman'
+                  : '6 Haziran 2027 - Saat: 09:30 LGS Sınavına Kalan Zaman'}
+              </p>
             </div>
-            <span className="bg-blue-500/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-              YKS-TYT
-            </span>
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-850">
+              <button
+                type="button"
+                onClick={() => setCountdownType('YKS')}
+                className={`text-[9px] font-black px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  countdownType === 'YKS' ? 'bg-blue-600 text-white shadow shadow-blue-500/15' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                YKS
+              </button>
+              <button
+                type="button"
+                onClick={() => setCountdownType('LGS')}
+                className={`text-[9px] font-black px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  countdownType === 'LGS' ? 'bg-purple-600 text-white shadow shadow-purple-500/15' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                LGS
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-4 gap-3 text-center my-4 z-10">
             <div className="bg-slate-900/80 border border-slate-800/80 p-3 rounded-xl">
-              <span className="block text-2xl md:text-3xl font-black text-blue-400">{countdown.days}</span>
+              <span className={`block text-2xl md:text-3xl font-black ${countdownType === 'YKS' ? 'text-blue-400' : 'text-purple-400'}`}>{countdown.days}</span>
               <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Gün</span>
             </div>
             <div className="bg-slate-900/80 border border-slate-800/80 p-3 rounded-xl">

@@ -6,6 +6,7 @@ import PdfOkuyucu from './components/PdfOkuyucu';
 import Mesajlar from './components/Mesajlar';
 import Tanimlar from './components/Tanimlar';
 import Abonelik from './components/Abonelik';
+import RiskLimitleri from './components/RiskLimitleri';
 import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText } from 'lucide-react';
 
 export default function App() {
@@ -1452,8 +1453,8 @@ export default function App() {
                 </button>
               )}
 
-              {/* Tab: Öğrenci Yönetimi (Admin, Öğretmen, Rehber) */}
-              {user.rol !== 'veli' && user.rol !== 'ogrenci' && (
+              {/* Tab: Öğrenci Yönetimi (Öğretmen, Rehber) */}
+              {user.rol !== 'admin' && user.rol !== 'veli' && user.rol !== 'ogrenci' && (
                 <button
                   onClick={() => setCurrentTab('ogrenci')}
                   className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
@@ -1492,20 +1493,6 @@ export default function App() {
                 <Mail size={15} /> Mesaj Merkezi
               </button>
 
-              {/* Tab: Kurum Ayarları / Tanımlamalar (Only Admin) */}
-              {user.rol === 'admin' && (
-                <button
-                  onClick={() => setCurrentTab('tanimlar')}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
-                    currentTab === 'tanimlar'
-                      ? "bg-blue-600 text-white shadow shadow-blue-500/10"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
-                  }`}
-                >
-                  <Settings size={15} /> Kurum Yönetimi
-                </button>
-              )}
-
               {/* Tab: Abonelik & Ödeme (Only Admin) */}
               {user.rol === 'admin' && (
                 <button
@@ -1518,6 +1505,103 @@ export default function App() {
                 >
                   <Coins size={15} /> Abonelik & Ödeme
                 </button>
+              )}
+
+              {/* Kurum Yönetimi / Tanımlamalar Sub-Tabs (Only Admin) */}
+              {user.rol === 'admin' && (
+                <div className="pt-2 mt-2 border-t border-slate-800/40 space-y-1 w-full shrink-0">
+                  <div className="px-3.5 py-1 text-[9px] font-extrabold text-slate-500 uppercase tracking-widest block">
+                    Kurum Tanımları
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentTab('tanimlar_sinif')}
+                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                      currentTab === 'tanimlar_sinif'
+                        ? "bg-blue-600 text-white shadow"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                    }`}
+                  >
+                    <Layers size={13} /> Sınıf Tanımları
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentTab('tanimlar_ogrenci')}
+                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                      currentTab === 'tanimlar_ogrenci'
+                        ? "bg-blue-600 text-white shadow"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                    }`}
+                  >
+                    <Users size={13} /> Öğrenci Yönetimi
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentTab('tanimlar_ogretmen')}
+                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                      currentTab === 'tanimlar_ogretmen'
+                        ? "bg-blue-600 text-white shadow"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                    }`}
+                  >
+                    <Users size={13} /> Öğretmen Kadrosu
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentTab('tanimlar_rehber')}
+                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                      currentTab === 'tanimlar_rehber'
+                        ? "bg-blue-600 text-white shadow"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                    }`}
+                  >
+                    <Award size={13} /> Rehberlik Ekibi
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentTab('tanimlar_veli')}
+                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                      currentTab === 'tanimlar_veli'
+                        ? "bg-blue-600 text-white shadow"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                    }`}
+                  >
+                    <Shield size={13} /> Veliler
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentTab('tanimlar_sinav')}
+                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                      currentTab === 'tanimlar_sinav'
+                        ? "bg-blue-600 text-white shadow"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                    }`}
+                  >
+                    <BookOpen size={13} /> Sınav Tanımları
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentTab('tanimlar_ders_programi')}
+                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                      currentTab === 'tanimlar_ders_programi'
+                        ? "bg-blue-600 text-white shadow"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                    }`}
+                  >
+                    <Calendar size={13} /> Ders Programları
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentTab('risk_limitleri')}
+                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                      currentTab === 'risk_limitleri'
+                        ? "bg-amber-600 text-white shadow shadow-amber-500/10"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                    }`}
+                  >
+                    <Activity size={13} className="text-amber-500" /> Risk Limitleri
+                  </button>
+                </div>
               )}
             </div>
 
@@ -1573,7 +1657,7 @@ export default function App() {
             )}
 
             {/* MOUNT VIEW: Student Lifecycle Panel */}
-            {currentTab === 'ogrenci' && user.rol !== 'veli' && (
+            {(currentTab === 'ogrenci' || currentTab === 'tanimlar_ogrenci') && user.rol !== 'veli' && (
               <OgrenciPaneli user={user} token={token} />
             )}
 
@@ -1590,6 +1674,21 @@ export default function App() {
             {/* MOUNT VIEW: Configurations & Staff management */}
             {currentTab === 'tanimlar' && user.rol === 'admin' && (
               <Tanimlar user={user} token={token} />
+            )}
+
+            {/* MOUNT VIEW: Individual Sub-tabs from Sidebar */}
+            {currentTab.startsWith('tanimlar_') && currentTab !== 'tanimlar_ogrenci' && user.rol === 'admin' && (
+              <Tanimlar 
+                user={user} 
+                token={token} 
+                activeTab={currentTab.replace('tanimlar_', '') as any}
+                setActiveTab={(tab) => setCurrentTab(`tanimlar_${tab}`)}
+              />
+            )}
+
+            {/* MOUNT VIEW: Risk Threshold Settings */}
+            {currentTab === 'risk_limitleri' && user.rol === 'admin' && (
+              <RiskLimitleri user={user} token={token} />
             )}
 
             {/* MOUNT VIEW: Abonelik & Ödeme */}

@@ -5,10 +5,15 @@ import { Plus, Trash2, Award, Briefcase, Key, Shield, Layers, HelpCircle, AlertC
 interface TanimlarProps {
   user: User;
   token: string;
+  activeTab?: 'sinif' | 'ogretmen' | 'rehber' | 'veli' | 'sinav' | 'ders_programi';
+  setActiveTab?: (tab: 'sinif' | 'ogretmen' | 'rehber' | 'veli' | 'sinav' | 'ders_programi') => void;
 }
 
-export default function Tanimlar({ user, token }: TanimlarProps) {
-  const [activeTab, setActiveTab] = useState<'sinif' | 'ogretmen' | 'rehber' | 'veli' | 'sinav' | 'ders_programi'>('sinif');
+export default function Tanimlar({ user, token, activeTab: propActiveTab, setActiveTab: propSetActiveTab }: TanimlarProps) {
+  const [internalActiveTab, setInternalActiveTab] = useState<'sinif' | 'ogretmen' | 'rehber' | 'veli' | 'sinav' | 'ders_programi'>('sinif');
+
+  const activeTab = propActiveTab || internalActiveTab;
+  const setActiveTab = propSetActiveTab || setInternalActiveTab;
 
   // Lists state
   const [classes, setClasses] = useState<Sinif[]>([]);
@@ -18,6 +23,7 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
   const [exams, setExams] = useState<SinavTanim[]>([]);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'sinif' | 'sinav' | 'ders_programi' | 'ogretmen' | 'rehber' | 'veli'; id: number } | null>(null);
 
   // Form states
   const [error, setError] = useState('');
@@ -38,7 +44,7 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
 
   // Manual Exam Form fields
   const [examName, setExamName] = useState('');
-  const [examType, setExamType] = useState<'TYT' | 'AYT'>('TYT');
+  const [examType, setExamType] = useState<'TYT' | 'AYT' | 'LGS'>('TYT');
   const [examDate, setExamDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Ders Programi Form fields
@@ -122,6 +128,25 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
     }
   };
 
+  // Handle Class Deletion
+  const handleDeleteClass = async (classId: number) => {
+    try {
+      const res = await fetch(`/api/sinif/${classId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': token }
+      });
+      if (res.ok) {
+        setSuccess("Sınıf başarıyla silindi.");
+        loadTabData();
+      } else {
+        const data = await res.json();
+        setError(data.error || "Sınıf silinemedi.");
+      }
+    } catch (err) {
+      setError("Bağlantı hatası.");
+    }
+  };
+
   // Handle Teacher/Counselor/Parent Creation
   const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,7 +215,6 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
 
   // Handle Exam Deletion (Sınav Silme)
   const handleDeleteExam = async (examId: number) => {
-    if (!window.confirm("Bu sınav tanımını ve ilişkili TÜM öğrencilerin bu sınavdaki net skorlarını tamamen silmek istediğinizden emin misiniz?")) return;
     try {
       const res = await fetch(`/api/sinav/${examId}`, {
         method: 'DELETE',
@@ -199,8 +223,12 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
       if (res.ok) {
         setSuccess("Sınav ve tüm sınav sonuçları başarıyla silindi.");
         loadTabData();
+      } else {
+        const data = await res.json();
+        setError(data.error || "Sınav silinemedi.");
       }
     } catch (err) {
+      setError("Bağlantı hatası.");
       console.error("Error deleting exam:", err);
     }
   };
@@ -242,7 +270,6 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
 
   // Handle Ders Programı Silme
   const handleDeleteSchedule = async (id: number) => {
-    if (!window.confirm("Bu ders programı kaydını silmek istediğinizden emin misiniz?")) return;
     try {
       const res = await fetch(`/api/ders-programi/${id}`, {
         method: 'DELETE',
@@ -270,33 +297,6 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
 
   return (
     <div className="space-y-6">
-      {/* Tab select menu */}
-      <div className="flex border-b border-slate-800 gap-1 overflow-x-auto">
-        {[
-          { id: 'sinif', label: 'Sınıf Tanımları', icon: Layers },
-          { id: 'ogretmen', label: 'Öğretmen Kadrosu', icon: Briefcase },
-          { id: 'rehber', label: 'Rehberlik Ekibi', icon: Award },
-          { id: 'veli', label: 'Veliler', icon: Shield },
-          { id: 'sinav', label: 'Sınav Tanımları (Silme)', icon: Award },
-          { id: 'ders_programi', label: 'Ders Programları', icon: Calendar }
-        ].map(t => {
-          const Icon = t.icon;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id as any)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 whitespace-nowrap transition cursor-pointer ${
-                activeTab === t.id
-                  ? "border-blue-500 text-blue-400 bg-slate-900/40"
-                  : "border-transparent text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              <Icon size={14} /> {t.label}
-            </button>
-          );
-        })}
-      </div>
-
       {/* Messages */}
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-lg flex items-center gap-2">
@@ -343,6 +343,10 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
                   onChange={e => setClassSeviye(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-200 font-medium focus:outline-none focus:border-blue-500 transition-all"
                 >
+                  <option value="5">5. Sınıf</option>
+                  <option value="6">6. Sınıf</option>
+                  <option value="7">7. Sınıf</option>
+                  <option value="8">8. Sınıf (LGS)</option>
                   <option value="9">9. Sınıf</option>
                   <option value="10">10. Sınıf</option>
                   <option value="11">11. Sınıf</option>
@@ -456,6 +460,7 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
                   >
                     <option value="TYT">TYT</option>
                     <option value="AYT">AYT</option>
+                    <option value="LGS">LGS (Ortaokul)</option>
                   </select>
                 </div>
                 <div>
@@ -598,13 +603,36 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
                         ) : (
                           daySchedules.map(item => (
                             <div key={item.id} className="relative group bg-slate-900 border border-slate-800/80 rounded p-2 space-y-1 hover:border-slate-700 hover:bg-slate-900/80 transition">
-                              <button
-                                onClick={() => handleDeleteSchedule(item.id)}
-                                className="absolute top-1 right-1 text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition p-0.5 bg-slate-950/80 rounded cursor-pointer"
-                                title="Dersi Sil"
-                              >
-                                <Trash2 size={10} />
-                              </button>
+                              {deleteConfirm?.type === 'ders_programi' && deleteConfirm.id === item.id ? (
+                                <div className="absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center gap-1 rounded z-10 p-1 text-center">
+                                  <span className="text-[8px] text-red-400 font-bold leading-none">Ders Silinsin mi?</span>
+                                  <div className="flex gap-1">
+                                    <button
+                                      onClick={() => {
+                                        handleDeleteSchedule(item.id);
+                                        setDeleteConfirm(null);
+                                      }}
+                                      className="px-1 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[8px] font-black rounded cursor-pointer leading-none"
+                                    >
+                                      Evet
+                                    </button>
+                                    <button
+                                      onClick={() => setDeleteConfirm(null)}
+                                      className="px-1 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[8px] font-black rounded cursor-pointer leading-none"
+                                    >
+                                      Hayır
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setDeleteConfirm({ type: 'ders_programi', id: item.id })}
+                                  className="absolute top-1 right-1 text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition p-0.5 bg-slate-950/80 rounded cursor-pointer"
+                                  title="Dersi Sil"
+                                >
+                                  <Trash2 size={10} />
+                                </button>
+                              )}
                               <div className="flex items-center gap-1 text-[9px] font-bold text-blue-400 font-mono">
                                 <Clock size={8} /> {item.saat}
                               </div>
@@ -628,7 +656,8 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
                       <>
                         <th className="pb-2">Sınıf Adı</th>
                         <th className="pb-2">Öğretim Seviyesi</th>
-                        <th className="pb-2 text-right">Durum</th>
+                        <th className="pb-2">Durum</th>
+                        <th className="pb-2 text-right">Sil</th>
                       </>
                     )}
                     {activeTab === 'ogretmen' && (
@@ -661,7 +690,37 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
                     <tr key={c.id}>
                       <td className="py-2.5 font-bold text-slate-200">{c.ad}</td>
                       <td className="py-2.5 text-slate-400">{c.seviye}. Sınıf</td>
-                      <td className="py-2.5 text-right text-emerald-400">Aktif</td>
+                      <td className="py-2.5 text-emerald-400">Aktif</td>
+                      <td className="py-2.5 text-right">
+                        {deleteConfirm?.type === 'sinif' && deleteConfirm.id === c.id ? (
+                          <div className="flex justify-end gap-1 items-center">
+                            <span className="text-[10px] text-red-400 font-bold">Silinsin mi?</span>
+                            <button
+                              onClick={() => {
+                                handleDeleteClass(c.id);
+                                setDeleteConfirm(null);
+                              }}
+                              className="px-1.5 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[9px] font-extrabold rounded cursor-pointer"
+                            >
+                              Evet
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirm(null)}
+                              className="px-1.5 py-0.5 bg-slate-850 hover:bg-slate-700 text-slate-300 text-[9px] font-extrabold rounded cursor-pointer"
+                            >
+                              Hayır
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setDeleteConfirm({ type: 'sinif', id: c.id })}
+                            className="p-1 bg-slate-950 hover:bg-slate-800 text-red-500 rounded transition cursor-pointer"
+                            title="Sınıfı Sil"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
 
@@ -715,13 +774,34 @@ export default function Tanimlar({ user, token }: TanimlarProps) {
                       <td className="py-2.5 text-center text-slate-300 font-mono">{e.katilimci_sayisi || 0}</td>
                       <td className="py-2.5 text-center text-blue-400 font-bold font-mono">{e.ortalama_net || 0}</td>
                       <td className="py-2.5 text-right">
-                        <button
-                          onClick={() => handleDeleteExam(e.id)}
-                          className="p-1 bg-slate-950 hover:bg-slate-800 text-red-500 rounded transition cursor-pointer"
-                          title="Sınavı Sil"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        {deleteConfirm?.type === 'sinav' && deleteConfirm.id === e.id ? (
+                          <div className="flex justify-end gap-1 items-center">
+                            <span className="text-[10px] text-red-400 font-bold">Silinsin mi?</span>
+                            <button
+                              onClick={() => {
+                                handleDeleteExam(e.id);
+                                setDeleteConfirm(null);
+                              }}
+                              className="px-1.5 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[9px] font-extrabold rounded cursor-pointer"
+                            >
+                              Evet
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirm(null)}
+                              className="px-1.5 py-0.5 bg-slate-850 hover:bg-slate-700 text-slate-300 text-[9px] font-extrabold rounded cursor-pointer"
+                            >
+                              Hayır
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setDeleteConfirm({ type: 'sinav', id: e.id })}
+                            className="p-1 bg-slate-950 hover:bg-slate-800 text-red-500 rounded transition cursor-pointer"
+                            title="Sınavı Sil"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
