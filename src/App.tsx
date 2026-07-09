@@ -7,7 +7,8 @@ import Mesajlar from './components/Mesajlar';
 import Tanimlar from './components/Tanimlar';
 import Abonelik from './components/Abonelik';
 import RiskLimitleri from './components/RiskLimitleri';
-import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText } from 'lucide-react';
+import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -16,6 +17,7 @@ export default function App() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [showAuthScreen, setShowAuthScreen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Form Fields
   const [email, setEmail] = useState('');
@@ -79,6 +81,18 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    // Check for PayTR redirect query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    if (paymentStatus === 'success') {
+      localStorage.setItem('kas_subscription_plan', 'premium');
+      setCurrentSubscription('premium');
+      // Clean query parameters from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (paymentStatus === 'fail') {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     // Check local storage for persistent login session
     const storedUser = localStorage.getItem('kas_user');
     const storedToken = localStorage.getItem('kas_token');
@@ -227,7 +241,7 @@ export default function App() {
       
       {/* HEADER BANNER - Always visible when logged in, displaying Institution Name */}
       {isLoggedIn && user && (
-        <header className="bg-slate-900 border-b border-slate-800/80 px-6 py-3.5 flex justify-between items-center z-20 shadow-md">
+        <header className="hidden md:flex bg-slate-900 border-b border-slate-800/80 px-6 py-3.5 justify-between items-center z-20 shadow-md">
           <div className="flex items-center gap-2.5">
             <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
               <img src="/favicon.svg" alt="K.A.S" className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
@@ -1426,13 +1440,284 @@ export default function App() {
         </div>
       ) : (
         /* REGISTERED USER WORKSPACE SIDEBAR + VIEWS SYSTEM */
-        <div className="flex-1 flex flex-col md:flex-row">
+        <div className="flex-1 flex flex-col md:flex-row min-h-0 relative">
           
-          {/* Sidebar Navigation */}
-          <aside className="w-full md:w-64 bg-slate-900 md:border-r border-b md:border-b-0 border-slate-800/80 p-4 space-y-4 z-10 flex flex-row md:flex-col justify-between md:justify-start gap-2 overflow-x-auto md:overflow-visible">
+          {/* Mobile Header Bar */}
+          <div className="md:hidden w-full bg-slate-900 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-md">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
+                <img src="/favicon.svg" alt="K.A.S" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />
+              </div>
+              <div>
+                <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider block leading-none">Kurum Analiz</span>
+                <h1 className="text-xs font-black text-slate-100 tracking-wide max-w-[140px] truncate">{user.kurum_adi || "Kurum Kayıtlı Değil"}</h1>
+              </div>
+            </div>
+
+            {/* Current Tab Badge */}
+            <div className="bg-slate-950/60 border border-slate-800/60 px-2 py-0.5 rounded-lg">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                {currentTab === 'dashboard' && 'ÖZET'}
+                {currentTab === 'veli-panel' && 'KARNE'}
+                {currentTab === 'ogrenci-panel' && 'KARNEM'}
+                {currentTab === 'ogrenci' && 'ÖĞRENCİLER'}
+                {currentTab === 'pdf' && 'PDF OKUYUCU'}
+                {currentTab === 'mesaj' && 'MESAJLAR'}
+                {currentTab === 'abonelik' && 'ABONELİK'}
+                {currentTab === 'tanimlar_sinif' && 'Sınıflar'}
+                {currentTab === 'tanimlar_ogrenci' && 'Öğrenciler'}
+                {currentTab === 'tanimlar_ogretmen' && 'Öğretmenler'}
+                {currentTab === 'tanimlar_rehber' && 'Rehberler'}
+                {currentTab === 'tanimlar_veli' && 'Veliler'}
+                {currentTab === 'tanimlar_sinav' && 'Sınavlar'}
+                {currentTab === 'tanimlar_ders_programi' && 'Ders Prog.'}
+                {currentTab === 'risk_limitleri' && 'Risk'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700/50 cursor-pointer transition flex items-center justify-center"
+              >
+                {isMobileMenuOpen ? <X size={15} /> : <Menu size={15} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Navigation Drawer */}
+          <AnimatePresence>
+            {isMobileMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-x-0 top-[53px] bottom-0 bg-slate-950/98 backdrop-blur-xl z-40 p-4 flex flex-col justify-between overflow-y-auto border-t border-slate-900 md:hidden"
+              >
+                <div className="space-y-4">
+                  <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-2 mb-1">Menü Seçenekleri</div>
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {/* Tab: Dashboard (All staff roles) */}
+                    {user.rol !== 'veli' && user.rol !== 'ogrenci' && (
+                      <button
+                        onClick={() => { setCurrentTab('dashboard'); setIsMobileMenuOpen(false); }}
+                        className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
+                          currentTab === 'dashboard'
+                            ? "bg-blue-600 text-white shadow"
+                            : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
+                        }`}
+                      >
+                        <LayoutDashboard size={14} /> Genel Özet
+                      </button>
+                    )}
+
+                    {/* Tab: Veli Panel */}
+                    {user.rol === 'veli' && (
+                      <button
+                        onClick={() => { setCurrentTab('veli-panel'); setIsMobileMenuOpen(false); }}
+                        className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
+                          currentTab === 'veli-panel'
+                            ? "bg-blue-600 text-white shadow"
+                            : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
+                        }`}
+                      >
+                        <Award size={14} /> Gelişim Karnesi
+                      </button>
+                    )}
+
+                    {/* Tab: Student Panel */}
+                    {user.rol === 'ogrenci' && (
+                      <button
+                        onClick={() => { setCurrentTab('ogrenci-panel'); setIsMobileMenuOpen(false); }}
+                        className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
+                          currentTab === 'ogrenci-panel'
+                            ? "bg-blue-600 text-white shadow"
+                            : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
+                        }`}
+                      >
+                        <Award size={14} /> Gelişim Karnem
+                      </button>
+                    )}
+
+                    {/* Tab: Öğrenci Yönetimi */}
+                    {user.rol !== 'admin' && user.rol !== 'veli' && user.rol !== 'ogrenci' && (
+                      <button
+                        onClick={() => { setCurrentTab('ogrenci'); setIsMobileMenuOpen(false); }}
+                        className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
+                          currentTab === 'ogrenci'
+                            ? "bg-blue-600 text-white shadow"
+                            : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
+                        }`}
+                      >
+                        <Users size={14} /> Öğrenci Yönetimi
+                      </button>
+                    )}
+
+                    {/* Tab: PDF Sonuç Okuma */}
+                    {(user.rol === 'admin' || user.rol === 'rehber') && (
+                      <button
+                        onClick={() => { setCurrentTab('pdf'); setIsMobileMenuOpen(false); }}
+                        className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
+                          currentTab === 'pdf'
+                            ? "bg-blue-600 text-white shadow"
+                            : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
+                        }`}
+                      >
+                        <Sparkles size={14} /> PDF Sınav Okuyucu
+                      </button>
+                    )}
+
+                    {/* Tab: Mesajlaşma */}
+                    <button
+                      onClick={() => { setCurrentTab('mesaj'); setIsMobileMenuOpen(false); }}
+                      className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
+                        currentTab === 'mesaj'
+                          ? "bg-blue-600 text-white shadow"
+                          : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
+                      }`}
+                    >
+                      <Mail size={14} /> Mesaj Merkezi
+                    </button>
+
+                    {/* Tab: Abonelik & Ödeme */}
+                    {user.rol === 'admin' && (
+                      <button
+                        onClick={() => { setCurrentTab('abonelik'); setIsMobileMenuOpen(false); }}
+                        className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
+                          currentTab === 'abonelik'
+                            ? "bg-blue-600 text-white shadow"
+                            : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
+                        }`}
+                      >
+                        <Coins size={14} /> Abonelik & Ödeme
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Admin Specific Kurum Tanımları in Mobile Drawer */}
+                  {user.rol === 'admin' && (
+                    <div className="pt-3 border-t border-slate-900 space-y-1.5">
+                      <div className="px-2 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                        Kurum Tanımları (Admin)
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          onClick={() => { setCurrentTab('tanimlar_sinif'); setIsMobileMenuOpen(false); }}
+                          className={`flex items-center gap-2.5 px-3 py-2.5 text-[10px] font-bold rounded-lg w-full text-left transition cursor-pointer ${
+                            currentTab === 'tanimlar_sinif' ? "bg-blue-600 text-white" : "bg-slate-900/40 text-slate-400"
+                          }`}
+                        >
+                          <Layers size={11} /> Sınıflar
+                        </button>
+                        <button
+                          onClick={() => { setCurrentTab('tanimlar_ogrenci'); setIsMobileMenuOpen(false); }}
+                          className={`flex items-center gap-2.5 px-3 py-2.5 text-[10px] font-bold rounded-lg w-full text-left transition cursor-pointer ${
+                            currentTab === 'tanimlar_ogrenci' ? "bg-blue-600 text-white" : "bg-slate-900/40 text-slate-400"
+                          }`}
+                        >
+                          <Users size={11} /> Öğrenciler
+                        </button>
+                        <button
+                          onClick={() => { setCurrentTab('tanimlar_ogretmen'); setIsMobileMenuOpen(false); }}
+                          className={`flex items-center gap-2.5 px-3 py-2.5 text-[10px] font-bold rounded-lg w-full text-left transition cursor-pointer ${
+                            currentTab === 'tanimlar_ogretmen' ? "bg-blue-600 text-white" : "bg-slate-900/40 text-slate-400"
+                          }`}
+                        >
+                          <Users size={11} /> Öğretmenler
+                        </button>
+                        <button
+                          onClick={() => { setCurrentTab('tanimlar_rehber'); setIsMobileMenuOpen(false); }}
+                          className={`flex items-center gap-2.5 px-3 py-2.5 text-[10px] font-bold rounded-lg w-full text-left transition cursor-pointer ${
+                            currentTab === 'tanimlar_rehber' ? "bg-blue-600 text-white" : "bg-slate-900/40 text-slate-400"
+                          }`}
+                        >
+                          <Award size={11} /> Rehberler
+                        </button>
+                        <button
+                          onClick={() => { setCurrentTab('tanimlar_veli'); setIsMobileMenuOpen(false); }}
+                          className={`flex items-center gap-2.5 px-3 py-2.5 text-[10px] font-bold rounded-lg w-full text-left transition cursor-pointer ${
+                            currentTab === 'tanimlar_veli' ? "bg-blue-600 text-white" : "bg-slate-900/40 text-slate-400"
+                          }`}
+                        >
+                          <Shield size={11} /> Veliler
+                        </button>
+                        <button
+                          onClick={() => { setCurrentTab('tanimlar_sinav'); setIsMobileMenuOpen(false); }}
+                          className={`flex items-center gap-2.5 px-3 py-2.5 text-[10px] font-bold rounded-lg w-full text-left transition cursor-pointer ${
+                            currentTab === 'tanimlar_sinav' ? "bg-blue-600 text-white" : "bg-slate-900/40 text-slate-400"
+                          }`}
+                        >
+                          <BookOpen size={11} /> Sınavlar
+                        </button>
+                        <button
+                          onClick={() => { setCurrentTab('tanimlar_ders_programi'); setIsMobileMenuOpen(false); }}
+                          className={`flex items-center gap-2.5 px-3 py-2.5 text-[10px] font-bold rounded-lg w-full text-left transition cursor-pointer ${
+                            currentTab === 'tanimlar_ders_programi' ? "bg-blue-600 text-white" : "bg-slate-900/40 text-slate-400"
+                          }`}
+                        >
+                          <Calendar size={11} /> Programlar
+                        </button>
+                        <button
+                          onClick={() => { setCurrentTab('risk_limitleri'); setIsMobileMenuOpen(false); }}
+                          className={`flex items-center gap-2.5 px-3 py-2.5 text-[10px] font-bold rounded-lg w-full text-left transition cursor-pointer ${
+                            currentTab === 'risk_limitleri' ? "bg-amber-600 text-white" : "bg-slate-900/40 text-slate-400"
+                          }`}
+                        >
+                          <Activity size={11} /> Risk Tanımı
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-slate-900 mt-6 space-y-3">
+                  {/* License Info */}
+                  <div className="bg-slate-900/60 border border-slate-850/60 p-3 rounded-2xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block">Lisans Durumu</span>
+                      <span className="text-[10px] text-slate-300 font-extrabold">
+                        {currentSubscription === 'trial' ? `Deneme Sürümü (${trialDaysLeft} Gün)` : "Sınırsız Premium 💎"}
+                      </span>
+                    </div>
+                    {user.rol === 'admin' && currentSubscription === 'trial' && (
+                      <button
+                        onClick={() => { setCurrentTab('abonelik'); setIsMobileMenuOpen(false); }}
+                        className="text-[9px] bg-blue-600 text-white font-extrabold px-2.5 py-1 rounded-lg"
+                      >
+                        Yükselt ⚡
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Profile & Logout */}
+                  <div className="flex items-center justify-between bg-slate-900/30 p-2.5 rounded-2xl border border-slate-900">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 bg-slate-800 rounded-lg flex items-center justify-center font-bold text-xs text-blue-400">
+                        {user.ad_soyad[0]}
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-black block text-slate-200">{user.ad_soyad}</span>
+                        <span className="text-[9px] text-slate-500 block uppercase tracking-wider font-extrabold">{user.rol}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
+                      className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl border border-red-500/10 cursor-pointer transition text-[10px] font-black flex items-center gap-1.5"
+                    >
+                      <LogOut size={12} /> Çıkış
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Sidebar Navigation (Desktop Only) */}
+          <aside className="hidden md:flex md:flex-col w-64 bg-slate-900 border-r border-slate-800/80 p-4 space-y-4 z-10 shrink-0">
             
             {/* Nav tabs list */}
-            <div className="flex md:flex-col gap-1 w-full overflow-x-auto md:overflow-visible scrollbar-none">
+            <div className="flex flex-col gap-1 w-full">
               
               {/* Tab: Dashboard (All staff roles) */}
               {user.rol !== 'veli' && user.rol !== 'ogrenci' && (

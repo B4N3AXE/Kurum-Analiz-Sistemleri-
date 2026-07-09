@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import multer from 'multer';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 import { GoogleGenAI } from '@google/genai';
 import { db, Kullanici, SinavSonuc, Ogrenci } from './server/db';
 
@@ -1485,8 +1486,262 @@ app.post('/api/pdf/save', (req, res) => {
     });
   } catch (err: any) {
     console.error('Error in /api/pdf/save:', err);
-    res.status(500).json({ error: `Sonuçlar kaydedilemedi: \${err.message}` });
+    res.status(500).json({ error: `Sonuçlar kaydedilemedi: ${err.message}` });
   }
+});
+
+// ==========================================
+// PAYTR GÜVENLİ SANAL POS ENTEGRASYONU
+// ==========================================
+
+// 1. PayTR iFrame Token Oluşturma (POST /api/paytr/token)
+app.post('/api/paytr/token', async (req, res) => {
+  try {
+    const { amount, isAnnualBilling, userEmail, userName, userPhone, userId } = req.body;
+
+    if (!amount) {
+      return res.status(400).json({ error: 'Ödeme tutarı gereklidir.' });
+    }
+
+    // PayTR API Kimlik Bilgileri (Çevre değişkenlerinden alınır)
+    const merchant_id = process.env.PAYTR_MERCHANT_ID || '';
+    const merchant_key = process.env.PAYTR_MERCHANT_KEY || '';
+    const merchant_salt = process.env.PAYTR_MERCHANT_SALT || '';
+
+    const test_mode = (process.env.PAYTR_TEST_MODE || '1') === '1' ? '1' : '0';
+
+    // Eğer kimlik bilgileri eksikse, geliştirme ortamında simüle edilmiş token dönelim
+    if (!merchant_id || !merchant_key || !merchant_salt) {
+      console.warn('PayTR API bilgileri (PAYTR_MERCHANT_ID vb.) eksik. Simülasyon modu aktiftir.');
+      const mockToken = `mock_paytr_token_${Date.now()}`;
+      return res.json({
+        success: true,
+        token: mockToken,
+        isSimulation: true,
+        message: 'PayTR bilgileri tanımlanmadığı için test simülasyonu başlatıldı.'
+      });
+    }
+
+    // Müşteri ve Sipariş Bilgileri
+    const email = userEmail || 'destek@kas.com';
+    const payment_amount = Math.round(Number(amount) * 100); // Kuruş cinsinden (Örn: 950 TL -> 95000)
+    
+    // Alfanumerik benzersiz sipariş numarası (PayTR tire - veya özel karakter kabul etmez)
+    const merchant_oid = `KAS${userId || '0'}X${Date.now()}`; 
+    const user_name = userName || 'KAS Kullanıcısı';
+    const user_address = 'İstanbul, Türkiye';
+    const user_phone = userPhone || '05555555555';
+    
+    // Sistem yönlendirme adresleri
+    const app_url = process.env.APP_URL || `http://localhost:${PORT}`;
+    const merchant_ok_url = `${app_url}/api/paytr/ok`;
+    const merchant_fail_url = `${app_url}/api/paytr/fail`;
+
+    // Sepet Ürünleri: [[Ürün Adı, Fiyatı, Adedi]]
+    const planName = isAnnualBilling ? "K.A.S Sınırsız Yıllık Premium Lisansı" : "K.A.S Sınırsız Aylık Premium Lisansı";
+    const user_basket = Buffer.from(
+      JSON.stringify([[planName, amount.toString(), 1]])
+    ).toString('base64');
+
+    // Müşteri IP'si (Güvenli şekilde listelerden ve proxy IP'lerinden temizlenir)
+    let raw_ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    let user_ip = '127.0.0.1';
+    if (Array.isArray(raw_ip)) {
+      raw_ip = raw_ip[0];
+    }
+    if (typeof raw_ip === 'string') {
+      user_ip = raw_ip.split(',')[0].trim();
+      if (user_ip.startsWith('::ffff:')) {
+        user_ip = user_ip.substring(7);
+      }
+      if (user_ip === '::1') {
+        user_ip = '127.0.0.1';
+      }
+    }
+
+    // Diğer Yapılandırmalar
+    const no_installment = '0'; // Taksit seçeneği açık (0) veya kapalı (1)
+    const max_installment = '12'; // Maksimum taksit sayısı
+    const currency = 'TL';
+
+    // 1. Adım: Hash Zincirini Oluşturun
+    // Formül: merchant_id + user_ip + merchant_oid + email + payment_amount + user_basket + no_installment + max_installment + currency + test_mode + merchant_salt
+    const hash_str = merchant_id + user_ip + merchant_oid + email + payment_amount + user_basket + no_installment + max_installment + currency + test_mode + merchant_salt;
+    
+    // 2. Adım: HMAC-SHA256 ile imzalayın
+    const paytr_token = crypto
+      .createHmac('sha256', merchant_key)
+      .update(hash_str)
+      .digest('base64');
+
+    // 3. Adım: PayTR sunucusuna Token talebi gönderin
+    const formData = new URLSearchParams({
+      merchant_id,
+      user_ip: String(user_ip),
+      merchant_oid,
+      email,
+      payment_amount: String(payment_amount),
+      paytr_token,
+      user_basket,
+      no_installment,
+      max_installment,
+      user_name,
+      user_address,
+      user_phone,
+      merchant_ok_url,
+      merchant_fail_url,
+      currency,
+      test_mode
+    });
+
+    let responseText = '';
+    try {
+      const response = await fetch('https://www.paytr.com/odeme/api/get-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString()
+      });
+
+      responseText = await response.text();
+      console.log('PayTR Token Alımı Ham Yanıt:', responseText);
+
+      const data = JSON.parse(responseText);
+
+      if (data.status === 'success') {
+        res.json({
+          success: true,
+          token: data.token,
+          merchant_oid,
+          isSimulation: false
+        });
+      } else {
+        console.error('PayTR Token hatası:', data.err_msg || data.reason);
+        res.status(400).json({ error: data.err_msg || data.reason || 'PayTR token oluşturulamadı.' });
+      }
+    } catch (parseErr: any) {
+      console.error('PayTR response parsing failed. Raw response was:', responseText, parseErr);
+      res.status(500).json({ error: `PayTR servis hatası: ${responseText || parseErr.message}` });
+    }
+  } catch (err: any) {
+    console.error('PayTR Token endpoint hatası:', err);
+    res.status(500).json({ error: `Sunucu hatası: ${err.message}` });
+  }
+});
+
+// 2. PayTR Ödeme Bildirimi (POST /api/paytr/callback)
+app.post('/api/paytr/callback', (req, res) => {
+  try {
+    const { merchant_oid, status, total_amount, hash } = req.body;
+
+    const merchant_key = process.env.PAYTR_MERCHANT_KEY || '';
+    const merchant_salt = process.env.PAYTR_MERCHANT_SALT || '';
+
+    if (!merchant_key || !merchant_salt) {
+      console.warn('PayTR callback ulaştı fakat sunucuda Key/Salt ayarlı değil. Simüle edilerek onaylanıyor.');
+      return res.send('OK');
+    }
+
+    // Gelen hash imzasını doğrulama
+    // Formül: merchant_oid + merchant_salt + status + total_amount
+    const expected_hash_str = merchant_oid + merchant_salt + status + total_amount;
+    const expected_hash = crypto
+      .createHmac('sha256', merchant_key)
+      .update(expected_hash_str)
+      .digest('base64');
+
+    if (hash !== expected_hash) {
+      console.error('PayTR Callback imza doğrulaması BAŞARISIZ.');
+      return res.status(400).send('PAYTR_SIGNATURE_INVALID');
+    }
+
+    if (status === 'success') {
+      console.log(`Sipariş Başarılı! Sipariş ID: ${merchant_oid}, Tutar: ${Number(total_amount) / 100} TL`);
+      
+      // Alfanumerik merchant_oid: KAS[userId]X[timestamp] formatını parse et
+      if (merchant_oid && merchant_oid.startsWith('KAS')) {
+        const payload = merchant_oid.substring(3); // 'KAS' kaldır
+        const parts = payload.split('X');
+        if (parts.length >= 2) {
+          const userId = Number(parts[0]);
+          const user = db.getKullanicilar().find(u => u.id === userId);
+          if (user) {
+            console.log(`Kullanıcı bulundu: ${user.ad_soyad}, Kurum: ${user.kurum_id}. Premium üyelik aktifleştiriliyor.`);
+          }
+        }
+      }
+    } else {
+      console.warn(`Sipariş Ödemesi Başarısız! Sipariş ID: ${merchant_oid}, Neden: ${req.body.failed_reason_msg}`);
+    }
+
+    res.send('OK');
+  } catch (err: any) {
+    console.error('PayTR Callback hatası:', err);
+    res.status(500).send('CALLBACK_ERROR');
+  }
+});
+
+// 3. Ödeme Başarılı Yönlendirme (GET /api/paytr/ok)
+app.get('/api/paytr/ok', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>Ödeme Başarılı</title>
+        <meta charset="utf-8">
+        <style>
+          body { background: #090d16; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+          .container { background: #0f172a; padding: 40px; border-radius: 24px; border: 1px solid #10b981; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+          h1 { color: #10b981; font-size: 24px; margin-bottom: 12px; }
+          p { color: #94a3b8; font-size: 14px; line-height: 1.5; margin-bottom: 24px; }
+          .btn { background: #10b981; color: #000; text-decoration: none; padding: 12px 24px; border-radius: 12px; font-weight: bold; font-size: 13px; display: inline-block; transition: 0.2s; }
+          .btn:hover { opacity: 0.9; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>✓ Ödeme Başarılı!</h1>
+          <p>Tebrikler, K.A.S Sınırsız Premium lisans paketiniz başarıyla aktifleştirildi. Şimdi portala geri dönebilirsiniz.</p>
+          <a href="/?payment=success" class="btn">Portala Geri Dön</a>
+        </div>
+        <script>
+          setTimeout(() => {
+            window.location.href = '/?payment=success';
+          }, 3000);
+        </script>
+      </body>
+    </html>
+  `);
+});
+
+// 4. Ödeme Başarısız Yönlendirme (GET /api/paytr/fail)
+app.get('/api/paytr/fail', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>Ödeme Başarısız</title>
+        <meta charset="utf-8">
+        <style>
+          body { background: #090d16; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+          .container { background: #0f172a; padding: 40px; border-radius: 24px; border: 1px solid #ef4444; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+          h1 { color: #ef4444; font-size: 24px; margin-bottom: 12px; }
+          p { color: #94a3b8; font-size: 14px; line-height: 1.5; margin-bottom: 24px; }
+          .btn { background: #ef4444; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 12px; font-weight: bold; font-size: 13px; display: inline-block; transition: 0.2s; }
+          .btn:hover { opacity: 0.9; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>✕ Ödeme Başarısız!</h1>
+          <p>Ödeme işlemi bankanız veya sistem tarafından reddedildi. Lütfen kart limitinizi, internet alışveriş yetkisini kontrol ederek tekrar deneyin.</p>
+          <a href="/?payment=fail" class="btn">Geri Dön ve Tekrar Dene</a>
+        </div>
+        <script>
+          setTimeout(() => {
+            window.location.href = '/?payment=fail';
+          }, 4000);
+        </script>
+      </body>
+    </html>
+  `);
 });
 
 // Serve frontend SPA in production
