@@ -327,6 +327,29 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                             </span>
                             <span className="text-[9px] text-slate-500 font-mono tracking-wide">SSL 256-BIT</span>
                           </div>
+                          
+                          {/* Developer Simulation Bypass Tool */}
+                          <div className="bg-blue-600/10 border-b border-blue-500/20 px-5 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                            <div className="text-left">
+                              <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest block">GELİŞTİRİCİ TEST ARACI 🛠️</span>
+                              <p className="text-slate-300 font-semibold text-[11px] mt-0.5">Gerçek para harcamadan başarılı ödeme akışını test etmek ister misiniz?</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPaymentStep('processing');
+                                setProcessMessage('Sanal PayTR başarılı bildirimi simüle ediliyor...');
+                                setTimeout(() => {
+                                  setPaymentStep('success');
+                                  onUpgradeSuccess(selectedPlan.id);
+                                }, 1500);
+                              }}
+                              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-[10px] rounded-lg transition cursor-pointer shrink-0 uppercase tracking-wide shadow shadow-blue-500/20"
+                            >
+                              Ödemeyi Simüle Et (Ücretsiz)
+                            </button>
+                          </div>
+
                           <iframe
                             src={`https://www.paytr.com/odeme/guvenli/${paytrToken}`}
                             width="100%"

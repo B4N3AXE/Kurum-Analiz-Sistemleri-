@@ -2,6 +2,46 @@ import React, { useState, useEffect } from 'react';
 import { User, Ogrenci, Sinif, SinavSonuc, RehberlikNotu } from '../types';
 import { Search, Plus, Edit, Trash2, FileText, Download, ToggleLeft, ToggleRight, ArrowLeft, Send, AlertCircle, Sparkles, Calendar, Clock } from 'lucide-react';
 
+// Helper function to calculate expected net projection for the next practice exam
+const getProjectedNet = (sonuclar: any[]): number => {
+  if (!sonuclar || sonuclar.length === 0) return 0;
+  // If there's only one exam, we project a slight standard improvement of +1.5 nets as goal, bounded by max 120
+  if (sonuclar.length === 1) return Math.min(120, Number((Number(sonuclar[0].toplam_net) + 1.5).toFixed(1)));
+
+  // Calculate weighted moving average
+  let totalWeight = 0;
+  let weightedSum = 0;
+  for (let i = 0; i < sonuclar.length; i++) {
+    const w = i + 1;
+    weightedSum += Number(sonuclar[i].toplam_net) * w;
+    totalWeight += w;
+  }
+  const weightedAvg = weightedSum / totalWeight;
+
+  // Calculate weighted trend (consecutive differences)
+  let trendSum = 0;
+  let trendWeight = 0;
+  for (let i = 1; i < sonuclar.length; i++) {
+    const diff = Number(sonuclar[i].toplam_net) - Number(sonuclar[i - 1].toplam_net);
+    const w = i;
+    trendSum += diff * w;
+    trendWeight += w;
+  }
+  const avgTrend = trendWeight > 0 ? (trendSum / trendWeight) : 0;
+
+  // Damp the trend slightly to be realistic and bound it to prevent weird extreme fluctuations
+  const dampedTrend = avgTrend * 0.55;
+  const boundedTrend = Math.max(-8, Math.min(8, dampedTrend));
+
+  // Add trend to weighted average
+  const projectedValue = weightedAvg + dampedTrend;
+
+  // Let's also give a small baseline boost (+0.5 net) representing learning/progression over time
+  const withBoost = projectedValue + 0.5;
+
+  return Math.max(0, Math.min(120, Number(withBoost.toFixed(1))));
+};
+
 interface OgrenciPaneliProps {
   user: User;
   token: string;
@@ -761,7 +801,8 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                     {(() => {
                       const points: string[] = [];
                       const count = detailData.sonuclar.length;
-                      const stepX = (500 - 50) / (count > 1 ? count - 1 : 1);
+                      // We use division by count to leave space for projection point on the right
+                      const stepX = (500 - 80) / count;
 
                       detailData.sonuclar.forEach((res, index) => {
                         const x = 40 + index * stepX;
@@ -769,9 +810,30 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                         points.push(`${x},${y}`);
                       });
 
+                      // Calculate the expected projection for the upcoming practice exam
+                      const projectedNet = getProjectedNet(detailData.sonuclar);
+                      const projX = 40 + count * stepX;
+                      const projY = 160 - (projectedNet / 120) * 140 - 10;
+                      const lastX = 40 + (count - 1) * stepX;
+                      const lastY = 160 - (Number(detailData.sonuclar[count - 1].toplam_net) / 120) * 140 - 10;
+
                       return (
                         <>
+                          {/* Actual scores path */}
                           <polyline fill="none" stroke="#3b82f6" strokeWidth="2.5" points={points.join(' ')} />
+                          
+                          {/* Projection dashed line from last actual to projected */}
+                          <line 
+                            x1={lastX} 
+                            y1={lastY} 
+                            x2={projX} 
+                            y2={projY} 
+                            stroke="#f59e0b" 
+                            strokeWidth="2.5" 
+                            strokeDasharray="4,4" 
+                          />
+
+                          {/* Actual points */}
                           {detailData.sonuclar.map((res, index) => {
                             const x = 40 + index * stepX;
                             const y = 160 - (res.toplam_net / 120) * 140 - 10;
@@ -783,13 +845,29 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                               </g>
                             );
                           })}
+
+                          {/* Projected upcoming exam point */}
+                          <g>
+                            <circle cx={projX} cy={projY} r="5.5" fill="#f59e0b" stroke="#0f172a" strokeWidth="2" className="animate-pulse" />
+                            <circle cx={projX} cy={projY} r="9" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeOpacity="0.5" strokeDasharray="2,2" />
+                            <text x={projX} y={projY - 9} fill="#f59e0b" className="text-[11px] font-black" textAnchor="middle">{projectedNet}</text>
+                            <text x={projX} y="158" fill="#f59e0b" className="text-[8px] font-black tracking-wider uppercase" textAnchor="middle">Sıradaki (Beklenen 🎯)</text>
+                          </g>
                         </>
                       );
                     })()}
                   </svg>
                   {/* Legends */}
-                  <div className="mt-4 text-[10px] text-slate-500 text-center font-bold">
-                    Yatay eksen: Deneme Sınavları • Dikey eksen: Alınan Toplam Net Skorları
+                  <div className="mt-4 flex flex-wrap justify-center items-center gap-x-4 gap-y-1.5 text-[10px] text-slate-400 font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-[#3b82f6]"></span>
+                      <span>Gerçekleşen Netler</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse"></span>
+                      <span className="text-amber-400">Gelecek Sınav Projeksiyonu (Beklenen Net)</span>
+                    </span>
+                    <span className="text-slate-600 font-medium">• Yatay: Denemeler | Dikey: Net Skorları</span>
                   </div>
                 </div>
               )}

@@ -10,6 +10,46 @@ import RiskLimitleri from './components/RiskLimitleri';
 import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+// Helper function to calculate expected net projection for the next practice exam
+export const getProjectedNet = (sonuclar: any[]): number => {
+  if (!sonuclar || sonuclar.length === 0) return 0;
+  // If there's only one exam, we project a slight standard improvement of +1.5 nets as goal, bounded by max 120
+  if (sonuclar.length === 1) return Math.min(120, Number((Number(sonuclar[0].toplam_net) + 1.5).toFixed(1)));
+
+  // Calculate weighted moving average
+  let totalWeight = 0;
+  let weightedSum = 0;
+  for (let i = 0; i < sonuclar.length; i++) {
+    const w = i + 1;
+    weightedSum += Number(sonuclar[i].toplam_net) * w;
+    totalWeight += w;
+  }
+  const weightedAvg = weightedSum / totalWeight;
+
+  // Calculate weighted trend (consecutive differences)
+  let trendSum = 0;
+  let trendWeight = 0;
+  for (let i = 1; i < sonuclar.length; i++) {
+    const diff = Number(sonuclar[i].toplam_net) - Number(sonuclar[i - 1].toplam_net);
+    const w = i;
+    trendSum += diff * w;
+    trendWeight += w;
+  }
+  const avgTrend = trendWeight > 0 ? (trendSum / trendWeight) : 0;
+
+  // Damp the trend slightly to be realistic and bound it to prevent weird extreme fluctuations
+  const dampedTrend = avgTrend * 0.55;
+  const boundedTrend = Math.max(-8, Math.min(8, dampedTrend));
+
+  // Add trend to weighted average
+  const projectedValue = weightedAvg + dampedTrend;
+
+  // Let's also give a small baseline boost (+0.5 net) representing learning/progression over time
+  const withBoost = projectedValue + 0.5;
+
+  return Math.max(0, Math.min(120, Number(withBoost.toFixed(1))));
+};
+
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string>('');
@@ -81,26 +121,22 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Check for PayTR redirect query parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const paymentStatus = urlParams.get('payment');
-    if (paymentStatus === 'success') {
-      localStorage.setItem('kas_subscription_plan', 'premium');
-      setCurrentSubscription('premium');
-      // Clean query parameters from URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (paymentStatus === 'fail') {
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
     // Check local storage for persistent login session
     const storedUser = localStorage.getItem('kas_user');
     const storedToken = localStorage.getItem('kas_token');
+    let currentUserKurumId = 'guest';
+
     if (storedUser && storedToken) {
       const u = JSON.parse(storedUser);
       setUser(u);
       setToken(storedToken);
       setIsLoggedIn(true);
+      currentUserKurumId = String(u.kurum_id);
+
+      // Load specific plan for this user's institution
+      const plan = localStorage.getItem(`kas_subscription_plan_kurum_${u.kurum_id}`) || 'trial';
+      setCurrentSubscription(plan);
+
       if (u.rol === 'veli') {
         setCurrentTab('veli-panel');
         loadChildReportForVeli(u.id, storedToken);
@@ -110,6 +146,21 @@ export default function App() {
       } else {
         setCurrentTab('dashboard');
       }
+    }
+
+    // Check for PayTR redirect query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    if (paymentStatus === 'success') {
+      localStorage.setItem('kas_subscription_plan', 'premium');
+      if (currentUserKurumId !== 'guest') {
+        localStorage.setItem(`kas_subscription_plan_kurum_${currentUserKurumId}`, 'premium');
+      }
+      setCurrentSubscription('premium');
+      // Clean query parameters from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (paymentStatus === 'fail') {
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 
@@ -170,6 +221,10 @@ export default function App() {
         setIsLoggedIn(true);
         localStorage.setItem('kas_user', JSON.stringify(data.user));
         localStorage.setItem('kas_token', data.token);
+
+        // Load institution specific subscription plan from localStorage, default to trial
+        const plan = localStorage.getItem(`kas_subscription_plan_kurum_${data.user.kurum_id}`) || 'trial';
+        setCurrentSubscription(plan);
 
         if (data.user.rol === 'veli') {
           setCurrentTab('veli-panel');
@@ -1970,6 +2025,9 @@ export default function App() {
                   onUpgradeSuccess={(newPlan) => {
                     setCurrentSubscription(newPlan);
                     localStorage.setItem('kas_subscription_plan', newPlan);
+                    if (user && user.kurum_id) {
+                      localStorage.setItem(`kas_subscription_plan_kurum_${user.kurum_id}`, newPlan);
+                    }
                     setTrialDaysLeft(14);
                     localStorage.removeItem('kas_simulated_trial_days');
                   }} 
@@ -2063,6 +2121,9 @@ export default function App() {
                     onUpgradeSuccess={(newPlan) => {
                       setCurrentSubscription(newPlan);
                       localStorage.setItem('kas_subscription_plan', newPlan);
+                      if (user && user.kurum_id) {
+                        localStorage.setItem(`kas_subscription_plan_kurum_${user.kurum_id}`, newPlan);
+                      }
                       setTrialDaysLeft(14);
                       localStorage.removeItem('kas_simulated_trial_days');
                     }} 
@@ -2152,7 +2213,8 @@ export default function App() {
                               {(() => {
                                 const points: string[] = [];
                                 const count = childReport.sonuclar.length;
-                                const stepX = (500 - 50) / (count > 1 ? count - 1 : 1);
+                                // We use division by count to leave a slot at the end for the projection point
+                                const stepX = (500 - 80) / count;
 
                                 childReport.sonuclar.forEach((res, index) => {
                                   const x = 40 + index * stepX;
@@ -2160,9 +2222,30 @@ export default function App() {
                                   points.push(`${x},${y}`);
                                 });
 
+                                // Calculate the expected projection for the upcoming practice exam
+                                const projectedNet = getProjectedNet(childReport.sonuclar);
+                                const projX = 40 + count * stepX;
+                                const projY = 150 - (projectedNet / 120) * 130 - 10;
+                                const lastX = 40 + (count - 1) * stepX;
+                                const lastY = 150 - (Number(childReport.sonuclar[count - 1].toplam_net) / 120) * 130 - 10;
+
                                 return (
                                   <>
+                                    {/* Actual scores path */}
                                     <polyline fill="none" stroke="#6366f1" strokeWidth="2.5" points={points.join(' ')} />
+                                    
+                                    {/* Projection dashed line from last actual to projected */}
+                                    <line 
+                                      x1={lastX} 
+                                      y1={lastY} 
+                                      x2={projX} 
+                                      y2={projY} 
+                                      stroke="#f59e0b" 
+                                      strokeWidth="2.5" 
+                                      strokeDasharray="4,4" 
+                                    />
+
+                                    {/* Actual points */}
                                     {childReport.sonuclar.map((res, index) => {
                                       const x = 40 + index * stepX;
                                       const y = 150 - (res.toplam_net / 120) * 130 - 10;
@@ -2174,10 +2257,29 @@ export default function App() {
                                         </g>
                                       );
                                     })}
+
+                                    {/* Projected upcoming exam point */}
+                                    <g>
+                                      <circle cx={projX} cy={projY} r="5.5" fill="#f59e0b" stroke="#0f172a" strokeWidth="2" className="animate-pulse" />
+                                      <circle cx={projX} cy={projY} r="9" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeOpacity="0.5" strokeDasharray="2,2" />
+                                      <text x={projX} y={projY - 9} fill="#f59e0b" className="text-[11px] font-black" textAnchor="middle">{projectedNet}</text>
+                                      <text x={projX} y="148" fill="#f59e0b" className="text-[8px] font-black tracking-wider uppercase" textAnchor="middle">Sıradaki (Beklenen 🎯)</text>
+                                    </g>
                                   </>
                                 );
                               })()}
                             </svg>
+                            <div className="mt-4 flex flex-wrap justify-center items-center gap-x-4 gap-y-1.5 text-[10px] text-slate-400 font-bold">
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-[#6366f1]"></span>
+                                <span>Gerçekleşen Netler</span>
+                              </span>
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse"></span>
+                                <span className="text-amber-400">Gelecek Sınav Projeksiyonu (Beklenen Net)</span>
+                              </span>
+                              <span className="text-slate-600 font-medium">• Yatay: Denemeler | Dikey: Net Skorları</span>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -2416,7 +2518,8 @@ export default function App() {
                               {(() => {
                                 const points: string[] = [];
                                 const count = studentReport.sonuclar.length;
-                                const stepX = (500 - 50) / (count > 1 ? count - 1 : 1);
+                                // We use division by count to leave a slot at the end for the projection point
+                                const stepX = (500 - 80) / count;
 
                                 studentReport.sonuclar.forEach((res, index) => {
                                   const x = 40 + index * stepX;
@@ -2424,9 +2527,30 @@ export default function App() {
                                   points.push(`${x},${y}`);
                                 });
 
+                                // Calculate the expected projection for the upcoming practice exam
+                                const projectedNet = getProjectedNet(studentReport.sonuclar);
+                                const projX = 40 + count * stepX;
+                                const projY = 150 - (projectedNet / 120) * 130 - 10;
+                                const lastX = 40 + (count - 1) * stepX;
+                                const lastY = 150 - (Number(studentReport.sonuclar[count - 1].toplam_net) / 120) * 130 - 10;
+
                                 return (
                                   <>
+                                    {/* Actual scores path */}
                                     <polyline fill="none" stroke="#6366f1" strokeWidth="2.5" points={points.join(' ')} />
+                                    
+                                    {/* Projection dashed line from last actual to projected */}
+                                    <line 
+                                      x1={lastX} 
+                                      y1={lastY} 
+                                      x2={projX} 
+                                      y2={projY} 
+                                      stroke="#f59e0b" 
+                                      strokeWidth="2.5" 
+                                      strokeDasharray="4,4" 
+                                    />
+
+                                    {/* Actual points */}
                                     {studentReport.sonuclar.map((res, index) => {
                                       const x = 40 + index * stepX;
                                       const y = 150 - (res.toplam_net / 120) * 130 - 10;
@@ -2438,10 +2562,29 @@ export default function App() {
                                         </g>
                                       );
                                     })}
+
+                                    {/* Projected upcoming exam point */}
+                                    <g>
+                                      <circle cx={projX} cy={projY} r="5.5" fill="#f59e0b" stroke="#0f172a" strokeWidth="2" className="animate-pulse" />
+                                      <circle cx={projX} cy={projY} r="9" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeOpacity="0.5" strokeDasharray="2,2" />
+                                      <text x={projX} y={projY - 9} fill="#f59e0b" className="text-[11px] font-black" textAnchor="middle">{projectedNet}</text>
+                                      <text x={projX} y="148" fill="#f59e0b" className="text-[8px] font-black tracking-wider uppercase" textAnchor="middle">Sıradaki (Beklenen 🎯)</text>
+                                    </g>
                                   </>
                                 );
                               })()}
                             </svg>
+                            <div className="mt-4 flex flex-wrap justify-center items-center gap-x-4 gap-y-1.5 text-[10px] text-slate-400 font-bold">
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-[#6366f1]"></span>
+                                <span>Gerçekleşen Netler</span>
+                              </span>
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse"></span>
+                                <span className="text-amber-400">Gelecek Sınav Projeksiyonu (Beklenen Net)</span>
+                              </span>
+                              <span className="text-slate-600 font-medium">• Yatay: Denemeler | Dikey: Net Skorları</span>
+                            </div>
                           </div>
                         )}
                       </div>
