@@ -41,6 +41,29 @@ export default function App() {
 
   // SaaS Marketing & Sales states
   const [currentSubscription, setCurrentSubscription] = useState<string>(() => localStorage.getItem('kas_subscription_plan') || 'trial');
+  
+  // Trial calculations: Default 14 days, decreases dynamically
+  const [trialDaysLeft, setTrialDaysLeft] = useState<number>(() => {
+    const savedStart = localStorage.getItem('kas_trial_start');
+    if (!savedStart) {
+      const now = new Date();
+      localStorage.setItem('kas_trial_start', now.toISOString());
+      return 14;
+    }
+    const startDate = new Date(savedStart);
+    const diffTime = Math.max(0, new Date().getTime() - startDate.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const left = 14 - diffDays;
+    
+    // Check if there is a custom simulated trial days left (highly useful for user testing)
+    const simulated = localStorage.getItem('kas_simulated_trial_days');
+    if (simulated !== null) {
+      return Math.max(0, parseInt(simulated, 10));
+    }
+    
+    return left < 0 ? 0 : left;
+  });
+
   const [isAnnualBilling, setIsAnnualBilling] = useState(false);
   const [studentCountSlider, setStudentCountSlider] = useState(150);
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null);
@@ -1629,7 +1652,7 @@ export default function App() {
                   currentSubscription === 'trial' ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' :
                   'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
                 }`}>
-                  {currentSubscription === 'trial' ? "Deneme Sürümü (12 Gün)" : "Sınırsız Premium 💎"}
+                  {currentSubscription === 'trial' ? `Deneme Sürümü (${trialDaysLeft} Gün)` : "Sınırsız Premium 💎"}
                 </span>
                 {user.rol === 'admin' && currentSubscription === 'trial' && (
                   <button 
@@ -1651,58 +1674,115 @@ export default function App() {
           {/* Core App Viewport */}
           <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full overflow-y-auto">
             
-            {/* MOUNT VIEW: Dashboard */}
-            {currentTab === 'dashboard' && user.rol !== 'veli' && (
-              <Dashboard user={user} token={token} />
-            )}
+            {currentSubscription === 'trial' && trialDaysLeft <= 0 ? (
+              user.rol === 'admin' && currentTab === 'abonelik' ? (
+                <Abonelik 
+                  user={user} 
+                  token={token} 
+                  currentPlan={currentSubscription}
+                  trialDaysLeft={trialDaysLeft}
+                  setTrialDaysLeft={setTrialDaysLeft}
+                  onUpgradeSuccess={(newPlan) => {
+                    setCurrentSubscription(newPlan);
+                    localStorage.setItem('kas_subscription_plan', newPlan);
+                    setTrialDaysLeft(14);
+                    localStorage.removeItem('kas_simulated_trial_days');
+                  }} 
+                />
+              ) : (
+                <div className="bg-slate-900 border border-red-500/20 rounded-3xl p-8 md:p-12 text-center flex flex-col items-center justify-center space-y-6 max-w-2xl mx-auto my-12 animate-fade-in shadow-2xl relative overflow-hidden">
+                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-red-500/5 rounded-full blur-3xl"></div>
+                  <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center animate-pulse">
+                    <Shield size={32} />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <span className="text-[10px] bg-red-500/10 border border-red-500/20 text-red-400 font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">
+                      Kullanım Süreniz Dolmuştur! 🔒
+                    </span>
+                    <h3 className="text-2xl font-black text-slate-100 font-sans">
+                      Deneme Süreniz Sona Erdi
+                    </h3>
+                    <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                      {user.rol === 'admin' 
+                        ? "K.A.S Portal'ın 14 günlük ücretsiz deneme süresi sona ermiştir. Kurumunuzun verilerine, öğrenci analizlerine ve diğer tüm modüllere erişmeye devam etmek için lütfen lisans paketinizi yükseltin."
+                        : "Kurumunuzun 14 günlük deneme süresi sona ermiştir. Devam etmek için kurum yöneticisinin (Admin) lisans paketini yenilemesi gerekmektedir. Lütfen okul idaresi ile iletişime geçin."
+                      }
+                    </p>
+                  </div>
 
-            {/* MOUNT VIEW: Student Lifecycle Panel */}
-            {(currentTab === 'ogrenci' || currentTab === 'tanimlar_ogrenci') && user.rol !== 'veli' && (
-              <OgrenciPaneli user={user} token={token} />
-            )}
+                  {user.rol === 'admin' ? (
+                    <button
+                      onClick={() => setCurrentTab('abonelik')}
+                      className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs px-6 py-3 rounded-xl flex items-center gap-2 cursor-pointer transition shadow-lg shadow-blue-500/10 animate-bounce"
+                    >
+                      <Coins size={15} /> Şimdi Lisansı Yükselt & Ödeme Yap
+                    </button>
+                  ) : (
+                    <div className="text-[11px] text-slate-500 font-bold border border-slate-800 bg-slate-950/40 px-4 py-2.5 rounded-xl">
+                      Sistem Yöneticisine Bilgilendirme İletildi
+                    </div>
+                  )}
+                </div>
+              )
+            ) : (
+              <>
+                {/* MOUNT VIEW: Dashboard */}
+                {currentTab === 'dashboard' && user.rol !== 'veli' && (
+                  <Dashboard user={user} token={token} />
+                )}
 
-            {/* MOUNT VIEW: AI Parser PDF Reader */}
-            {currentTab === 'pdf' && (user.rol === 'admin' || user.rol === 'rehber') && (
-              <PdfOkuyucu user={user} token={token} />
-            )}
+                {/* MOUNT VIEW: Student Lifecycle Panel */}
+                {(currentTab === 'ogrenci' || currentTab === 'tanimlar_ogrenci') && user.rol !== 'veli' && (
+                  <OgrenciPaneli user={user} token={token} />
+                )}
 
-            {/* MOUNT VIEW: Messenger Hub */}
-            {currentTab === 'mesaj' && (
-              <Mesajlar user={user} token={token} />
-            )}
+                {/* MOUNT VIEW: AI Parser PDF Reader */}
+                {currentTab === 'pdf' && (user.rol === 'admin' || user.rol === 'rehber') && (
+                  <PdfOkuyucu user={user} token={token} />
+                )}
 
-            {/* MOUNT VIEW: Configurations & Staff management */}
-            {currentTab === 'tanimlar' && user.rol === 'admin' && (
-              <Tanimlar user={user} token={token} />
-            )}
+                {/* MOUNT VIEW: Messenger Hub */}
+                {currentTab === 'mesaj' && (
+                  <Mesajlar user={user} token={token} />
+                )}
 
-            {/* MOUNT VIEW: Individual Sub-tabs from Sidebar */}
-            {currentTab.startsWith('tanimlar_') && currentTab !== 'tanimlar_ogrenci' && user.rol === 'admin' && (
-              <Tanimlar 
-                user={user} 
-                token={token} 
-                activeTab={currentTab.replace('tanimlar_', '') as any}
-                setActiveTab={(tab) => setCurrentTab(`tanimlar_${tab}`)}
-              />
-            )}
+                {/* MOUNT VIEW: Configurations & Staff management */}
+                {currentTab === 'tanimlar' && user.rol === 'admin' && (
+                  <Tanimlar user={user} token={token} />
+                )}
 
-            {/* MOUNT VIEW: Risk Threshold Settings */}
-            {currentTab === 'risk_limitleri' && user.rol === 'admin' && (
-              <RiskLimitleri user={user} token={token} />
-            )}
+                {/* MOUNT VIEW: Individual Sub-tabs from Sidebar */}
+                {currentTab.startsWith('tanimlar_') && currentTab !== 'tanimlar_ogrenci' && user.rol === 'admin' && (
+                  <Tanimlar 
+                    user={user} 
+                    token={token} 
+                    activeTab={currentTab.replace('tanimlar_', '') as any}
+                    setActiveTab={(tab) => setCurrentTab(`tanimlar_${tab}`)}
+                  />
+                )}
 
-            {/* MOUNT VIEW: Abonelik & Ödeme */}
-            {currentTab === 'abonelik' && user.rol === 'admin' && (
-              <Abonelik 
-                user={user} 
-                token={token} 
-                currentPlan={currentSubscription}
-                onUpgradeSuccess={(newPlan) => {
-                  setCurrentSubscription(newPlan);
-                  localStorage.setItem('kas_subscription_plan', newPlan);
-                }} 
-              />
-            )}
+                {/* MOUNT VIEW: Risk Threshold Settings */}
+                {currentTab === 'risk_limitleri' && user.rol === 'admin' && (
+                  <RiskLimitleri user={user} token={token} />
+                )}
+
+                {/* MOUNT VIEW: Abonelik & Ödeme */}
+                {currentTab === 'abonelik' && user.rol === 'admin' && (
+                  <Abonelik 
+                    user={user} 
+                    token={token} 
+                    currentPlan={currentSubscription}
+                    trialDaysLeft={trialDaysLeft}
+                    setTrialDaysLeft={setTrialDaysLeft}
+                    onUpgradeSuccess={(newPlan) => {
+                      setCurrentSubscription(newPlan);
+                      localStorage.setItem('kas_subscription_plan', newPlan);
+                      setTrialDaysLeft(14);
+                      localStorage.removeItem('kas_simulated_trial_days');
+                    }} 
+                  />
+                )}
 
             {/* MOUNT VIEW: Individual Child performance report for Parent (Veli Paneli) */}
             {currentTab === 'veli-panel' && user.rol === 'veli' && (
@@ -2190,7 +2270,9 @@ export default function App() {
                 )}
               </div>
             )}
-          </main>
+          </>
+        )}
+      </main>
         </div>
       )}
     </div>

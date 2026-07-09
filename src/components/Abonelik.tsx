@@ -6,9 +6,11 @@ interface AbonelikProps {
   token: string;
   onUpgradeSuccess: (newPlan: string) => void;
   currentPlan: string;
+  trialDaysLeft: number;
+  setTrialDaysLeft: (days: number) => void;
 }
 
-export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan }: AbonelikProps) {
+export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, trialDaysLeft, setTrialDaysLeft }: AbonelikProps) {
   const [selectedPlan, setSelectedPlan] = useState<{ id: string; title: string; price: string; isAnnual: boolean } | null>(null);
   
   // Card payment form state
@@ -142,7 +144,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan }:
             <div className="bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/20 p-5 rounded-2xl flex flex-col sm:flex-row items-center gap-4 justify-between">
               <div className="space-y-1 text-center sm:text-left">
                 <h3 className="text-sm font-extrabold text-amber-400 flex items-center justify-center sm:justify-start gap-1.5">
-                  <Zap size={15} /> Deneme Sürenizin Bitmesine 12 Gün Kaldı!
+                  <Zap size={15} /> Deneme Sürenizin Bitmesine {trialDaysLeft} Gün Kaldı!
                 </h3>
                 <p className="text-[11px] text-slate-400 font-semibold">
                   Deneme süreniz boyunca K.A.S'ın tüm özelliklerini sınırsız test edebilirsiniz. Bilgileriniz kaybolmadan tek fiyat avantajıyla yükseltebilirsiniz.
@@ -400,187 +402,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan }:
             </div>
           </div>
 
-          {/* INTEGRATION & MERCHANT BANK ACCOUNT SETTINGS */}
-          <div className="bg-slate-900/30 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-6">
-            <div>
-              <span className="text-xs font-black text-blue-500 uppercase tracking-widest block">ÖDEME ALMA & ENTEGRASYON ALTYAPISI</span>
-              <h3 className="text-lg font-black text-slate-100 mt-1 font-sans">Kurum Ödemeleriniz Nereye Düşecek?</h3>
-              <p className="text-xs text-slate-400 font-semibold mt-1">
-                K.A.S portalı üzerinden öğrenci ve velilerden alacağınız eğitim ücreti/taksit ödemelerini doğrudan kendi şahsi veya kurumsal banka hesabınıza bağlayın.
-              </p>
-            </div>
 
-            {/* Merchant type toggler */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-950 p-1.5 rounded-2xl border border-slate-900">
-              <button
-                type="button"
-                onClick={() => setMerchantType('bank')}
-                className={`px-4 py-3 rounded-xl text-xs font-bold transition flex flex-col items-center gap-1.5 cursor-pointer ${
-                  merchantType === 'bank' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/30'
-                }`}
-              >
-                <Landmark size={15} />
-                <span>Banka Havalesi / EFT</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setMerchantType('iyzico')}
-                className={`px-4 py-3 rounded-xl text-xs font-bold transition flex flex-col items-center gap-1.5 cursor-pointer ${
-                  merchantType === 'iyzico' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/30'
-                }`}
-              >
-                <CreditCard size={15} />
-                <span>iyzico Entegrasyonu</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setMerchantType('paytr')}
-                className={`px-4 py-3 rounded-xl text-xs font-bold transition flex flex-col items-center gap-1.5 cursor-pointer ${
-                  merchantType === 'paytr' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/30'
-                }`}
-              >
-                <Sparkles size={15} />
-                <span>PayTR Entegrasyonu</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setMerchantType('stripe')}
-                className={`px-4 py-3 rounded-xl text-xs font-bold transition flex flex-col items-center gap-1.5 cursor-pointer ${
-                  merchantType === 'stripe' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/30'
-                }`}
-              >
-                <Shield size={15} />
-                <span>Stripe Entegrasyonu</span>
-              </button>
-            </div>
-
-            {/* Config Forms based on selected type */}
-            <div className="bg-slate-950/60 border border-slate-850 p-6 rounded-2xl">
-              {merchantType === 'bank' && (
-                <div className="space-y-4 animate-fade-in">
-                  <div className="flex items-center gap-2 border-b border-slate-850 pb-2 mb-2">
-                    <Landmark size={16} className="text-blue-400" />
-                    <span className="text-xs font-bold text-slate-200">Doğrudan Banka Transfer Bilgileri</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 font-semibold">
-                    Veliler veya öğrenciler ödeme yaparken aşağıdaki banka hesap bilgilerinizi görecek ve ödemeyi doğrudan bu hesaba gönderecektir.
-                  </p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] text-slate-400 font-bold mb-1.5 uppercase tracking-wider">Banka Adı</label>
-                      <input
-                        type="text"
-                        placeholder="Örn: Ziraat Bankası, Garanti BBVA"
-                        value={bankName}
-                        onChange={e => setBankName(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-medium"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] text-slate-400 font-bold mb-1.5 uppercase tracking-wider">Hesap Sahibi (Ad Soyad / Unvan)</label>
-                      <input
-                        type="text"
-                        placeholder="Örn: K.A.S Eğitim Hizmetleri Ltd. Şti."
-                        value={bankOwner}
-                        onChange={e => setBankOwner(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-medium"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-[10px] text-slate-400 font-bold mb-1.5 uppercase tracking-wider">IBAN Numarası</label>
-                      <input
-                        type="text"
-                        placeholder="TR00 0000 0000 0000 0000 0000 00"
-                        value={bankIban}
-                        onChange={e => setBankIban(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono tracking-wider font-semibold"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {merchantType !== 'bank' && (
-                <div className="space-y-4 animate-fade-in">
-                  <div className="flex items-center gap-2 border-b border-slate-850 pb-2 mb-2">
-                    <Key size={16} className="text-blue-400" />
-                    <span className="text-xs font-bold text-slate-200">{merchantType.toUpperCase()} API Sanal Pos Bağlantısı</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 font-semibold">
-                    Ödemelerin veli kredi kartından çekilip <strong>anında sizin resmi banka hesabınıza</strong> aktarılması için {merchantType.toUpperCase()} Sanal POS API anahtarlarınızı girin.
-                  </p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] text-slate-400 font-bold mb-1.5 uppercase tracking-wider">API Key (Anahtar)</label>
-                      <input
-                        type="password"
-                        placeholder="Örn: 3d_sec_key_..."
-                        value={apiKey}
-                        onChange={e => setApiKey(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] text-slate-400 font-bold mb-1.5 uppercase tracking-wider">API Secret (Gizli Şifre)</label>
-                      <input
-                        type="password"
-                        placeholder="Örn: secret_sig_..."
-                        value={apiSecret}
-                        onChange={e => setApiSecret(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Integration feedback message */}
-              {integrationSuccess && (
-                <div className="mt-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] p-3 rounded-xl flex items-center gap-2 animate-pulse">
-                  <CheckCircle size={14} /> {integrationSuccess}
-                </div>
-              )}
-
-              {/* Save button for settings */}
-              <div className="flex justify-end mt-5 pt-3 border-t border-slate-800/60">
-                <button
-                  type="button"
-                  disabled={integrationSaving}
-                  onClick={() => {
-                    setIntegrationSaving(true);
-                    setIntegrationSuccess('');
-                    setTimeout(() => {
-                      localStorage.setItem('kas_merchant_type', merchantType);
-                      localStorage.setItem('kas_bank_name', bankName);
-                      localStorage.setItem('kas_bank_owner', bankOwner);
-                      localStorage.setItem('kas_bank_iban', bankIban);
-                      localStorage.setItem('kas_api_key', apiKey);
-                      localStorage.setItem('kas_api_secret', apiSecret);
-                      setIntegrationSaving(false);
-                      setIntegrationSuccess('Ödeme alma altyapısı ve banka hesap bilgileriniz sisteme güvenle kaydedildi! Artık tüm veli ödemeleri bu hesaba yönlendirilecektir.');
-                      setTimeout(() => setIntegrationSuccess(''), 5000);
-                    }, 800);
-                  }}
-                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer transition shadow-md shadow-blue-600/10"
-                >
-                  {integrationSaving ? (
-                    <RefreshCw className="animate-spin" size={13} />
-                  ) : (
-                    <Check size={13} />
-                  )}
-                  Banka & Entegrasyon Ayarlarını Kaydet
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
