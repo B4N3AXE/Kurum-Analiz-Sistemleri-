@@ -297,9 +297,9 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                             </div>
 
                             <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-1.5 text-[11px] text-amber-400 font-semibold leading-relaxed">
-                              <h5 className="font-extrabold flex items-center gap-1">⚡ Gerçek Ödeme Almak İçin:</h5>
+                              <h5 className="font-extrabold flex items-center gap-1">⚡ Gerçek Canlı Ödeme Almak İçin:</h5>
                               <p className="text-slate-400 font-medium text-[10px]">
-                                Yandaki API Ayarları bölümünden veya .env dosyanızdan size ait olan <strong>PAYTR_MERCHANT_ID</strong>, <strong>PAYTR_MERCHANT_KEY</strong> ve <strong>PAYTR_MERCHANT_SALT</strong> değerlerini tanımladığınızda bu simülatör yerine otomatik olarak BDDK onaylı gerçek PayTR ödeme ekranı yüklenecektir.
+                                Sol üstteki <strong>Settings &rarr; Secrets</strong> sekmesinden size ait olan <strong>PAYTR_MERCHANT_ID</strong>, <strong>PAYTR_MERCHANT_KEY</strong> ve <strong>PAYTR_MERCHANT_SALT</strong> değerlerini tanımlayın. Canlı (gerçek) ödeme almak için ayrıca <strong>PAYTR_TEST_MODE</strong> değerini <strong>0</strong> yapın. Bu değerler girildiğinde, sistemimiz otomatik olarak BDDK onaylı gerçek PayTR ödeme sayfasını güvenle yükleyecektir.
                               </p>
                             </div>
                           </div>
@@ -325,29 +325,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                             <span className="text-[10px] font-black text-emerald-400 flex items-center gap-1.5 uppercase">
                               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> GERÇEK GÜVENLİ PAYTR EKRANI YÜKLENDİ
                             </span>
-                            <span className="text-[9px] text-slate-500 font-mono tracking-wide">SSL 256-BIT</span>
-                          </div>
-                          
-                          {/* Developer Simulation Bypass Tool */}
-                          <div className="bg-blue-600/10 border-b border-blue-500/20 px-5 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-                            <div className="text-left">
-                              <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest block">GELİŞTİRİCİ TEST ARACI 🛠️</span>
-                              <p className="text-slate-300 font-semibold text-[11px] mt-0.5">Gerçek para harcamadan başarılı ödeme akışını test etmek ister misiniz?</p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPaymentStep('processing');
-                                setProcessMessage('Sanal PayTR başarılı bildirimi simüle ediliyor...');
-                                setTimeout(() => {
-                                  setPaymentStep('success');
-                                  onUpgradeSuccess(selectedPlan.id);
-                                }, 1500);
-                              }}
-                              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-[10px] rounded-lg transition cursor-pointer shrink-0 uppercase tracking-wide shadow shadow-blue-500/20"
-                            >
-                              Ödemeyi Simüle Et (Ücretsiz)
-                            </button>
+                            <span className="text-[9px] text-slate-500 font-mono tracking-wide">SSL 256-BIT GÜVENLİ ÖDEME</span>
                           </div>
 
                           <iframe
