@@ -7,7 +7,7 @@ import Mesajlar from './components/Mesajlar';
 import Tanimlar from './components/Tanimlar';
 import Abonelik from './components/Abonelik';
 import RiskLimitleri from './components/RiskLimitleri';
-import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X } from 'lucide-react';
+import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Helper function to calculate expected net projection for the next practice exam
@@ -1103,6 +1103,17 @@ export default function App() {
                   <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
                     Eğitim kurumlarında zaman tasarrufu, veri doğruluğu ve veli memnuniyeti sağlayan yeni nesil SaaS bulut otomasyonu.
                   </p>
+                  <div className="pt-1">
+                    <a
+                      href="https://www.instagram.com/kurum_analiz_sistemleri/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-purple-600/10 to-pink-600/10 hover:from-purple-600/20 hover:to-pink-600/20 border border-purple-500/20 hover:border-pink-500/35 rounded-xl text-slate-300 hover:text-pink-400 text-[10px] font-bold transition duration-300"
+                    >
+                      <Instagram size={11} className="text-pink-500" />
+                      <span>@kurum_analiz_sistemleri</span>
+                    </a>
+                  </div>
                 </div>
 
                 {/* Legal & Policies Column */}
@@ -1145,10 +1156,13 @@ export default function App() {
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">İletişim & Destek</span>
                   <div className="space-y-2 text-[10px] text-slate-400 font-bold leading-normal">
                     <p className="flex items-center gap-1.5">
-                      <span className="text-blue-400">✉</span> cagriiscen26@gmail.com
+                      <span className="text-blue-400">✉</span> k.a.s@kurumanaliz.com
                     </p>
                     <p className="flex items-center gap-1.5">
                       <span className="text-blue-400">📞</span> +90 542 610 5632
+                    </p>
+                    <p className="flex items-center gap-1.5">
+                      <span className="text-blue-400">📸</span> <a href="https://www.instagram.com/kurum_analiz_sistemleri/" target="_blank" rel="noopener noreferrer" className="hover:text-pink-400 transition">@kurum_analiz_sistemleri</a>
                     </p>
                     <p className="flex items-center gap-1.5">
                       <span className="text-blue-400">📍</span> Türkiye (Online Hizmet)
