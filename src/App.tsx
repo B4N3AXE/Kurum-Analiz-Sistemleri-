@@ -1164,8 +1164,9 @@ export default function App() {
                     <p className="flex items-center gap-1.5">
                       <span className="text-blue-400">📸</span> <a href="https://www.instagram.com/kurum_analiz_sistemleri/" target="_blank" rel="noopener noreferrer" className="hover:text-pink-400 transition">@kurum_analiz_sistemleri</a>
                     </p>
-                    <p className="flex items-center gap-1.5">
-                      <span className="text-blue-400">📍</span> Türkiye (Online Hizmet)
+                    <p className="flex items-start gap-1.5">
+                      <span className="text-blue-400 shrink-0 mt-0.5">📍</span> 
+                      <span>Esentepe Mah. Büyükdere Cad. No:127 Astoria Towers A Blok Kat:8 Şişli / İstanbul</span>
                     </p>
                   </div>
                 </div>
