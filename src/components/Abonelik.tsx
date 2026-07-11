@@ -25,13 +25,13 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
   const [isAnnualBilling, setIsAnnualBilling] = useState(false);
 
   // PayTR Secure Integration States
-  const [payMethod, setPayMethod] = useState<'paytr' | 'simulation'>('paytr');
+  const [paymentMethod, setPaymentMethod] = useState<'paytr' | 'card'>('paytr');
   const [paytrToken, setPaytrToken] = useState<string>('');
   const [paytrLoading, setPaytrLoading] = useState<boolean>(false);
   const [paytrError, setPaytrError] = useState<string>('');
   const [isSimulationMode, setIsSimulationMode] = useState<boolean>(false);
 
-  const handlePaytrTokenFetch = async (plan: typeof selectedPlan) => {
+  const handlePaytrTokenFetch = async (plan: { id: string; title: string; price: string; isAnnual: boolean } | null) => {
     if (!plan) return;
     setPaytrLoading(true);
     setPaytrError('');
@@ -77,10 +77,10 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
   };
 
   React.useEffect(() => {
-    if (selectedPlan) {
+    if (selectedPlan && paymentMethod === 'paytr') {
       handlePaytrTokenFetch(selectedPlan);
     }
-  }, [selectedPlan]);
+  }, [selectedPlan, paymentMethod]);
 
   // Institution's Own Payment Gateway Settings
   const [merchantType, setMerchantType] = useState<'bank' | 'iyzico' | 'paytr' | 'stripe'>(
@@ -241,131 +241,256 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                 </div>
               </div>
 
+              {/* Payment Method Selector Tab */}
+              <div className="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-850/80 max-w-md gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('paytr')}
+                  className={`flex-1 py-2.5 rounded-xl text-[10px] font-black tracking-wider uppercase transition flex items-center justify-center gap-2 cursor-pointer ${
+                    paymentMethod === 'paytr'
+                      ? 'bg-blue-600 text-white shadow shadow-blue-500/20'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
+                  }`}
+                >
+                  <Landmark size={13} /> PayTR Ortak Ödeme
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('card')}
+                  className={`flex-1 py-2.5 rounded-xl text-[10px] font-black tracking-wider uppercase transition flex items-center justify-center gap-2 cursor-pointer ${
+                    paymentMethod === 'card'
+                      ? 'bg-blue-600 text-white shadow shadow-blue-500/20'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
+                  }`}
+                >
+                  <CreditCard size={13} /> Hızlı Kart (Simülasyon)
+                </button>
+              </div>
+
               <div className="space-y-6">
-                {paytrLoading && (
-                  <div className="flex flex-col items-center justify-center py-20 space-y-3 bg-slate-950 rounded-2xl border border-slate-850">
-                    <RefreshCw className="animate-spin text-blue-500" size={32} />
-                    <p className="text-xs font-bold text-slate-400">Güvenli PayTR ödeme tokenı oluşturuluyor, lütfen bekleyin...</p>
-                  </div>
-                )}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                  {/* Left Side: Payment Area */}
+                  <div className="lg:col-span-8 bg-slate-950 rounded-3xl border border-slate-850 p-6 md:p-8 space-y-6">
+                    {paymentMethod === 'paytr' ? (
+                      <div className="space-y-6 min-h-[300px] flex flex-col justify-center">
+                        {paytrLoading && (
+                          <div className="text-center py-12 space-y-4 animate-fade-in">
+                            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                            <p className="text-xs text-slate-400 font-bold">Güvenli PayTR Ortak Ödeme Sayfası Hazırlanıyor...</p>
+                          </div>
+                        )}
 
-                {paytrError && (
-                  <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl space-y-4 text-center">
-                    <AlertCircle className="mx-auto text-red-500" size={32} />
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-black text-slate-200">Bağlantı Hatası</h4>
-                      <p className="text-xs text-slate-400 font-medium">{paytrError}</p>
-                    </div>
-                    <div className="flex justify-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handlePaytrTokenFetch(selectedPlan)}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl cursor-pointer"
-                      >
-                        Yeniden Dene
-                      </button>
-                    </div>
-                  </div>
-                )}
+                        {paytrError && (
+                          <div className="text-center py-8 space-y-4 max-w-md mx-auto animate-fade-in">
+                            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-full w-12 h-12 flex items-center justify-center mx-auto text-red-400">
+                              <AlertCircle size={22} />
+                            </div>
+                            <div className="space-y-1">
+                              <h4 className="text-sm font-extrabold text-slate-200">PayTR Token Alınamadı</h4>
+                              <p className="text-[11px] text-slate-400 leading-normal font-semibold">{paytrError}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handlePaytrTokenFetch(selectedPlan)}
+                              className="px-4 py-2 bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-800 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 mx-auto"
+                            >
+                              <RefreshCw size={12} /> Tekrar Dene
+                            </button>
+                          </div>
+                        )}
 
-                {paytrToken && (
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Left Side: Real PayTR iFrame or Simulated interactive portal */}
-                    <div className="lg:col-span-8 bg-slate-950 rounded-3xl border border-slate-850 p-1 overflow-hidden min-h-[600px] flex flex-col justify-between">
-                      {isSimulationMode ? (
-                        <div className="p-8 flex flex-col justify-between h-full space-y-8">
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-2.5">
-                              <span className="p-1.5 bg-blue-600/15 border border-blue-500/25 rounded-lg text-blue-400">
-                                <Shield size={16} />
-                              </span>
-                              <div>
-                                <span className="text-[9px] font-black text-blue-500 uppercase tracking-wider block">GELİŞTİRİCİ / TEST MODU SİMÜLASYONU</span>
-                                <h4 className="text-sm font-black text-slate-200">PayTR Entegrasyon Simülatörü</h4>
+                        {!paytrLoading && !paytrError && paytrToken && (
+                          <div className="space-y-4 animate-fade-in">
+                            {isSimulationMode ? (
+                              <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/5 border border-blue-500/20 p-5 rounded-2xl space-y-4">
+                                <div className="flex gap-3">
+                                  <div className="p-2 bg-blue-500/15 rounded-xl text-blue-400 h-9 w-9 flex items-center justify-center border border-blue-500/10">
+                                    <Sparkles size={16} />
+                                  </div>
+                                  <div className="space-y-1 flex-1">
+                                    <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider">PayTR Altyapısı Tamam!</h4>
+                                    <p className="text-[11px] text-slate-400 leading-relaxed font-semibold">
+                                      PayTR backend imza doğrulama, token üretme ve güvenli yönlendirme altyapısı portalınızda başarıyla kuruldu.
+                                      Girdiğiniz kimlik bilgileri doğrulanıp canlı mod aktif edildiğinde gerçek PayTR ödeme sayfası burada yüklenecektir.
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="bg-slate-950 p-3 rounded-xl border border-slate-850 font-mono text-[9px] text-blue-400/90 leading-relaxed space-y-1">
+                                  <div>• Ödeme Tutarı: {selectedPlan.isAnnual ? "₺9000" : "₺950"} ({selectedPlan.price}/ay)</div>
+                                  <div>• Sipariş ID: KAS{user?.id || '0'}X[ZAMAN_DAMGASI]</div>
+                                  <div>• Sanal Token: {paytrToken}</div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPaymentStep('processing');
+                                    setProcessMessage('Test ödeme bildirimi işleniyor...');
+                                    setTimeout(() => {
+                                      setProcessMessage('Lisans yetkilendirmesi güncelleniyor...');
+                                      setTimeout(() => {
+                                        setPaymentStep('success');
+                                        onUpgradeSuccess('premium');
+                                      }, 1000);
+                                    }, 1000);
+                                  }}
+                                  className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl transition cursor-pointer"
+                                >
+                                  Sanal Test Ödemesini Tamamla
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between text-xs font-bold text-slate-400 px-1">
+                                  <span className="flex items-center gap-1.5"><ShieldCheck size={14} className="text-emerald-400" /> Güvenli PayTR SSL Bağlantısı</span>
+                                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">Mağaza Aktif</span>
+                                </div>
+                                <div className="w-full aspect-[4/3] min-h-[450px] bg-slate-900 rounded-2xl overflow-hidden border border-slate-800">
+                                  <iframe
+                                    src={`https://www.paytr.com/odeme/guvenli/${paytrToken}`}
+                                    className="w-full h-full border-0"
+                                    allow="payment"
+                                    title="PayTR Güvenli Ödeme Ekranı"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col md:flex-row gap-8 items-center justify-between animate-fade-in">
+                        {/* Dynamic 3D/Glass Card Graphic */}
+                        <div className={`relative w-full max-w-[320px] aspect-[1.586/1] rounded-2xl p-5 text-white font-mono shadow-2xl transition-all duration-500 bg-gradient-to-br ${cardProvider.color} overflow-hidden shrink-0 flex flex-col justify-between`}>
+                          <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/10 pointer-events-none"></div>
+                          
+                          <div className="flex justify-between items-start">
+                            {/* Chip */}
+                            <div className="w-10 h-7 bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-200 rounded-md border border-amber-400/40 relative overflow-hidden flex items-center justify-center shadow-inner">
+                              <div className="absolute inset-1 border border-amber-600/20 rounded grid grid-cols-3 grid-rows-3 gap-0.5 opacity-60">
+                                <div className="border-r border-b border-slate-950/20"></div>
+                                <div className="border-r border-b border-slate-950/20"></div>
+                                <div className="border-b border-slate-950/20"></div>
+                                <div className="border-r border-b border-slate-950/20"></div>
+                                <div className="border-r border-b border-slate-950/20"></div>
+                                <div className="border-b border-slate-950/20"></div>
+                                <div className="border-r border-slate-950/20"></div>
+                                <div className="border-r border-slate-950/20"></div>
+                                <div></div>
                               </div>
                             </div>
+                            
+                            {/* Brand */}
+                            <span className="text-sm font-black italic tracking-tight">{cardProvider.name}</span>
+                          </div>
 
-                            <p className="text-xs text-slate-400 leading-relaxed font-semibold">
-                              Tebrikler! PayTR backend imza doğrulama, token üretme ve güvenli yönlendirme altyapısı uygulamanızda başarıyla kuruldu.
-                            </p>
+                          {/* Card Number */}
+                          <div className="text-lg font-bold tracking-widest text-center my-4 drop-shadow">
+                            {cardNumber || '•••• •••• •••• ••••'}
+                          </div>
 
-                            <div className="bg-slate-900 border border-slate-850 p-4 rounded-2xl space-y-2">
-                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">ÜRETİLEN ÖDEME TOKENI (SHA256 HMAC)</span>
-                              <code className="text-[10px] font-mono text-emerald-400 block break-all bg-slate-950 p-2.5 rounded-xl border border-slate-850">
-                                {paytrToken}
-                              </code>
+                          <div className="flex justify-between items-end text-[10px]">
+                            <div className="space-y-0.5">
+                              <span className="text-slate-400/80 font-semibold block uppercase text-[8px]">Kart Sahibi</span>
+                              <span className="text-xs font-bold uppercase tracking-wider block truncate max-w-[180px]">
+                                {cardName || 'K.A.S LİSANS SAHİBİ'}
+                              </span>
+                            </div>
+                            <div className="space-y-0.5 text-right">
+                              <span className="text-slate-400/80 font-semibold block uppercase text-[8px]">S.K.T</span>
+                              <span className="text-xs font-bold block">{cardExpiry || 'AA/YY'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Inputs Form */}
+                        <form onSubmit={handlePaySubmit} className="flex-1 w-full space-y-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Kart Sahibi Adı Soyadı</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Kart üzerindeki isim"
+                              value={cardName}
+                              onChange={(e) => setCardName(e.target.value)}
+                              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 font-bold focus:border-blue-500 focus:outline-none transition animate-fade-in"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Kart Numarası</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="0000 0000 0000 0000"
+                              value={cardNumber}
+                              onChange={handleCardNumberChange}
+                              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 font-bold focus:border-blue-500 focus:outline-none transition font-mono animate-fade-in"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Son Kullanma</label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="AA/YY"
+                                value={cardExpiry}
+                                onChange={handleExpiryChange}
+                                className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 font-bold focus:border-blue-500 focus:outline-none transition font-mono animate-fade-in"
+                              />
                             </div>
 
-                            <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-1.5 text-[11px] text-amber-400 font-semibold leading-relaxed">
-                              <h5 className="font-extrabold flex items-center gap-1">⚡ Gerçek Canlı Ödeme Almak İçin:</h5>
-                              <p className="text-slate-400 font-medium text-[10px]">
-                                Sol üstteki <strong>Settings &rarr; Secrets</strong> sekmesinden size ait olan <strong>PAYTR_MERCHANT_ID</strong>, <strong>PAYTR_MERCHANT_KEY</strong> ve <strong>PAYTR_MERCHANT_SALT</strong> değerlerini tanımlayın. Canlı (gerçek) ödeme almak için ayrıca <strong>PAYTR_TEST_MODE</strong> değerini <strong>0</strong> yapın. Bu değerler girildiğinde, sistemimiz otomatik olarak BDDK onaylı gerçek PayTR ödeme sayfasını güvenle yükleyecektir.
-                              </p>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">CVC / CVV</label>
+                              <input
+                                type="password"
+                                required
+                                placeholder="000"
+                                value={cardCvc}
+                                onChange={handleCvcChange}
+                                className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 font-bold focus:border-blue-500 focus:outline-none transition font-mono animate-fade-in"
+                              />
                             </div>
                           </div>
 
                           <button
-                            type="button"
-                            onClick={() => {
-                              setPaymentStep('processing');
-                              setProcessMessage('Simüle edilmiş PayTR callback doğrulanıyor...');
-                              setTimeout(() => {
-                                setPaymentStep('success');
-                                onUpgradeSuccess(selectedPlan.id);
-                              }, 1500);
-                            }}
-                            className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition cursor-pointer flex justify-center items-center gap-2"
+                            type="submit"
+                            className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs rounded-xl shadow-lg transition cursor-pointer flex justify-center items-center gap-2 uppercase tracking-wider"
                           >
-                            <ShieldCheck size={14} /> Test Ödemesini Tamamla ve Premium'u Aktifleştir
+                            <ShieldCheck size={14} /> {selectedPlan.price} Güvenli Ödeme Yap
                           </button>
-                        </div>
-                      ) : (
-                        <div className="w-full h-full flex flex-col">
-                          <div className="bg-slate-900 px-4 py-2 border-b border-slate-850 flex items-center justify-between">
-                            <span className="text-[10px] font-black text-emerald-400 flex items-center gap-1.5 uppercase">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> GERÇEK GÜVENLİ PAYTR EKRANI YÜKLENDİ
-                            </span>
-                            <span className="text-[9px] text-slate-500 font-mono tracking-wide">SSL 256-BIT GÜVENLİ ÖDEME</span>
-                          </div>
+                        </form>
+                      </div>
+                    )}
+                  </div>
 
-                          <iframe
-                            src={`https://www.paytr.com/odeme/guvenli/${paytrToken}`}
-                            width="100%"
-                            height="650px"
-                            style={{ border: 'none', background: '#ffffff' }}
-                            className="w-full bg-white"
-                          />
+                  {/* Right Side: Order Summary */}
+                  <div className="lg:col-span-4 flex flex-col justify-between space-y-6 border-t lg:border-t-0 lg:border-l border-slate-800/80 pt-6 lg:pt-0 lg:pl-8">
+                    <div className="bg-slate-950 p-5 border border-slate-850 rounded-2xl space-y-4">
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">SİPARİŞ ÖZETİ</span>
+                      <div className="space-y-2 text-xs text-slate-300 font-semibold">
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">{selectedPlan.title} ({selectedPlan.isAnnual ? 'Yıllık' : 'Aylık'})</span>
+                          <span>{selectedPlan.price}</span>
                         </div>
-                      )}
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">%18 KDV</span>
+                          <span>Dahil</span>
+                        </div>
+                        <div className="border-t border-slate-800/80 pt-3 flex justify-between font-black text-slate-100 text-sm">
+                          <span>Toplam Tutar</span>
+                          <span className="text-blue-400">{selectedPlan.price}</span>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Right Side: Order Summary */}
-                    <div className="lg:col-span-4 flex flex-col justify-between space-y-6 border-t lg:border-t-0 lg:border-l border-slate-800/80 pt-6 lg:pt-0 lg:pl-8">
-                      <div className="bg-slate-950 p-5 border border-slate-850 rounded-2xl space-y-4">
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">SİPARİŞ ÖZETİ</span>
-                        <div className="space-y-2 text-xs text-slate-300 font-semibold">
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">{selectedPlan.title} ({selectedPlan.isAnnual ? 'Yıllık' : 'Aylık'})</span>
-                            <span>{selectedPlan.price}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">%18 KDV</span>
-                            <span>Dahil</span>
-                          </div>
-                          <div className="border-t border-slate-800/80 pt-3 flex justify-between font-black text-slate-100 text-sm">
-                            <span>Toplam Tutar</span>
-                            <span className="text-blue-400">{selectedPlan.price}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2.5 text-[10px] text-slate-500 font-bold leading-normal bg-slate-950/40 p-4 rounded-xl border border-slate-850/40">
-                        <ShieldCheck size={14} className="text-blue-500 shrink-0" />
-                        <span>Ödemeleriniz doğrudan BDDK denetimindeki PayTR Sanal POS altyapısı üzerinden 3D Secure güvencesiyle tahsil edilir.</span>
-                      </div>
+                    <div className="flex items-center gap-2.5 text-[10px] text-slate-500 font-bold leading-normal bg-slate-950/40 p-4 rounded-xl border border-slate-850/40">
+                      <ShieldCheck size={14} className="text-blue-500 shrink-0" />
+                      <span>Ödemeleriniz doğrudan BDDK denetimindeki PayTR Sanal POS altyapısı üzerinden 3D Secure güvencesiyle tahsil edilir.</span>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           )}
