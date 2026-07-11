@@ -299,7 +299,7 @@ export default function App() {
         <header className="hidden md:flex bg-slate-900 border-b border-slate-800/80 px-6 py-3.5 justify-between items-center z-20 shadow-md">
           <div className="flex items-center gap-2.5">
             <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
-              <img src="/favicon.png" alt="K.A.S" className="w-6 h-6 object-contain rounded" referrerPolicy="no-referrer" />
+              <img src="/logo.jpg?v=3" alt="K.A.S" className="w-6 h-6 object-contain rounded" referrerPolicy="no-referrer" />
             </div>
             <div>
               <span className="text-xs text-blue-400 font-bold uppercase tracking-wider block">Kurum Analiz Sistemi</span>
@@ -334,7 +334,7 @@ export default function App() {
             <div className="flex items-center justify-between border-b border-slate-900/40 pb-4 max-w-5xl mx-auto w-full">
               <div className="flex items-center gap-2.5">
                 <div className="p-1 bg-blue-600/5 rounded-xl border border-slate-800 shadow-lg shadow-blue-500/5">
-                  <img src="/favicon.png" alt="K.A.S Logo" className="w-9 h-9 object-contain rounded-lg" referrerPolicy="no-referrer" />
+                  <img src="/logo.jpg?v=3" alt="K.A.S Logo" className="w-9 h-9 object-contain rounded-lg" referrerPolicy="no-referrer" />
                 </div>
                 <div>
                   <span className="text-[10px] font-black tracking-widest text-blue-400 uppercase">Kişiselleştirilmiş Eğitim Yönetimi</span>
@@ -413,7 +413,7 @@ export default function App() {
                   <div className="relative group p-1.5 bg-slate-950 rounded-[2.5rem] border border-slate-900 shadow-2xl overflow-hidden w-full max-w-sm lg:max-w-none">
                     <div className="absolute -inset-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2.5rem] blur opacity-15 group-hover:opacity-30 transition duration-1000 group-hover:duration-200"></div>
                     <img 
-                      src="/logo.jpg" 
+                      src="/logo.jpg?v=3" 
                       alt="Kurum Analiz Sistemleri Logo" 
                       className="w-full aspect-square object-contain rounded-[2.2rem] shadow-inner transform group-hover:scale-[1.02] transition-transform duration-500"
                       referrerPolicy="no-referrer"
@@ -1096,7 +1096,7 @@ export default function App() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
-                      <img src="/favicon.png" alt="K.A.S" className="w-5 h-5 object-contain rounded" referrerPolicy="no-referrer" />
+                      <img src="/logo.jpg?v=3" alt="K.A.S" className="w-5 h-5 object-contain rounded" referrerPolicy="no-referrer" />
                     </div>
                     <span className="text-xs font-black text-slate-200 tracking-wider">K.A.S KURUMSAL</span>
                   </div>
@@ -1306,7 +1306,7 @@ export default function App() {
                 </button>
                 <div className="flex items-center gap-2">
                   <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
-                    <img src="/favicon.png" alt="K.A.S" className="w-5 h-5 object-contain rounded" referrerPolicy="no-referrer" />
+                    <img src="/logo.jpg?v=3" alt="K.A.S" className="w-5 h-5 object-contain rounded" referrerPolicy="no-referrer" />
                   </div>
                   <span className="text-[10px] font-black text-slate-300 tracking-wider">K.A.S PORTAL</span>
                 </div>
@@ -1516,7 +1516,7 @@ export default function App() {
           <div className="md:hidden w-full bg-slate-900 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-md">
             <div className="flex items-center gap-2.5">
               <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
-                <img src="/favicon.png" alt="K.A.S" className="w-5 h-5 object-contain rounded" referrerPolicy="no-referrer" />
+                <img src="/logo.jpg?v=3" alt="K.A.S" className="w-5 h-5 object-contain rounded" referrerPolicy="no-referrer" />
               </div>
               <div>
                 <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider block leading-none">Kurum Analiz</span>
