@@ -8,9 +8,10 @@ interface AbonelikProps {
   currentPlan: string;
   trialDaysLeft: number;
   setTrialDaysLeft: (days: number) => void;
+  trialTimeLeftStr?: string;
 }
 
-export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, trialDaysLeft, setTrialDaysLeft }: AbonelikProps) {
+export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, trialDaysLeft, setTrialDaysLeft, trialTimeLeftStr }: AbonelikProps) {
   const [selectedPlan, setSelectedPlan] = useState<{ id: string; title: string; price: string; isAnnual: boolean } | null>(null);
   
   // Payment processing states
@@ -134,7 +135,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
             <div className="bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/20 p-5 rounded-2xl flex flex-col sm:flex-row items-center gap-4 justify-between">
               <div className="space-y-1 text-center sm:text-left">
                 <h3 className="text-sm font-extrabold text-amber-400 flex items-center justify-center sm:justify-start gap-1.5">
-                  <Zap size={15} /> Deneme Sürenizin Bitmesine {trialDaysLeft} Gün Kaldı!
+                  <Zap size={15} /> Deneme Sürenizin Bitmesine {trialTimeLeftStr || `${trialDaysLeft} Gün`} Kaldı!
                 </h3>
                 <p className="text-[11px] text-slate-400 font-semibold">
                   Deneme süreniz boyunca K.A.S'ın tüm özelliklerini sınırsız test edebilirsiniz. Bilgileriniz kaybolmadan tek fiyat avantajıyla yükseltebilirsiniz.

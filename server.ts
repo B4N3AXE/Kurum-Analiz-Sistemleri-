@@ -18,6 +18,9 @@ app.use(express.urlencoded({ limit: '15mb', extended: true }));
 // Memory-based brute force protection count
 const loginAttempts: Record<string, { count: number; lockUntil?: number }> = {};
 
+// Memory-based password reset codes
+const resetCodes: Record<string, { code: string; expires: number }> = {};
+
 // Multer upload config for parsing deneme results
 const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
@@ -132,28 +135,162 @@ app.post('/api/auth/login', (req, res) => {
       telefon: user.telefon,
       kurum_id: user.kurum_id,
       kurum_adi: institution?.ad || 'K.A.S Kurumu',
-      abonelik_turu: institution?.abonelik_turu || 'trial'
+      abonelik_turu: institution?.abonelik_turu || 'trial',
+      deneme_bitis: institution?.deneme_bitis || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
     }
   });
+});
+
+// Forgot password: check email & generate/store verification code
+app.post('/api/auth/forgot-password', (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'E-posta adresi gereklidir.' });
+  }
+
+  const user = db.getKullanicilar().find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (!user) {
+    return res.status(404).json({ error: 'Bu e-posta adresine ait kayıtlı bir kullanıcı bulunamadı.' });
+  }
+
+  // Generate 6-digit numeric code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  resetCodes[email.toLowerCase()] = {
+    code,
+    expires: Date.now() + 15 * 60 * 1000 // expires in 15 minutes
+  };
+
+  // We return the code in the response so the frontend can display it in a toast/modal
+  res.json({
+    success: true,
+    message: 'Şifre sıfırlama kodunuz oluşturuldu.',
+    code: code // Client-side debug aid
+  });
+});
+
+// Verify reset code
+app.post('/api/auth/verify-reset-code', (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !code) {
+    return res.status(400).json({ error: 'E-posta adresi ve kod gereklidir.' });
+  }
+
+  const record = resetCodes[email.toLowerCase()];
+  if (!record || record.expires < Date.now()) {
+    return res.status(400).json({ error: 'Sıfırlama kodunun süresi dolmuş veya hiç oluşturulmamış.' });
+  }
+
+  if (record.code !== code.trim()) {
+    return res.status(400).json({ error: 'Girdiğiniz sıfırlama kodu hatalı.' });
+  }
+
+  res.json({ success: true, message: 'Kod başarıyla doğrulandı.' });
+});
+
+// Reset password
+app.post('/api/auth/reset-password', (req, res) => {
+  const { email, code, yeni_sifre } = req.body;
+  if (!email || !code || !yeni_sifre) {
+    return res.status(400).json({ error: 'Tüm alanlar gereklidir.' });
+  }
+
+  const record = resetCodes[email.toLowerCase()];
+  if (!record || record.expires < Date.now()) {
+    return res.status(400).json({ error: 'Kod süresi dolmuş. Lütfen tekrar sıfırlama kodu isteyin.' });
+  }
+
+  if (record.code !== code.trim()) {
+    return res.status(400).json({ error: 'Girdiğiniz sıfırlama kodu hatalı.' });
+  }
+
+  // Sifre validation
+  if (yeni_sifre.length < 6) {
+    return res.status(400).json({ error: 'Yeni şifreniz en az 6 karakter olmalıdır.' });
+  }
+  if (!/[a-zA-ZçğıöşüÇĞİÖŞÜ]/.test(yeni_sifre) || !/[0-9]/.test(yeni_sifre)) {
+    return res.status(400).json({ error: 'Yeni şifreniz en az bir harf ve bir rakam içermelidir.' });
+  }
+
+  const user = db.getKullanicilar().find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (!user) {
+    return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+  }
+
+  // Update password
+  db.update('kullanicilar', user.id, { sifre: yeni_sifre });
+
+  // Clean up code
+  delete resetCodes[email.toLowerCase()];
+
+  res.json({ success: true, message: 'Şifreniz başarıyla güncellendi. Yeni şifrenizle giriş yapabilirsiniz.' });
 });
 
 app.post('/api/auth/register', (req, res) => {
   const { ad_soyad, email, sifre, telefon, kurum_adi, kurum_turu } = req.body;
   
-  if (!ad_soyad || !email || !sifre || !kurum_adi) {
-    return res.status(400).json({ error: 'Tüm zorunlu alanları doldurun.' });
+  if (!ad_soyad || !email || !sifre || !kurum_adi || !telefon) {
+    return res.status(400).json({ error: 'Lütfen tüm zorunlu alanları doldurun.' });
   }
 
-  const existing = db.getKullanicilar().find(u => u.email.toLowerCase() === email.toLowerCase());
-  if (existing) {
+  // 1. Kurum Adı validation
+  if (kurum_adi.trim().length < 6) {
+    return res.status(400).json({ error: 'Kurum adı en az 6 karakter olmalıdır.' });
+  }
+
+  // 2. Ad Soyad validation
+  const cleanName = ad_soyad.trim();
+  const nameParts = cleanName.split(/\s+/);
+  if (nameParts.length < 2 || cleanName.length < 5) {
+    return res.status(400).json({ error: 'Lütfen adınızı ve soyadınızı aralarında boşluk bırakarak tam girin (en az 2 kelime).' });
+  }
+  const nameRegex = /^[a-zA-ZçğıöşüÇĞİÖŞÜ\s]+$/;
+  if (!nameRegex.test(cleanName)) {
+    return res.status(400).json({ error: 'Ad Soyad sadece harflerden oluşmalıdır.' });
+  }
+
+  // 3. Telefon validation
+  const cleanPhone = telefon.replace(/[\s()-]/g, '');
+  const phoneRegex = /^(05|5)\d{9}$/;
+  if (!phoneRegex.test(cleanPhone)) {
+    return res.status(400).json({ error: 'Lütfen geçerli bir cep telefonu numarası girin (örn: 05551234567).' });
+  }
+
+  // 4. E-posta validation
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Lütfen geçerli bir e-posta adresi girin.' });
+  }
+
+  // 5. Şifre validation
+  if (sifre.length < 6) {
+    return res.status(400).json({ error: 'Şifreniz en az 6 karakter olmalıdır.' });
+  }
+  if (!/[a-zA-ZçğıöşüÇĞİÖŞÜ]/.test(sifre) || !/[0-9]/.test(sifre)) {
+    return res.status(400).json({ error: 'Şifreniz en az bir harf ve bir rakam içermelidir.' });
+  }
+
+  const emailExisting = db.getKullanicilar().find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (emailExisting) {
     return res.status(400).json({ error: 'Bu e-posta adresi zaten kullanımda.' });
   }
 
-  // 1. Create Institution (defaults to trial plan)
+  const phoneExisting = db.getKullanicilar().find(u => {
+    if (!u.telefon) return false;
+    const dbPhone = u.telefon.replace(/[\s()-]/g, '');
+    return dbPhone === cleanPhone;
+  });
+  if (phoneExisting) {
+    return res.status(400).json({ error: 'Bu telefon numarası zaten kullanımda.' });
+  }
+
+  // 1. Create Institution (defaults to trial plan with precise 14-day expiration)
+  const now = new Date();
+  const trialExpiresAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days exactly
   const institution = db.insert('kurumlar', {
     ad: kurum_adi,
     tur: kurum_turu || 'Lise',
-    abonelik_turu: 'trial'
+    abonelik_turu: 'trial',
+    deneme_bitis: trialExpiresAt.toISOString()
   });
 
   // 2. Create User as ADMIN of this institution
@@ -175,7 +312,8 @@ app.post('/api/auth/register', (req, res) => {
       telefon: user.telefon,
       kurum_id: user.kurum_id,
       kurum_adi: institution.ad,
-      abonelik_turu: institution.abonelik_turu || 'trial'
+      abonelik_turu: institution.abonelik_turu || 'trial',
+      deneme_bitis: institution.deneme_bitis
     }
   });
 });
@@ -315,7 +453,12 @@ app.get('/api/dashboard/stats', (req, res) => {
     trends,
     recentExams,
     totalClasses: classes.length,
-    totalExams: exams.length
+    totalExams: exams.length,
+    thresholds: {
+      TYT: tytThreshold.toplam_net,
+      AYT: aytThreshold.toplam_net,
+      LGS: lgsThreshold.toplam_net
+    }
   });
 });
 

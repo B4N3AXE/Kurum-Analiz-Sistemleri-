@@ -7,7 +7,7 @@ import Mesajlar from './components/Mesajlar';
 import Tanimlar from './components/Tanimlar';
 import Abonelik from './components/Abonelik';
 import RiskLimitleri from './components/RiskLimitleri';
-import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram } from 'lucide-react';
+import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Helper function to calculate expected net projection for the next practice exam
@@ -73,6 +73,16 @@ export default function App() {
   const [regTuru, setRegTuru] = useState('Anadolu Lisesi');
   const [regError, setRegError] = useState('');
 
+  // Forgot Password flow states
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [resetStep, setResetStep] = useState<'email' | 'code' | 'password'>('email');
+  const [resetEmailInput, setResetEmailInput] = useState('');
+  const [resetCodeInput, setResetCodeInput] = useState('');
+  const [resetNewPasswordInput, setResetNewPasswordInput] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
+  const [generatedResetCode, setGeneratedResetCode] = useState('');
+
   // Parent profile lookups
   const [childReport, setChildReport] = useState<{ student: Ogrenci; sonuclar: any[]; notlar: any[]; ders_programi?: any[] } | null>(null);
   const [loadingChild, setLoadingChild] = useState(false);
@@ -106,6 +116,8 @@ export default function App() {
     return left < 0 ? 0 : left;
   });
 
+  const [trialTimeLeftStr, setTrialTimeLeftStr] = useState<string>('');
+
   const [isAnnualBilling, setIsAnnualBilling] = useState(false);
   const [studentCountSlider, setStudentCountSlider] = useState(150);
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null);
@@ -119,6 +131,58 @@ export default function App() {
     }, 1000);
     return () => clearInterval(clockTimer);
   }, []);
+
+  useEffect(() => {
+    // Check if there is a custom simulated trial days left
+    const simulated = localStorage.getItem('kas_simulated_trial_days');
+    if (simulated !== null) {
+      const simVal = parseInt(simulated, 10);
+      setTrialDaysLeft(Math.max(0, simVal));
+      setTrialTimeLeftStr(`${simVal} Gün`);
+      return;
+    }
+
+    let endIso = user?.deneme_bitis;
+    if (!endIso) {
+      const savedStart = localStorage.getItem('kas_trial_start');
+      if (!savedStart) {
+        const now = new Date();
+        localStorage.setItem('kas_trial_start', now.toISOString());
+        endIso = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
+      } else {
+        const start = new Date(savedStart);
+        endIso = new Date(start.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
+      }
+    }
+
+    const endTime = new Date(endIso).getTime();
+    const nowTime = currentTime.getTime();
+    const diffMs = endTime - nowTime;
+
+    if (diffMs <= 0) {
+      setTrialDaysLeft(0);
+      setTrialTimeLeftStr("Süre Doldu 🔒");
+    } else {
+      const totalSeconds = Math.floor(diffMs / 1000);
+      const days = Math.floor(totalSeconds / (24 * 3600));
+      const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      // Ensure trialDaysLeft stays positive until exact expiration to match older checks
+      setTrialDaysLeft(days + (hours > 0 || minutes > 0 || seconds > 0 ? 1 : 0));
+
+      let text = "";
+      if (days > 0) {
+        text = `${days} Gün ${hours} Saat ${minutes} Dakika`;
+      } else if (hours > 0) {
+        text = `${hours} Saat ${minutes} Dakika ${seconds} Saniye`;
+      } else {
+        text = `${minutes} Dakika ${seconds} Saniye`;
+      }
+      setTrialTimeLeftStr(text);
+    }
+  }, [user, currentTime]);
 
   useEffect(() => {
     // Check local storage for persistent login session
@@ -257,6 +321,50 @@ export default function App() {
       return;
     }
 
+    // 1. Kurum Adı validation
+    if (regKurum.trim().length < 6) {
+      setRegError("Kurum adı en az 6 karakter olmalıdır.");
+      return;
+    }
+
+    // 2. Ad Soyad validation
+    const cleanName = regName.trim();
+    const nameParts = cleanName.split(/\s+/);
+    if (nameParts.length < 2 || cleanName.length < 5) {
+      setRegError("Lütfen adınızı ve soyadınızı aralarında boşluk bırakarak tam girin (en az 2 kelime).");
+      return;
+    }
+    const nameRegex = /^[a-zA-ZçğıöşüÇĞİÖŞÜ\s]+$/;
+    if (!nameRegex.test(cleanName)) {
+      setRegError("Ad Soyad alanında sadece harfler kullanılabilir.");
+      return;
+    }
+
+    // 3. Telefon validation
+    const cleanPhone = regPhone.replace(/[\s()-]/g, '');
+    const phoneRegex = /^(05|5)\d{9}$/;
+    if (!phoneRegex.test(cleanPhone)) {
+      setRegError("Lütfen geçerli bir cep telefonu numarası girin (örn: 05551234567).");
+      return;
+    }
+
+    // 4. E-posta validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(regEmail)) {
+      setRegError("Lütfen geçerli bir e-posta adresi girin.");
+      return;
+    }
+
+    // 5. Şifre validation
+    if (regPassword.length < 6) {
+      setRegError("Şifreniz en az 6 karakter olmalıdır.");
+      return;
+    }
+    if (!/[a-zA-ZçğıöşüÇĞİÖŞÜ]/.test(regPassword) || !/[0-9]/.test(regPassword)) {
+      setRegError("Şifreniz güvenlik için en az bir harf ve bir rakam içermelidir.");
+      return;
+    }
+
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -281,6 +389,107 @@ export default function App() {
       }
     } catch (err) {
       setRegError("Sunucu hatası.");
+    }
+  };
+
+  const handleRequestResetCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError('');
+    setResetSuccess('');
+    
+    // Validate email format
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(resetEmailInput)) {
+      setResetError("Lütfen geçerli bir e-posta adresi girin.");
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmailInput })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setResetSuccess("Şifre sıfırlama kodunuz oluşturuldu! Geliştirici ortamında olduğunuz için kod aşağıda gösterilmektedir.");
+        setGeneratedResetCode(data.code);
+        setResetStep('code');
+      } else {
+        setResetError(data.error || "Bir hata oluştu.");
+      }
+    } catch (err) {
+      setResetError("Sunucu ile bağlantı kurulamadı.");
+    }
+  };
+
+  const handleVerifyResetCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError('');
+    setResetSuccess('');
+
+    if (resetCodeInput.trim().length !== 6) {
+      setResetError("Lütfen 6 haneli doğrulama kodunu girin.");
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/verify-reset-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmailInput, code: resetCodeInput })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setResetSuccess("Kod doğrulandı! Lütfen yeni şifrenizi girin.");
+        setResetStep('password');
+      } else {
+        setResetError(data.error || "Girdiğiniz kod hatalı.");
+      }
+    } catch (err) {
+      setResetError("Sunucu ile bağlantı kurulamadı.");
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError('');
+    setResetSuccess('');
+
+    if (resetNewPasswordInput.length < 6) {
+      setResetError("Yeni şifreniz en az 6 karakter olmalıdır.");
+      return;
+    }
+    if (!/[a-zA-ZçğıöşüÇĞİÖŞÜ]/.test(resetNewPasswordInput) || !/[0-9]/.test(resetNewPasswordInput)) {
+      setResetError("Şifreniz en az bir harf ve bir rakam içermelidir.");
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmailInput, code: resetCodeInput, yeni_sifre: resetNewPasswordInput })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setResetSuccess("Şifreniz başarıyla güncellendi! Yeni şifrenizle otomatik olarak giriş yapılıyor...");
+        setTimeout(() => {
+          setShowForgotPasswordModal(false);
+          // Set inputs to trigger successful login
+          setEmail(resetEmailInput);
+          setSifre(resetNewPasswordInput);
+          // Perform login
+          handleLogin(null as any, { email: resetEmailInput, sifre: resetNewPasswordInput });
+        }, 2500);
+      } else {
+        setResetError(data.error || "Şifre sıfırlanamadı.");
+      }
+    } catch (err) {
+      setResetError("Sunucu ile bağlantı kurulamadı.");
     }
   };
 
@@ -1188,6 +1397,138 @@ export default function App() {
               </div>
             </div>
 
+            {/* FORGOT PASSWORD MODAL POPUP */}
+            {showForgotPasswordModal && (
+              <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in text-left">
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 w-full max-w-md space-y-6 shadow-2xl relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPasswordModal(false)}
+                    className="absolute top-4 right-4 text-slate-400 hover:text-slate-100 bg-slate-950/50 p-2 rounded-xl border border-slate-800 transition cursor-pointer text-xs font-bold"
+                  >
+                    ✕ Kapat
+                  </button>
+
+                  <div className="text-center space-y-2">
+                    <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mx-auto">
+                      <Key size={24} />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-100 font-sans">
+                      Şifremi Sıfırla
+                    </h3>
+                    <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                      {resetStep === 'email' && "Kayıtlı e-posta adresinizi girerek 6 haneli güvenlik kodu talep edin."}
+                      {resetStep === 'code' && "E-postanıza (veya simülasyon olarak aşağıya) gönderilen 6 haneli sıfırlama kodunu girin."}
+                      {resetStep === 'password' && "Lütfen hesabınız için yeni, güvenli bir şifre belirleyin."}
+                    </p>
+                  </div>
+
+                  {resetError && (
+                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-xl flex items-center gap-2 font-semibold">
+                      <AlertCircle size={15} /> {resetError}
+                    </div>
+                  )}
+
+                  {resetSuccess && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs p-3 rounded-xl flex items-center gap-2 font-semibold">
+                      <CheckCircle size={15} /> {resetSuccess}
+                    </div>
+                  )}
+
+                  {/* STEP 1: REQUEST CODE */}
+                  {resetStep === 'email' && (
+                    <form onSubmit={handleRequestResetCode} className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">E-posta Adresi</label>
+                        <input
+                          type="email"
+                          required
+                          placeholder="ornek@kurum.com"
+                          value={resetEmailInput}
+                          onChange={e => setResetEmailInput(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-medium"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md shadow-blue-500/10 flex justify-center items-center gap-2 cursor-pointer"
+                      >
+                        Sıfırlama Kodu Gönder ⚡
+                      </button>
+                    </form>
+                  )}
+
+                  {/* STEP 2: VERIFY CODE */}
+                  {resetStep === 'code' && (
+                    <form onSubmit={handleVerifyResetCode} className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">6 Haneli Doğrulama Kodu</label>
+                        <input
+                          type="text"
+                          required
+                          maxLength={6}
+                          placeholder="123456"
+                          value={resetCodeInput}
+                          onChange={e => setResetCodeInput(e.target.value.replace(/\D/g, ''))}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-center tracking-widest font-black text-slate-100 text-lg focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+
+                      {generatedResetCode && (
+                        <div className="bg-blue-500/5 border border-blue-500/10 p-3 rounded-xl text-center space-y-1">
+                          <span className="text-[10px] text-blue-400 font-extrabold uppercase tracking-widest block">GELİŞTİRİCİ SİMÜLASYONU 📨</span>
+                          <p className="text-xs text-slate-300 font-black">Sıfırlama Kodunuz: <span className="text-blue-400 select-all bg-slate-950 px-2 py-0.5 rounded border border-slate-800 font-mono tracking-normal text-sm">{generatedResetCode}</span></p>
+                          <p className="text-[9px] text-slate-500 font-medium">Bu kod e-postanıza gönderilen kodu simüle etmektedir.</p>
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md shadow-blue-500/10 flex justify-center items-center gap-2 cursor-pointer"
+                      >
+                        Kodu Doğrula 🔍
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setResetStep('email')}
+                        className="w-full text-slate-400 hover:text-slate-300 text-[11px] font-bold text-center block mt-2 cursor-pointer"
+                      >
+                        Geri Dön (E-posta Değiştir)
+                      </button>
+                    </form>
+                  )}
+
+                  {/* STEP 3: NEW PASSWORD */}
+                  {resetStep === 'password' && (
+                    <form onSubmit={handleResetPassword} className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Yeni Şifre</label>
+                        <input
+                          type="password"
+                          required
+                          placeholder="••••••••"
+                          value={resetNewPasswordInput}
+                          onChange={e => setResetNewPasswordInput(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                        />
+                        <span className="text-[9px] text-slate-500 font-bold mt-1 block leading-normal">
+                          Güvenlik için en az 6 karakter, 1 harf ve 1 rakam içermelidir.
+                        </span>
+                      </div>
+                      <button
+                        type="submit"
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md shadow-blue-500/10 flex justify-center items-center gap-2 cursor-pointer"
+                      >
+                        Şifreyi Güncelle & Giriş Yap 🎉
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* POLICY DIALOGS MODAL POPUP */}
             {activePolicy && (
               <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -1375,6 +1716,22 @@ export default function App() {
                   <div>
                     <div className="flex justify-between items-center mb-1">
                       <label className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Şifre / Öğrenci T.C. No</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowForgotPasswordModal(true);
+                          setResetStep('email');
+                          setResetEmailInput('');
+                          setResetCodeInput('');
+                          setResetNewPasswordInput('');
+                          setResetError('');
+                          setResetSuccess('');
+                          setGeneratedResetCode('');
+                        }}
+                        className="text-[10px] text-blue-400 hover:text-blue-300 font-bold hover:underline cursor-pointer focus:outline-none transition-colors"
+                      >
+                        Şifremi Unuttum?
+                      </button>
                     </div>
                     <input
                       type="password"
@@ -1751,7 +2108,7 @@ export default function App() {
                     <div>
                       <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block">Lisans Durumu</span>
                       <span className="text-[10px] text-slate-300 font-extrabold">
-                        {currentSubscription === 'trial' ? `Deneme Sürümü (${trialDaysLeft} Gün)` : "Sınırsız Premium 💎"}
+                        {currentSubscription === 'trial' ? `Deneme Sürümü (${trialTimeLeftStr || `${trialDaysLeft} Gün`})` : "Sınırsız Premium 💎"}
                       </span>
                     </div>
                     {user.rol === 'admin' && currentSubscription === 'trial' && (
@@ -2011,7 +2368,7 @@ export default function App() {
                   currentSubscription === 'trial' ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' :
                   'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
                 }`}>
-                  {currentSubscription === 'trial' ? `Deneme Sürümü (${trialDaysLeft} Gün)` : "Sınırsız Premium 💎"}
+                  {currentSubscription === 'trial' ? `Deneme Sürümü (${trialTimeLeftStr || `${trialDaysLeft} Gün`})` : "Sınırsız Premium 💎"}
                 </span>
                 {user.rol === 'admin' && currentSubscription === 'trial' && (
                   <button 
@@ -2041,6 +2398,7 @@ export default function App() {
                   currentPlan={currentSubscription}
                   trialDaysLeft={trialDaysLeft}
                   setTrialDaysLeft={setTrialDaysLeft}
+                  trialTimeLeftStr={trialTimeLeftStr}
                   onUpgradeSuccess={(newPlan) => {
                     setCurrentSubscription(newPlan);
                     localStorage.setItem('kas_subscription_plan', newPlan);
@@ -2137,6 +2495,7 @@ export default function App() {
                     currentPlan={currentSubscription}
                     trialDaysLeft={trialDaysLeft}
                     setTrialDaysLeft={setTrialDaysLeft}
+                    trialTimeLeftStr={trialTimeLeftStr}
                     onUpgradeSuccess={(newPlan) => {
                       setCurrentSubscription(newPlan);
                       localStorage.setItem('kas_subscription_plan', newPlan);

@@ -12,6 +12,8 @@ export interface User {
   telefon: string;
   kurum_id: number;
   kurum_adi?: string;
+  abonelik_turu?: string;
+  deneme_bitis?: string;
 }
 
 export interface Sinif {

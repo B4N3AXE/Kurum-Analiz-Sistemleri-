@@ -33,7 +33,8 @@ export default function Dashboard({ user, token }: DashboardProps) {
     riskCount: 0,
     riskStudents: [] as RiskStudent[],
     trends: [] as TrendData[],
-    recentExams: [] as any[]
+    recentExams: [] as any[],
+    thresholds: { TYT: 60, AYT: 45, LGS: 55 } as Record<string, number>
   });
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -258,12 +259,25 @@ export default function Dashboard({ user, token }: DashboardProps) {
           <p className="text-2xl font-bold text-slate-100 mt-2">{stats.totalExams}</p>
         </div>
 
-        <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-xl shadow">
+        <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-xl shadow flex flex-col justify-between">
           <div className="flex justify-between items-start">
-            <span className="text-xs text-slate-400 font-bold uppercase">Risk Grubu Sınırı</span>
+            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Risk Grubu Limitleri</span>
             <AlertTriangle className="text-amber-500" size={18} />
           </div>
-          <p className="text-2xl font-bold text-amber-500 mt-2">50 Net Altı</p>
+          <div className="grid grid-cols-3 gap-1 mt-2.5 pt-0.5 border-t border-slate-800/50">
+            <div className="text-center">
+              <span className="text-[10px] text-slate-500 font-bold block">TYT</span>
+              <span className="text-xs font-black text-amber-500">{stats.thresholds?.TYT ?? 60} Net</span>
+            </div>
+            <div className="text-center border-x border-slate-800/50">
+              <span className="text-[10px] text-slate-500 font-bold block">AYT</span>
+              <span className="text-xs font-black text-amber-500">{stats.thresholds?.AYT ?? 45} Net</span>
+            </div>
+            <div className="text-center">
+              <span className="text-[10px] text-slate-500 font-bold block">LGS</span>
+              <span className="text-xs font-black text-amber-500">{stats.thresholds?.LGS ?? 55} Net</span>
+            </div>
+          </div>
         </div>
 
         <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-xl shadow col-span-2 lg:col-span-1">
@@ -384,7 +398,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
           </div>
           {stats.riskStudents.length === 0 ? (
             <div className="p-4 text-center text-xs text-slate-500">
-              Harika! Şu anda kurumunuzda risk grubu sınırının (50 Net) altında öğrenci bulunmuyor.
+              Harika! Şu anda kurumunuzda tanımlı risk limitlerinin altında kalan öğrenci bulunmuyor.
             </div>
           ) : (
             <div className="divide-y divide-slate-800 max-h-56 overflow-y-auto pr-1">
