@@ -1508,9 +1508,9 @@ app.post('/api/paytr/token', async (req, res) => {
     }
 
     // PayTR API Kimlik Bilgileri (Çevre değişkenlerinden alınır)
-    const merchant_id = process.env.PAYTR_MERCHANT_ID || '';
-    const merchant_key = process.env.PAYTR_MERCHANT_KEY || '';
-    const merchant_salt = process.env.PAYTR_MERCHANT_SALT || '';
+    const merchant_id = process.env.PAYTR_MERCHANT_ID || '722962';
+    const merchant_key = process.env.PAYTR_MERCHANT_KEY || '18qoh2NxdCnyCxfj';
+    const merchant_salt = process.env.PAYTR_MERCHANT_SALT || 'Sx7jM7DBE2PrfdBE';
 
     const test_mode = '0'; // Canlı mod aktif, test modu tamamen kapatıldı ('0')
 
@@ -1693,9 +1693,9 @@ app.post('/api/paytr/token', async (req, res) => {
 // GET /paytr-test (PayTR Test Siparişi ve Yönlendirme Rotası)
 app.get('/paytr-test', async (req, res) => {
   try {
-    const merchant_id = process.env.PAYTR_MERCHANT_ID || '';
-    const merchant_key = process.env.PAYTR_MERCHANT_KEY || '';
-    const merchant_salt = process.env.PAYTR_MERCHANT_SALT || '';
+    const merchant_id = process.env.PAYTR_MERCHANT_ID || '722962';
+    const merchant_key = process.env.PAYTR_MERCHANT_KEY || '18qoh2NxdCnyCxfj';
+    const merchant_salt = process.env.PAYTR_MERCHANT_SALT || 'Sx7jM7DBE2PrfdBE';
 
     if (!merchant_id || !merchant_key || !merchant_salt) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -1886,8 +1886,8 @@ app.post('/api/paytr/callback', (req, res) => {
     const { merchant_oid, status, total_amount, hash } = req.body;
     console.log(`PayTR Bildirim Durumu: Sipariş No = ${merchant_oid}, Statü = ${status}`);
 
-    const merchant_key = process.env.PAYTR_MERCHANT_KEY || '';
-    const merchant_salt = process.env.PAYTR_MERCHANT_SALT || '';
+    const merchant_key = process.env.PAYTR_MERCHANT_KEY || '18qoh2NxdCnyCxfj';
+    const merchant_salt = process.env.PAYTR_MERCHANT_SALT || 'Sx7jM7DBE2PrfdBE';
 
     // Eger PayTR API anahtarlari tanimlanmissa, kesinlikle cryptographic imza dogrulamasi yapalim
     if (merchant_key && merchant_salt) {
