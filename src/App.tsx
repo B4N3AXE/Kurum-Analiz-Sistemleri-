@@ -943,12 +943,12 @@ export default function App() {
                     
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-black text-slate-50 tracking-tight">
-                        ₺10
+                        {isAnnualBilling ? "₺750" : "₺950"}
                       </span>
-                      <span className="text-[10px] font-bold text-slate-500">/{isAnnualBilling ? "yıllık" : "aylık"}</span>
+                      <span className="text-[10px] font-bold text-slate-500">/aylık</span>
                     </div>
                     <span className="text-[10px] text-slate-500 block font-bold">
-                      {isAnnualBilling ? "*Yıllık peşin (₺10) faturalandırılır. (Test amaçlı geçici fiyat)" : "*Aylık (₺10) faturalandırılır. (Test amaçlı geçici fiyat)"}
+                      {isAnnualBilling ? "*Yıllık peşin (₺9.000) faturalandırılır." : "*Aylık (₺950) faturalandırılır."}
                     </span>
 
                     <div className="border-t border-slate-900/60 pt-4 space-y-2">

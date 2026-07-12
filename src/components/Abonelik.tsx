@@ -30,8 +30,8 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
     setPaytrToken('');
     
     try {
-      // Geçici Test Fiyatı: Yıllık ve Aylık için 10 TL
-      const totalAmount = 10;
+      // Gerçek Fiyatlar: Aylık 950 TL, Yıllık ise peşin 9000 TL (aylık 750 TL'ye gelir)
+      const totalAmount = plan.isAnnual ? 9000 : 950;
 
       // Kullanıcının gerçek IP adresini tespit edelim (PayTR IP eşleşmesi için kritik)
       let clientIp = '';
@@ -298,12 +298,12 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                 <div className="text-left sm:text-right">
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-black text-slate-50 tracking-tight">
-                      ₺10
+                      {isAnnualBilling ? "₺750" : "₺950"}
                     </span>
-                    <span className="text-[10px] font-bold text-slate-500">/{isAnnualBilling ? "yıllık" : "aylık"}</span>
+                    <span className="text-[10px] font-bold text-slate-500">/aylık</span>
                   </div>
                   <span className="text-[9px] text-slate-500 block font-bold">
-                    {isAnnualBilling ? "*Yıllık peşin (₺10) faturalandırılır. (Test amaçlı geçici fiyat)" : "*Aylık (₺10) faturalandırılır. (Test amaçlı geçici fiyat)"}
+                    {isAnnualBilling ? "*Yıllık peşin (₺9.000) faturalandırılır." : "*Aylık (₺950) faturalandırılır."}
                   </span>
                 </div>
               </div>
@@ -333,7 +333,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                   setSelectedPlan({
                     id: "premium",
                     title: "K.A.S Sınırsız Premium",
-                    price: "₺10",
+                    price: isAnnualBilling ? "₺9.000" : "₺950",
                     isAnnual: isAnnualBilling
                   });
                   setTimeout(() => {
