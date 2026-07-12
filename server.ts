@@ -1512,7 +1512,7 @@ app.post('/api/paytr/token', async (req, res) => {
     const merchant_key = process.env.PAYTR_MERCHANT_KEY || '';
     const merchant_salt = process.env.PAYTR_MERCHANT_SALT || '';
 
-    const test_mode = process.env.PAYTR_TEST_MODE || '0'; // Canlı mod veya test modu çevre değişkenine göre dinamik yapıldı
+    const test_mode = '0'; // Canlı mod aktif, test modu tamamen kapatıldı ('0')
 
     // Eğer kimlik bilgileri eksikse, geliştirme ortamında simüle edilmiş token dönelim
     if (!merchant_id || !merchant_key || !merchant_salt) {
@@ -1531,9 +1531,9 @@ app.post('/api/paytr/token', async (req, res) => {
       ? userEmail.trim() 
       : 'test@kurumanaliz.com'; // Boş veya geçersizse geçerli bir varsayılan mail
 
-    // Ürün fiyatını geçici olarak "10 TL" (1000 kuruş) yapıyoruz
-    const final_amount = 10;
-    const payment_amount = final_amount * 100; // Kuruş cinsinden 1000
+    // Ürün fiyatı dinamik olarak ödeme tutarından alınır (Canlı modda para hatalarını önlemek için)
+    const final_amount = Number(amount) || 10;
+    const payment_amount = Math.round(final_amount * 100); // Kuruş cinsinden (örn: 10 TL -> 1000 kuruş, 299 TL -> 29900 kuruş)
     
     // Alfanumerik benzersiz sipariş numarası (PayTR tire - veya özel karakter kabul etmez)
     const merchant_oid = `KAS${userId || '0'}X${Date.now()}`; 
@@ -1568,8 +1568,10 @@ app.post('/api/paytr/token', async (req, res) => {
       user_phone = '05555555555';
     }
     
-    // Sistem yönlendirme adresleri
-    const app_url = process.env.APP_URL || `http://localhost:${PORT}`;
+    // Sistem yönlendirme adresleri (PayTR canlı modda geçerli public HTTPS URL bekler)
+    const detected_proto = req.headers['x-forwarded-proto'] || 'https'; // Canlı modda varsayılan güvenli https
+    const detected_host = req.headers.host || `localhost:${PORT}`;
+    const app_url = process.env.APP_URL || `${detected_proto}://${detected_host}`;
     const merchant_ok_url = `${app_url}/api/paytr/ok`;
     const merchant_fail_url = `${app_url}/api/paytr/fail`;
 
