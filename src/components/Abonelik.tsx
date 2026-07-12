@@ -32,6 +32,18 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
     try {
       // Geçici Test Fiyatı: Yıllık ve Aylık için 10 TL
       const totalAmount = 10;
+
+      // Kullanıcının gerçek IP adresini tespit edelim (PayTR IP eşleşmesi için kritik)
+      let clientIp = '';
+      try {
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        if (ipRes.ok) {
+          const ipData = await ipRes.json();
+          clientIp = ipData.ip;
+        }
+      } catch (e) {
+        console.warn('IP adresi alınamadı, sunucu tespitine geçiliyor:', e);
+      }
       
       const res = await fetch('/api/paytr/token', {
         method: 'POST',
@@ -45,7 +57,8 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
           userEmail: user?.email || 'dibiadam81@gmail.com',
           userName: user?.ad_soyad || 'K.A.S Kullanıcısı',
           userPhone: user?.telefon || '05555555555',
-          userId: user?.id || 1
+          userId: user?.id || 1,
+          clientIp
         })
       });
 

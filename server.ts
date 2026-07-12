@@ -1501,7 +1501,7 @@ app.post('/api/pdf/save', (req, res) => {
 // 1. PayTR iFrame Token Oluşturma (POST /api/paytr/token)
 app.post('/api/paytr/token', async (req, res) => {
   try {
-    const { amount, isAnnualBilling, userEmail, userName, userPhone, userId } = req.body;
+    const { amount, isAnnualBilling, userEmail, userName, userPhone, userId, clientIp } = req.body;
 
     if (!amount) {
       return res.status(400).json({ error: 'Ödeme tutarı gereklidir.' });
@@ -1527,9 +1527,9 @@ app.post('/api/paytr/token', async (req, res) => {
     }
 
     // Müşteri ve Sipariş Bilgileri
-    const email = (userEmail && typeof userEmail === 'string' && userEmail.includes('@')) 
+    const email = (userEmail && typeof userEmail === 'string' && userEmail.includes('@') && userEmail.trim().length > 3) 
       ? userEmail.trim() 
-      : 'dibiadam81@gmail.com';
+      : 'test@kurumanaliz.com'; // Boş veya geçersizse geçerli bir varsayılan mail
 
     // Ürün fiyatını geçici olarak "10 TL" (1000 kuruş) yapıyoruz
     const final_amount = 10;
@@ -1552,12 +1552,19 @@ app.post('/api/paytr/token', async (req, res) => {
         .trim();
     };
 
-    const user_name = sanitizeText(userName) || 'KAS Kullanicisi';
+    let user_name = sanitizeText(userName) || 'KAS Kullanicisi';
+    if (user_name.length < 2) {
+      user_name = 'KAS Kullanicisi';
+    }
+
     const user_address = 'Kadikoy Istanbul Turkiye'; // Alfasayısal ve temiz adres
     
-    // Telefon numarası temizliği (Sadece rakamlar)
+    // Telefon numarası temizliği (Sadece rakamlar ve en az 10-11 haneli geçerli format)
     let user_phone = (userPhone || '05555555555').toString().replace(/\D/g, '');
-    if (user_phone.length < 10) {
+    if (user_phone.length === 10 && user_phone.startsWith('5')) {
+      user_phone = '0' + user_phone;
+    }
+    if (user_phone.length !== 11) {
       user_phone = '05555555555';
     }
     
@@ -1574,26 +1581,29 @@ app.post('/api/paytr/token', async (req, res) => {
       JSON.stringify([[planName, basketPrice, 1]])
     ).toString('base64');
 
-    // Müşteri IP'si (Güvenli şekilde listelerden ve proxy IP'lerinden temizlenir)
-    let raw_ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-    let user_ip = '127.0.0.1';
-    if (Array.isArray(raw_ip)) {
-      raw_ip = raw_ip[0];
-    }
-    if (typeof raw_ip === 'string') {
-      user_ip = raw_ip.split(',')[0].trim();
-      if (user_ip.startsWith('::ffff:')) {
-        user_ip = user_ip.substring(7);
-      }
-      if (user_ip === '::1') {
-        user_ip = '127.0.0.1';
-      }
-    }
-
-    // IP'nin geçerli bir IPv4 olduğundan emin olalım (PayTR IPv6 veya local ip kabul etmeyebilir)
+    // Müşteri IP'si (Önce frontend'den gelen IP'yi, yoksa sunucu tespitini kullanalım)
+    let user_ip = '85.105.185.123'; // Canlı mod için varsayılan Türkiye IP'si
     const ipv4Regex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
-    if (!ipv4Regex.test(user_ip) || user_ip === '127.0.0.1') {
-      user_ip = '85.105.185.123'; // Canlı mod için geçerli bir Türkiye IPv4 adresi
+
+    if (clientIp && typeof clientIp === 'string' && ipv4Regex.test(clientIp.trim()) && clientIp.trim() !== '127.0.0.1') {
+      user_ip = clientIp.trim();
+    } else {
+      let raw_ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+      if (Array.isArray(raw_ip)) {
+        raw_ip = raw_ip[0];
+      }
+      if (typeof raw_ip === 'string') {
+        let detected_ip = raw_ip.split(',')[0].trim();
+        if (detected_ip.startsWith('::ffff:')) {
+          detected_ip = detected_ip.substring(7);
+        }
+        if (detected_ip === '::1') {
+          detected_ip = '127.0.0.1';
+        }
+        if (ipv4Regex.test(detected_ip) && detected_ip !== '127.0.0.1') {
+          user_ip = detected_ip;
+        }
+      }
     }
 
     // Diğer Yapılandırmalar
@@ -1603,7 +1613,7 @@ app.post('/api/paytr/token', async (req, res) => {
 
     // 1. Adım: Hash Zincirini Oluşturun
     // Formül: merchant_id + user_ip + merchant_oid + email + payment_amount + user_basket + no_installment + max_installment + currency + test_mode + merchant_salt
-    const hash_str = merchant_id + user_ip + merchant_oid + email + payment_amount + user_basket + no_installment + max_installment + currency + test_mode + merchant_salt;
+    const hash_str = merchant_id + user_ip + merchant_oid + email + String(payment_amount) + user_basket + no_installment + max_installment + currency + test_mode + merchant_salt;
     
     // 2. Adım: HMAC-SHA256 ile imzalayın
     const paytr_token = crypto
@@ -1631,6 +1641,20 @@ app.post('/api/paytr/token', async (req, res) => {
       test_mode
     });
 
+    console.log('--- PayTR Token Talebi Parametreleri ---');
+    console.log({
+      merchant_id,
+      user_ip,
+      merchant_oid,
+      email,
+      payment_amount: String(payment_amount),
+      user_basket_decoded: [[planName, basketPrice, 1]],
+      user_name,
+      user_phone,
+      user_address,
+      test_mode
+    });
+
     let responseText = '';
     try {
       const response = await fetch('https://www.paytr.com/odeme/api/get-token', {
@@ -1652,7 +1676,9 @@ app.post('/api/paytr/token', async (req, res) => {
           isSimulation: false
         });
       } else {
-        console.error('PayTR Token hatası:', data.err_msg || data.reason);
+        console.error('--- PayTR Hata Detayı (Reason/Err_msg) ---');
+        console.error('Status:', data.status);
+        console.error('Error Code/Msg:', data.err_msg || data.reason);
         res.status(400).json({ error: data.err_msg || data.reason || 'PayTR token oluşturulamadı.' });
       }
     } catch (parseErr: any) {
