@@ -1512,7 +1512,7 @@ app.post('/api/paytr/token', async (req, res) => {
     const merchant_key = process.env.PAYTR_MERCHANT_KEY || '';
     const merchant_salt = process.env.PAYTR_MERCHANT_SALT || '';
 
-    const test_mode = '0'; // Canlı mod için kesinlikle '0' yapıldı
+    const test_mode = process.env.PAYTR_TEST_MODE || '0'; // Canlı mod veya test modu çevre değişkenine göre dinamik yapıldı
 
     // Eğer kimlik bilgileri eksikse, geliştirme ortamında simüle edilmiş token dönelim
     if (!merchant_id || !merchant_key || !merchant_salt) {
@@ -1552,9 +1552,9 @@ app.post('/api/paytr/token', async (req, res) => {
         .trim();
     };
 
-    let user_name = sanitizeText(userName) || 'KAS Kullanicisi';
+    let user_name = sanitizeText(userName) || 'Muhammed';
     if (user_name.length < 2) {
-      user_name = 'KAS Kullanicisi';
+      user_name = 'Muhammed';
     }
 
     const user_address = 'Kadikoy Istanbul Turkiye'; // Alfasayısal ve temiz adres
@@ -1575,7 +1575,7 @@ app.post('/api/paytr/token', async (req, res) => {
 
     // Sepet Ürünleri: [[Ürün Adı, Fiyatı, Adedi]]
     // Fiyat formatı TL cinsinden nokta ile ayrılmış string olmalıdır (Örn: "10.00")
-    const planName = isAnnualBilling ? "KAS Sinirsiz Yillik Premium Lisansi" : "KAS Sinirsiz Aylik Premium Lisansi";
+    const planName = "K.A.S Sinirsiz Premium";
     const basketPrice = final_amount.toFixed(2);
     const user_basket = Buffer.from(
       JSON.stringify([[planName, basketPrice, 1]])
