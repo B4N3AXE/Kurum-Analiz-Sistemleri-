@@ -30,8 +30,8 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
     setPaytrToken('');
     
     try {
-      // Geçici Test Fiyatı: Yıllık 5 TL, Aylık 1 TL
-      const totalAmount = plan.isAnnual ? 5 : 1;
+      // Geçici Test Fiyatı: Yıllık ve Aylık için 10 TL
+      const totalAmount = 10;
       
       const res = await fetch('/api/paytr/token', {
         method: 'POST',
@@ -285,12 +285,12 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                 <div className="text-left sm:text-right">
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-black text-slate-50 tracking-tight">
-                      {isAnnualBilling ? "₺5" : "₺1"}
+                      ₺10
                     </span>
                     <span className="text-[10px] font-bold text-slate-500">/{isAnnualBilling ? "yıllık" : "aylık"}</span>
                   </div>
                   <span className="text-[9px] text-slate-500 block font-bold">
-                    {isAnnualBilling ? "*Yıllık peşin (₺5) faturalandırılır. (Test amaçlı geçici fiyat)" : "*Aylık (₺1) faturalandırılır. (Test amaçlı geçici fiyat)"}
+                    {isAnnualBilling ? "*Yıllık peşin (₺10) faturalandırılır. (Test amaçlı geçici fiyat)" : "*Aylık (₺10) faturalandırılır. (Test amaçlı geçici fiyat)"}
                   </span>
                 </div>
               </div>
@@ -320,7 +320,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                   setSelectedPlan({
                     id: "premium",
                     title: "K.A.S Sınırsız Premium",
-                    price: isAnnualBilling ? "₺5" : "₺1",
+                    price: "₺10",
                     isAnnual: isAnnualBilling
                   });
                   setTimeout(() => {

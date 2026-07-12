@@ -1527,14 +1527,39 @@ app.post('/api/paytr/token', async (req, res) => {
     }
 
     // Müşteri ve Sipariş Bilgileri
-    const email = userEmail || 'destek@kas.com';
-    const payment_amount = Math.round(Number(amount) * 100); // Kuruş cinsinden (Örn: 950 TL -> 95000)
+    const email = (userEmail && typeof userEmail === 'string' && userEmail.includes('@')) 
+      ? userEmail.trim() 
+      : 'dibiadam81@gmail.com';
+
+    // Ürün fiyatını geçici olarak "10 TL" (1000 kuruş) yapıyoruz
+    const final_amount = 10;
+    const payment_amount = final_amount * 100; // Kuruş cinsinden 1000
     
     // Alfanumerik benzersiz sipariş numarası (PayTR tire - veya özel karakter kabul etmez)
     const merchant_oid = `KAS${userId || '0'}X${Date.now()}`; 
-    const user_name = userName || 'KAS Kullanıcısı';
-    const user_address = 'İstanbul, Türkiye';
-    const user_phone = userPhone || '05555555555';
+
+    // İsim ve Adres temizliği (Türkçe karakterleri dönüştürerek ve özel karakterleri atarak)
+    const sanitizeText = (text: string): string => {
+      if (!text || typeof text !== 'string') return '';
+      return text
+        .replace(/Ğ/g, 'G').replace(/ğ/g, 'g')
+        .replace(/Ü/g, 'U').replace(/ü/g, 'u')
+        .replace(/Ş/g, 'S').replace(/ş/g, 's')
+        .replace(/İ/g, 'I').replace(/ı/g, 'i')
+        .replace(/Ö/g, 'O').replace(/ö/g, 'o')
+        .replace(/Ç/g, 'C').replace(/ç/g, 'c')
+        .replace(/[^a-zA-Z0-9\s]/g, '')
+        .trim();
+    };
+
+    const user_name = sanitizeText(userName) || 'KAS Kullanicisi';
+    const user_address = 'Kadikoy Istanbul Turkiye'; // Alfasayısal ve temiz adres
+    
+    // Telefon numarası temizliği (Sadece rakamlar)
+    let user_phone = (userPhone || '05555555555').toString().replace(/\D/g, '');
+    if (user_phone.length < 10) {
+      user_phone = '05555555555';
+    }
     
     // Sistem yönlendirme adresleri
     const app_url = process.env.APP_URL || `http://localhost:${PORT}`;
@@ -1542,9 +1567,11 @@ app.post('/api/paytr/token', async (req, res) => {
     const merchant_fail_url = `${app_url}/api/paytr/fail`;
 
     // Sepet Ürünleri: [[Ürün Adı, Fiyatı, Adedi]]
-    const planName = isAnnualBilling ? "K.A.S Sınırsız Yıllık Premium Lisansı" : "K.A.S Sınırsız Aylık Premium Lisansı";
+    // Fiyat formatı TL cinsinden nokta ile ayrılmış string olmalıdır (Örn: "10.00")
+    const planName = isAnnualBilling ? "KAS Sinirsiz Yillik Premium Lisansi" : "KAS Sinirsiz Aylik Premium Lisansi";
+    const basketPrice = final_amount.toFixed(2);
     const user_basket = Buffer.from(
-      JSON.stringify([[planName, amount.toString(), 1]])
+      JSON.stringify([[planName, basketPrice, 1]])
     ).toString('base64');
 
     // Müşteri IP'si (Güvenli şekilde listelerden ve proxy IP'lerinden temizlenir)
@@ -1561,6 +1588,12 @@ app.post('/api/paytr/token', async (req, res) => {
       if (user_ip === '::1') {
         user_ip = '127.0.0.1';
       }
+    }
+
+    // IP'nin geçerli bir IPv4 olduğundan emin olalım (PayTR IPv6 veya local ip kabul etmeyebilir)
+    const ipv4Regex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+    if (!ipv4Regex.test(user_ip) || user_ip === '127.0.0.1') {
+      user_ip = '85.105.185.123'; // Canlı mod için geçerli bir Türkiye IPv4 adresi
     }
 
     // Diğer Yapılandırmalar
