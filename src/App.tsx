@@ -134,8 +134,10 @@ export default function App() {
       currentUserKurumId = String(u.kurum_id);
 
       // Load specific plan for this user's institution
-      const plan = localStorage.getItem(`kas_subscription_plan_kurum_${u.kurum_id}`) || 'trial';
+      const plan = u.abonelik_turu || localStorage.getItem(`kas_subscription_plan_kurum_${u.kurum_id}`) || 'trial';
       setCurrentSubscription(plan);
+      localStorage.setItem(`kas_subscription_plan_kurum_${u.kurum_id}`, plan);
+      localStorage.setItem('kas_subscription_plan', plan);
 
       if (u.rol === 'veli') {
         setCurrentTab('veli-panel');
@@ -222,9 +224,11 @@ export default function App() {
         localStorage.setItem('kas_user', JSON.stringify(data.user));
         localStorage.setItem('kas_token', data.token);
 
-        // Load institution specific subscription plan from localStorage, default to trial
-        const plan = localStorage.getItem(`kas_subscription_plan_kurum_${data.user.kurum_id}`) || 'trial';
+        // Load institution specific subscription plan from backend first, fallback to localStorage/trial
+        const plan = data.user.abonelik_turu || localStorage.getItem(`kas_subscription_plan_kurum_${data.user.kurum_id}`) || 'trial';
         setCurrentSubscription(plan);
+        localStorage.setItem(`kas_subscription_plan_kurum_${data.user.kurum_id}`, plan);
+        localStorage.setItem('kas_subscription_plan', plan);
 
         if (data.user.rol === 'veli') {
           setCurrentTab('veli-panel');

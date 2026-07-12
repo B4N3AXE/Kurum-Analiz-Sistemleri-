@@ -108,7 +108,8 @@ app.post('/api/auth/login', (req, res) => {
           rol: 'ogrenci',
           telefon: '',
           kurum_id: institutionId,
-          kurum_adi: institution?.ad || 'K.A.S Kurumu'
+          kurum_adi: institution?.ad || 'K.A.S Kurumu',
+          abonelik_turu: institution?.abonelik_turu || 'trial'
         }
       });
     }
@@ -130,7 +131,8 @@ app.post('/api/auth/login', (req, res) => {
       rol: user.rol,
       telefon: user.telefon,
       kurum_id: user.kurum_id,
-      kurum_adi: institution?.ad || 'K.A.S Kurumu'
+      kurum_adi: institution?.ad || 'K.A.S Kurumu',
+      abonelik_turu: institution?.abonelik_turu || 'trial'
     }
   });
 });
@@ -147,10 +149,11 @@ app.post('/api/auth/register', (req, res) => {
     return res.status(400).json({ error: 'Bu e-posta adresi zaten kullanımda.' });
   }
 
-  // 1. Create Institution
+  // 1. Create Institution (defaults to trial plan)
   const institution = db.insert('kurumlar', {
     ad: kurum_adi,
-    tur: kurum_turu || 'Lise'
+    tur: kurum_turu || 'Lise',
+    abonelik_turu: 'trial'
   });
 
   // 2. Create User as ADMIN of this institution
@@ -171,7 +174,8 @@ app.post('/api/auth/register', (req, res) => {
       rol: user.rol,
       telefon: user.telefon,
       kurum_id: user.kurum_id,
-      kurum_adi: institution.ad
+      kurum_adi: institution.ad,
+      abonelik_turu: institution.abonelik_turu || 'trial'
     }
   });
 });
@@ -1811,41 +1815,6 @@ PAYTR_MERCHANT_SALT=salt_buraya
   }
 });
 
-// GET /test-callback (PayTR başarılı ödeme bildirimi simülatörü)
-app.get('/test-callback', (req, res) => {
-  console.log('Manuel /test-callback tetiklendi. Başarılı ödeme akışı simüle ediliyor...');
-  res.send(`
-    <html>
-      <head>
-        <title>PayTR Callback Simülatörü</title>
-        <meta charset="utf-8">
-        <style>
-          body { background: #090d16; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
-          .container { background: #0f172a; padding: 40px; border-radius: 24px; border: 1px solid #3b82f6; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-          h1 { color: #3b82f6; font-size: 24px; margin-bottom: 12px; }
-          p { color: #94a3b8; font-size: 14px; line-height: 1.5; margin-bottom: 24px; }
-          .badge { display: inline-block; background: #1e3a8a; color: #60a5fa; font-weight: bold; padding: 6px 12px; border-radius: 9999px; font-size: 11px; margin-bottom: 20px; text-transform: uppercase; }
-          .btn { background: #3b82f6; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 12px; font-weight: bold; font-size: 13px; display: inline-block; transition: 0.2s; }
-          .btn:hover { opacity: 0.9; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="badge">Simülasyon Aktif</div>
-          <h1>✓ PayTR Ödemesi Simüle Edildi!</h1>
-          <p>Lokal sunucudaki PayTR engeli aşılıyor. '/paytr-callback' adresine sanal başarılı bildirimi gönderildi ve üyelik başarıyla onaylandı.</p>
-          <a href="/api/paytr/ok" class="btn">Ödeme Başarılı Sayfasına Git</a>
-        </div>
-        <script>
-          setTimeout(() => {
-            window.location.href = '/api/paytr/ok';
-          }, 2500);
-        </script>
-      </body>
-    </html>
-  `);
-});
-
 // POST /paytr-callback (PayTR'dan gelecek POST ödeme bildirimlerini karşılayan düz rota)
 app.post('/paytr-callback', (req, res) => {
   console.log('PayTR /paytr-callback POST isteği ulaştı. Payload:', req.body);
@@ -1857,8 +1826,29 @@ app.post('/api/paytr/callback', (req, res) => {
   console.log('PayTR /api/paytr/callback POST isteği ulaştı. Payload:', req.body);
   
   try {
-    const { merchant_oid, status } = req.body;
+    const { merchant_oid, status, total_amount, hash } = req.body;
     console.log(`PayTR Bildirim Durumu: Sipariş No = ${merchant_oid}, Statü = ${status}`);
+
+    const merchant_key = process.env.PAYTR_MERCHANT_KEY || '';
+    const merchant_salt = process.env.PAYTR_MERCHANT_SALT || '';
+
+    // Eger PayTR API anahtarlari tanimlanmissa, kesinlikle cryptographic imza dogrulamasi yapalim
+    if (merchant_key && merchant_salt) {
+      // Formül: merchant_oid + merchant_salt + status + total_amount
+      const hash_str = (merchant_oid || '') + merchant_salt + (status || '') + (total_amount || '');
+      const calculated_hash = crypto
+        .createHmac('sha256', merchant_key)
+        .update(hash_str)
+        .digest('base64');
+
+      if (calculated_hash !== hash) {
+        console.error('PAYTR GÜVENLİK UYARISI: Geçersiz imza/hash tespit edildi! İstek reddedildi.');
+        return res.status(400).send('PAYTR_SIGNATURE_INVALID');
+      }
+      console.log('PayTR callback imzası başarıyla doğrulandı.');
+    } else {
+      console.warn('PayTR API bilgileri tanımlanmadığı için callback imza doğrulaması atlandı (Sandbox/Lokal Geliştirme Modu).');
+    }
     
     if (status === 'success' && merchant_oid && merchant_oid.startsWith('KAS')) {
       const payload = merchant_oid.substring(3); // 'KAS' kaldır
@@ -1866,8 +1856,10 @@ app.post('/api/paytr/callback', (req, res) => {
       if (parts.length >= 2) {
         const userId = Number(parts[0]);
         const user = db.getKullanicilar().find(u => u.id === userId);
-        if (user) {
-          console.log(`PayTR Bildirimi ile Üyelik Onaylandı! Kullanıcı: ${user.ad_soyad}, Kurum ID: ${user.kurum_id}`);
+        if (user && user.kurum_id) {
+          // Kurumun abonelik statüsünü veritabanında (db.json) kalıcı olarak güncelle
+          db.update('kurumlar', user.kurum_id, { abonelik_turu: 'premium' });
+          console.log(`PayTR Bildirimi ile Üyelik Veritabanında Kalıcı Olarak Onaylandı! Kullanıcı: ${user.ad_soyad}, Kurum ID: ${user.kurum_id}`);
         }
       }
     }

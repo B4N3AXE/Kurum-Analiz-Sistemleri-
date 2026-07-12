@@ -16,6 +16,7 @@ export interface Kurum {
   id: number;
   ad: string;
   tur: string;
+  abonelik_turu?: 'trial' | 'premium';
 }
 
 export interface Sinif {
