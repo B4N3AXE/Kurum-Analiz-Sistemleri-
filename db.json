@@ -4,11 +4,6 @@
       "id": 1,
       "ad": "Gelecek Koleji",
       "tur": "Özel Anadolu Lisesi"
-    },
-    {
-      "id": 2,
-      "ad": "Atatürk Anadolu Lisesi",
-      "tur": "Anadolu Lisesi"
     }
   ],
   "kullanicilar": [
@@ -20,15 +15,6 @@
       "rol": "admin",
       "kurum_id": 1,
       "telefon": "0555 111 2233"
-    },
-    {
-      "id": 6,
-      "ad_soyad": "Efe Erdinç ",
-      "email": "admin@birsem.com",
-      "sifre": "admin123",
-      "rol": "admin",
-      "telefon": "55555555555",
-      "kurum_id": 2
     }
   ],
   "siniflar": [],
