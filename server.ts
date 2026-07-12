@@ -1512,7 +1512,7 @@ app.post('/api/paytr/token', async (req, res) => {
     const merchant_key = process.env.PAYTR_MERCHANT_KEY || '';
     const merchant_salt = process.env.PAYTR_MERCHANT_SALT || '';
 
-    const test_mode = (process.env.PAYTR_TEST_MODE || '1') === '1' ? '1' : '0';
+    const test_mode = '0'; // Canlı mod için kesinlikle '0' yapıldı
 
     // Eğer kimlik bilgileri eksikse, geliştirme ortamında simüle edilmiş token dönelim
     if (!merchant_id || !merchant_key || !merchant_salt) {

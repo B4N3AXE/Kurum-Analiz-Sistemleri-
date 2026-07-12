@@ -30,8 +30,8 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
     setPaytrToken('');
     
     try {
-      const numericPrice = plan.price === '₺750' ? 750 : 950;
-      const totalAmount = plan.isAnnual ? numericPrice * 12 : numericPrice;
+      // Geçici Test Fiyatı: Yıllık 5 TL, Aylık 1 TL
+      const totalAmount = plan.isAnnual ? 5 : 1;
       
       const res = await fetch('/api/paytr/token', {
         method: 'POST',
@@ -285,12 +285,12 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                 <div className="text-left sm:text-right">
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-black text-slate-50 tracking-tight">
-                      {isAnnualBilling ? "₺750" : "₺950"}
+                      {isAnnualBilling ? "₺5" : "₺1"}
                     </span>
-                    <span className="text-[10px] font-bold text-slate-500">/aylık</span>
+                    <span className="text-[10px] font-bold text-slate-500">/{isAnnualBilling ? "yıllık" : "aylık"}</span>
                   </div>
                   <span className="text-[9px] text-slate-500 block font-bold">
-                    {isAnnualBilling ? "*Yıllık peşin (₺9.000) faturalandırılır." : "*Aylık faturalandırılır, iptal edilebilir."}
+                    {isAnnualBilling ? "*Yıllık peşin (₺5) faturalandırılır. (Test amaçlı geçici fiyat)" : "*Aylık (₺1) faturalandırılır. (Test amaçlı geçici fiyat)"}
                   </span>
                 </div>
               </div>
@@ -320,7 +320,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                   setSelectedPlan({
                     id: "premium",
                     title: "K.A.S Sınırsız Premium",
-                    price: isAnnualBilling ? "₺750" : "₺950",
+                    price: isAnnualBilling ? "₺5" : "₺1",
                     isAnnual: isAnnualBilling
                   });
                   setTimeout(() => {
