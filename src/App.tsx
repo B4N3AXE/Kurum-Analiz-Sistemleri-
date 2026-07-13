@@ -81,7 +81,6 @@ export default function App() {
   const [resetNewPasswordInput, setResetNewPasswordInput] = useState('');
   const [resetError, setResetError] = useState('');
   const [resetSuccess, setResetSuccess] = useState('');
-  const [generatedResetCode, setGeneratedResetCode] = useState('');
 
   // Parent profile lookups
   const [childReport, setChildReport] = useState<{ student: Ogrenci; sonuclar: any[]; notlar: any[]; ders_programi?: any[] } | null>(null);
@@ -413,8 +412,7 @@ export default function App() {
 
       const data = await res.json();
       if (res.ok) {
-        setResetSuccess("Şifre sıfırlama kodunuz oluşturuldu! Geliştirici ortamında olduğunuz için kod aşağıda gösterilmektedir.");
-        setGeneratedResetCode(data.code);
+        setResetSuccess("Şifre sıfırlama kodunuz e-posta adresinize başarıyla gönderildi. Lütfen gelen kutunuzu (ve gereksiz/spam klasörünü) kontrol edin.");
         setResetStep('code');
       } else {
         setResetError(data.error || "Bir hata oluştu.");
@@ -1397,235 +1395,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* FORGOT PASSWORD MODAL POPUP */}
-            {showForgotPasswordModal && (
-              <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in text-left">
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 w-full max-w-md space-y-6 shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotPasswordModal(false)}
-                    className="absolute top-4 right-4 text-slate-400 hover:text-slate-100 bg-slate-950/50 p-2 rounded-xl border border-slate-800 transition cursor-pointer text-xs font-bold"
-                  >
-                    ✕ Kapat
-                  </button>
-
-                  <div className="text-center space-y-2">
-                    <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mx-auto">
-                      <Key size={24} />
-                    </div>
-                    <h3 className="text-xl font-black text-slate-100 font-sans">
-                      Şifremi Sıfırla
-                    </h3>
-                    <p className="text-xs text-slate-400 leading-relaxed font-semibold">
-                      {resetStep === 'email' && "Kayıtlı e-posta adresinizi girerek 6 haneli güvenlik kodu talep edin."}
-                      {resetStep === 'code' && "E-postanıza (veya simülasyon olarak aşağıya) gönderilen 6 haneli sıfırlama kodunu girin."}
-                      {resetStep === 'password' && "Lütfen hesabınız için yeni, güvenli bir şifre belirleyin."}
-                    </p>
-                  </div>
-
-                  {resetError && (
-                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-xl flex items-center gap-2 font-semibold">
-                      <AlertCircle size={15} /> {resetError}
-                    </div>
-                  )}
-
-                  {resetSuccess && (
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs p-3 rounded-xl flex items-center gap-2 font-semibold">
-                      <CheckCircle size={15} /> {resetSuccess}
-                    </div>
-                  )}
-
-                  {/* STEP 1: REQUEST CODE */}
-                  {resetStep === 'email' && (
-                    <form onSubmit={handleRequestResetCode} className="space-y-4">
-                      <div>
-                        <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">E-posta Adresi</label>
-                        <input
-                          type="email"
-                          required
-                          placeholder="ornek@kurum.com"
-                          value={resetEmailInput}
-                          onChange={e => setResetEmailInput(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-medium"
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md shadow-blue-500/10 flex justify-center items-center gap-2 cursor-pointer"
-                      >
-                        Sıfırlama Kodu Gönder ⚡
-                      </button>
-                    </form>
-                  )}
-
-                  {/* STEP 2: VERIFY CODE */}
-                  {resetStep === 'code' && (
-                    <form onSubmit={handleVerifyResetCode} className="space-y-4">
-                      <div>
-                        <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">6 Haneli Doğrulama Kodu</label>
-                        <input
-                          type="text"
-                          required
-                          maxLength={6}
-                          placeholder="123456"
-                          value={resetCodeInput}
-                          onChange={e => setResetCodeInput(e.target.value.replace(/\D/g, ''))}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-center tracking-widest font-black text-slate-100 text-lg focus:outline-none focus:border-blue-500"
-                        />
-                      </div>
-
-                      {generatedResetCode && (
-                        <div className="bg-blue-500/5 border border-blue-500/10 p-3 rounded-xl text-center space-y-1">
-                          <span className="text-[10px] text-blue-400 font-extrabold uppercase tracking-widest block">GELİŞTİRİCİ SİMÜLASYONU 📨</span>
-                          <p className="text-xs text-slate-300 font-black">Sıfırlama Kodunuz: <span className="text-blue-400 select-all bg-slate-950 px-2 py-0.5 rounded border border-slate-800 font-mono tracking-normal text-sm">{generatedResetCode}</span></p>
-                          <p className="text-[9px] text-slate-500 font-medium">Bu kod e-postanıza gönderilen kodu simüle etmektedir.</p>
-                        </div>
-                      )}
-
-                      <button
-                        type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md shadow-blue-500/10 flex justify-center items-center gap-2 cursor-pointer"
-                      >
-                        Kodu Doğrula 🔍
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setResetStep('email')}
-                        className="w-full text-slate-400 hover:text-slate-300 text-[11px] font-bold text-center block mt-2 cursor-pointer"
-                      >
-                        Geri Dön (E-posta Değiştir)
-                      </button>
-                    </form>
-                  )}
-
-                  {/* STEP 3: NEW PASSWORD */}
-                  {resetStep === 'password' && (
-                    <form onSubmit={handleResetPassword} className="space-y-4">
-                      <div>
-                        <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Yeni Şifre</label>
-                        <input
-                          type="password"
-                          required
-                          placeholder="••••••••"
-                          value={resetNewPasswordInput}
-                          onChange={e => setResetNewPasswordInput(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
-                        />
-                        <span className="text-[9px] text-slate-500 font-bold mt-1 block leading-normal">
-                          Güvenlik için en az 6 karakter, 1 harf ve 1 rakam içermelidir.
-                        </span>
-                      </div>
-                      <button
-                        type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md shadow-blue-500/10 flex justify-center items-center gap-2 cursor-pointer"
-                      >
-                        Şifreyi Güncelle & Giriş Yap 🎉
-                      </button>
-                    </form>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* POLICY DIALOGS MODAL POPUP */}
-            {activePolicy && (
-              <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 w-full max-w-2xl max-h-[85vh] overflow-y-auto space-y-6 shadow-2xl relative">
-                  <button
-                    type="button"
-                    onClick={() => setActivePolicy(null)}
-                    className="absolute top-4 right-4 text-slate-400 hover:text-slate-100 bg-slate-950/50 p-2 rounded-xl border border-slate-800 transition cursor-pointer text-xs font-bold"
-                  >
-                    ✕ Kapat
-                  </button>
-
-                  {activePolicy === 'privacy' && (
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-black text-slate-100 border-b border-slate-800 pb-3 flex items-center gap-2">
-                        <Shield className="text-blue-400" size={18} />
-                        <span>Gizlilik Politikası</span>
-                      </h3>
-                      <div className="text-xs text-slate-300 leading-relaxed space-y-3 font-semibold text-left">
-                        <p><strong>1. Veri Sorumlusu</strong></p>
-                        <p>K.A.S Eğitim Teknolojileri A.Ş. olarak kişisel verilerinizin güvenliğine ve gizliliğine büyük önem veriyoruz. Bu politika, platformumuz üzerinden toplanan verilerin nasıl işlendiğini açıklar.</p>
-                        <p><strong>2. Toplanan Veriler ve İşleme Amaçları</strong></p>
-                        <p>Kurum kayıt esnasında toplanan yönetici adı, telefon numarası, e-posta adresi ile öğrencilere ait sınav netleri, ders programı bilgileri yalnızca eğitim süreçlerinin analizi ve velilerin bilgilendirilmesi amacıyla işlenmektedir.</p>
-                        <p><strong>3. Verilerin Saklanması ve Güvenliği</strong></p>
-                        <p>Tüm verileriniz Türkiye lokasyonlu, SSL şifreli ve yüksek güvenlik standartlarına sahip güvenli bulut sunucularımızda saklanır. Yetkisiz erişimlerin engellenmesi için her türlü teknik tedbir alınmaktadır.</p>
-                        <p><strong>4. Üçüncü Taraflarla Paylaşım</strong></p>
-                        <p>Kişisel verileriniz yasal zorunluluklar haricinde hiçbir şekilde üçüncü şahıslarla, reklam verenlerle veya iş ortaklarıyla paylaşılmaz.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {activePolicy === 'kvkk' && (
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-black text-slate-100 border-b border-slate-800 pb-3 flex items-center gap-2">
-                        <Shield className="text-blue-400" size={18} />
-                        <span>KVKK Aydınlatma Metni</span>
-                      </h3>
-                      <div className="text-xs text-slate-300 leading-relaxed space-y-3 font-semibold text-left">
-                        <p><strong>6698 Sayılı Kişisel Verilerin Korunması Kanunu (KVKK) Kapsamında Aydınlatma Beyanı</strong></p>
-                        <p>İşbu aydınlatma metni, veri sorumlusu sıfatıyla K.A.S Eğitim Teknolojileri tarafından, platformumuzu kullanan Kurum Yöneticileri, Öğretmenler, Veliler ve Öğrencileri bilgilendirmek amacıyla hazırlanmıştır.</p>
-                        <p><strong>1. Kişisel Verilerin İşlenme Amacı</strong></p>
-                        <p>Öğrencilerin eğitim performanslarının analizi, deneme sınavı sonuçlarının takibi, birebir derslerin planlanması, veli bilgilendirme süreçlerinin yönetilmesi ve sisteme güvenli giriş sağlanması amaçlarıyla sınırlı olarak işlenmektedir.</p>
-                        <p><strong>2. İşlenen Verilerin Kimlere Aktarılabileceği</strong></p>
-                        <p>Kişisel verileriniz, Kanun’un 8. ve 9. maddelerinde belirtilen şartlar dahilinde yalnızca yetkili kamu kurum ve kuruluşlarına yasal zorunluluk kapsamında aktarılabilecek olup, bunun dışında hiçbir özel kurumla paylaşılmamaktadır.</p>
-                        <p><strong>3. Veri Sahibinin Hakları</strong></p>
-                        <p>KVKK'nın 11. maddesi uyarınca dilediğiniz zaman veri sorumlusuna başvurarak kişisel verilerinizin; işlenip işlenmediğini öğrenme, işlenme amacına uygun kullanılıp kullanılmadığını sorma, eksik veya yanlış işlenmişse düzeltilmesini isteme ve silinmesini talep etme haklarına sahipsiniz.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {activePolicy === 'terms' && (
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-black text-slate-100 border-b border-slate-800 pb-3 flex items-center gap-2">
-                        <FileText className="text-blue-400" size={18} />
-                        <span>Kullanım Koşulları</span>
-                      </h3>
-                      <div className="text-xs text-slate-300 leading-relaxed space-y-3 font-semibold text-left">
-                        <p><strong>1. Taraflar ve Tanımlar</strong></p>
-                        <p>K.A.S Eğitim Teknolojileri platformuna üye olan veya deneme sürümü başlatan tüm eğitim kurumları ve kullanıcılar, bu Kullanım Koşullarını peşinen kabul etmiş sayılır.</p>
-                        <p><strong>2. Hizmet Kapsamı ve Değişiklikler</strong></p>
-                        <p>K.A.S, eğitim kurumlarının sınav analizi, ders programlama ve veli takibi gibi süreçlerini bulut tabanlı bir yazılım aracılığıyla yönetmelerini sağlar. K.A.S, hizmet kalitesini artırmak amacıyla platform üzerinde güncelleme ve değişiklik yapma hakkını saklı tutar.</p>
-                        <p><strong>3. Fikri Mülkiyet ve Haklar</strong></p>
-                        <p>Sistemde yer alan tüm kodlar, tasarımlar, logolar ve yazılımsal altyapı K.A.S Eğitim Teknolojileri'ne aittir. İzinsiz kopyalanması, dağıtılması veya tersine mühendislik yapılması yasaktır.</p>
-                        <p><strong>4. Sorumluluk Sınırları</strong></p>
-                        <p>Kullanıcıların kendi şifrelerini güvenli bir şekilde saklamaları kendi sorumluluğundadır. Üçüncü şahısların eline geçen kullanıcı hesap bilgileri ve bunlardan doğan veri kayıplarından platformumuz sorumlu tutulamaz.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {activePolicy === 'legal' && (
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-black text-slate-100 border-b border-slate-800 pb-3 flex items-center gap-2">
-                        <AlertCircle className="text-blue-400" size={18} />
-                        <span>Yasal Uyarı</span>
-                      </h3>
-                      <div className="text-xs text-slate-300 leading-relaxed space-y-3 font-semibold text-left">
-                        <p><strong>Yasal Sorumluluk Beyanı</strong></p>
-                        <p>K.A.S portalında yer alan tüm veriler, analiz sonuçları ve grafikler yalnızca eğitim kurumlarına yardımcı nitelikte istatistiksel raporlar sunmaktadır. Kararların veya akademik yönlendirmelerin nihai sorumluluğu eğitim kurumu yöneticilerine ve velilere aittir.</p>
-                        <p><strong>Marka ve Telif Hakları</strong></p>
-                        <p>'K.A.S' ve 'Kurum Analiz Sistemleri' tescilli markalar olup, sistem arayüzleri ve marka unsurlarının izinsiz ticari amaçla taklit edilmesi veya kullanılması durumunda yasal işlem başlatılacaktır.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex justify-end pt-4 border-t border-slate-800">
-                    <button
-                      type="button"
-                      onClick={() => setActivePolicy(null)}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition cursor-pointer"
-                    >
-                      Anladım, Kapat
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             </div> {/* Inner Marketing Wrapper end */}
           </div> {/* Left Side end */}
 
@@ -1726,7 +1495,6 @@ export default function App() {
                           setResetNewPasswordInput('');
                           setResetError('');
                           setResetSuccess('');
-                          setGeneratedResetCode('');
                         }}
                         className="text-[10px] text-blue-400 hover:text-blue-300 font-bold hover:underline cursor-pointer focus:outline-none transition-colors"
                       >
@@ -1868,6 +1636,227 @@ export default function App() {
             )}
             </div>
           </div>
+
+          {/* FORGOT PASSWORD MODAL POPUP */}
+          {showForgotPasswordModal && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in text-left">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 w-full max-w-md space-y-6 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPasswordModal(false)}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-100 bg-slate-950/50 p-2 rounded-xl border border-slate-800 transition cursor-pointer text-xs font-bold"
+                >
+                  ✕ Kapat
+                </button>
+
+                <div className="text-center space-y-2">
+                  <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mx-auto">
+                    <Key size={24} />
+                  </div>
+                  <h3 className="text-xl font-black text-slate-100 font-sans">
+                    Şifremi Sıfırla
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                    {resetStep === 'email' && "Kayıtlı e-posta adresinizi girerek 6 haneli güvenlik kodu talep edin."}
+                    {resetStep === 'code' && "E-postanıza (veya simülasyon olarak aşağıya) gönderilen 6 haneli sıfırlama kodunu girin."}
+                    {resetStep === 'password' && "Lütfen hesabınız için yeni, güvenli bir şifre belirleyin."}
+                  </p>
+                </div>
+
+                {resetError && (
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-xl flex items-center gap-2 font-semibold">
+                    <AlertCircle size={15} /> {resetError}
+                  </div>
+                )}
+
+                {resetSuccess && (
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs p-3 rounded-xl flex items-center gap-2 font-semibold">
+                    <CheckCircle size={15} /> {resetSuccess}
+                  </div>
+                )}
+
+                {/* STEP 1: REQUEST CODE */}
+                {resetStep === 'email' && (
+                  <form onSubmit={handleRequestResetCode} className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">E-posta Adresi</label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="ornek@kurum.com"
+                        value={resetEmailInput}
+                        onChange={e => setResetEmailInput(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-medium"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md shadow-blue-500/10 flex justify-center items-center gap-2 cursor-pointer"
+                    >
+                      Sıfırlama Kodu Gönder ⚡
+                    </button>
+                  </form>
+                )}
+
+                {/* STEP 2: VERIFY CODE */}
+                {resetStep === 'code' && (
+                  <form onSubmit={handleVerifyResetCode} className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">6 Haneli Doğrulama Kodu</label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        placeholder="123456"
+                        value={resetCodeInput}
+                        onChange={e => setResetCodeInput(e.target.value.replace(/\D/g, ''))}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-center tracking-widest font-black text-slate-100 text-lg focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md shadow-blue-500/10 flex justify-center items-center gap-2 cursor-pointer"
+                    >
+                      Kodu Doğrula 🔍
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setResetStep('email')}
+                      className="w-full text-slate-400 hover:text-slate-300 text-[11px] font-bold text-center block mt-2 cursor-pointer"
+                    >
+                      Geri Dön (E-posta Değiştir)
+                    </button>
+                  </form>
+                )}
+
+                {/* STEP 3: NEW PASSWORD */}
+                {resetStep === 'password' && (
+                  <form onSubmit={handleResetPassword} className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Yeni Şifre</label>
+                      <input
+                        type="password"
+                        required
+                        placeholder="••••••••"
+                        value={resetNewPasswordInput}
+                        onChange={e => setResetNewPasswordInput(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                      />
+                      <span className="text-[9px] text-slate-500 font-bold mt-1 block leading-normal">
+                        Güvenlik için en az 6 karakter, 1 harf ve 1 rakam içermelidir.
+                      </span>
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md shadow-blue-500/10 flex justify-center items-center gap-2 cursor-pointer"
+                    >
+                      Şifreyi Güncelle & Giriş Yap 🎉
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* POLICY DIALOGS MODAL POPUP */}
+          {activePolicy && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 w-full max-w-2xl max-h-[85vh] overflow-y-auto space-y-6 shadow-2xl relative">
+                <button
+                  type="button"
+                  onClick={() => setActivePolicy(null)}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-100 bg-slate-950/50 p-2 rounded-xl border border-slate-800 transition cursor-pointer text-xs font-bold"
+                >
+                  ✕ Kapat
+                </button>
+
+                {activePolicy === 'privacy' && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-black text-slate-100 border-b border-slate-800 pb-3 flex items-center gap-2">
+                      <Shield className="text-blue-400" size={18} />
+                      <span>Gizlilik Politikası</span>
+                    </h3>
+                    <div className="text-xs text-slate-300 leading-relaxed space-y-3 font-semibold text-left">
+                      <p><strong>1. Veri Sorumlusu</strong></p>
+                      <p>K.A.S Eğitim Teknolojileri A.Ş. olarak kişisel verilerinizin güvenliğine ve gizliliğine büyük önem veriyoruz. Bu politika, platformumuz üzerinden toplanan verilerin nasıl işlendiğini açıklar.</p>
+                      <p><strong>2. Toplanan Veriler ve İşleme Amaçları</strong></p>
+                      <p>Kurum kayıt esnasında toplanan yönetici adı, telefon numarası, e-posta adresi ile öğrencilere ait sınav netleri, ders programı bilgileri yalnızca eğitim süreçlerinin analizi ve velilerin bilgilendirilmesi amacıyla işlenmektedir.</p>
+                      <p><strong>3. Verilerin Saklanması ve Güvenliği</strong></p>
+                      <p>Tüm verileriniz Türkiye lokasyonlu, SSL şifreli ve yüksek güvenlik standartlarına sahip güvenli bulut sunucularımızda saklanır. Yetkisiz erişimlerin engellenmesi için her türlü teknik tedbir alınmaktadır.</p>
+                      <p><strong>4. Üçüncü Taraflarla Paylaşım</strong></p>
+                      <p>Kişisel verileriniz yasal zorunluluklar haricinde hiçbir şekilde üçüncü şahıslarla, reklam verenlerle veya iş ortaklarıyla paylaşılmaz.</p>
+                    </div>
+                  </div>
+                )}
+
+                {activePolicy === 'kvkk' && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-black text-slate-100 border-b border-slate-800 pb-3 flex items-center gap-2">
+                      <Shield className="text-blue-400" size={18} />
+                      <span>KVKK Aydınlatma Metni</span>
+                    </h3>
+                    <div className="text-xs text-slate-300 leading-relaxed space-y-3 font-semibold text-left">
+                      <p><strong>6698 Sayılı Kişisel Verilerin Korunması Kanunu (KVKK) Kapsamında Aydınlatma Beyanı</strong></p>
+                      <p>İşbu aydınlatma metni, veri sorumlusu sıfatıyla K.A.S Eğitim Teknolojileri tarafından, platformumuzu kullanan Kurum Yöneticileri, Öğretmenler, Veliler ve Öğrencileri bilgilendirmek amacıyla hazırlanmıştır.</p>
+                      <p><strong>1. Kişisel Verilerin İşlenme Amacı</strong></p>
+                      <p>Öğrencilerin eğitim performanslarının analizi, deneme sınavı sonuçlarının takibi, birebir derslerin planlanması, veli bilgilendirme süreçlerinin yönetilmesi ve sisteme güvenli giriş sağlanması amaçlarıyla sınırlı olarak işlenmektedir.</p>
+                      <p><strong>2. İşlenen Verilerin Kimlere Aktarılabileceği</strong></p>
+                      <p>Kişisel verileriniz, Kanun’un 8. ve 9. maddelerinde belirtilen şartlar dahilinde yalnızca yetkili kamu kurum ve kuruluşlarına yasal zorunluluk kapsamında aktarılabilecek olup, bunun dışında hiçbir özel kurumla paylaşılmamaktadır.</p>
+                      <p><strong>3. Veri Sahibinin Hakları</strong></p>
+                      <p>KVKK'nın 11. maddesi uyarınca dilediğiniz zaman veri sorumlusuna başvurarak kişisel verilerinizin; işlenip işlenmediğini öğrenme, işlenme amacına uygun kullanılıp kullanılmadığını sorma, eksik veya yanlış işlenmişse düzeltilmesini isteme ve silinmesini talep etme haklarına sahipsiniz.</p>
+                    </div>
+                  </div>
+                )}
+
+                {activePolicy === 'terms' && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-black text-slate-100 border-b border-slate-800 pb-3 flex items-center gap-2">
+                      <FileText className="text-blue-400" size={18} />
+                      <span>Kullanım Koşulları</span>
+                    </h3>
+                    <div className="text-xs text-slate-300 leading-relaxed space-y-3 font-semibold text-left">
+                      <p><strong>1. Taraflar ve Tanımlar</strong></p>
+                      <p>K.A.S Eğitim Teknolojileri platformuna üye olan veya deneme sürümü başlatan tüm eğitim kurumları ve kullanıcılar, bu Kullanım Koşullarını peşinen kabul etmiş sayılır.</p>
+                      <p><strong>2. Hizmet Kapsamı ve Değişiklikler</strong></p>
+                      <p>K.A.S, eğitim kurumlarının sınav analizi, ders programlama ve veli takibi gibi süreçlerini bulut tabanlı bir yazılım aracılığıyla yönetmelerini sağlar. K.A.S, hizmet kalitesini artırmak amacıyla platform üzerinde güncelleme ve değişiklik yapma hakkını saklı tutar.</p>
+                      <p><strong>3. Fikri Mülkiyet ve Haklar</strong></p>
+                      <p>Sistemde yer alan tüm kodlar, tasarımlar, logolar ve yazılımsal altyapı K.A.S Eğitim Teknolojileri'ne aittir. İzinsiz kopyalanması, dağıtılması veya tersine mühendislik yapılması yasaktır.</p>
+                      <p><strong>4. Sorumluluk Sınırları</strong></p>
+                      <p>Kullanıcıların kendi şifrelerini güvenli bir şekilde saklamaları kendi sorumluluğundadır. Üçüncü şahısların eline geçen kullanıcı hesap bilgileri ve bunlardan doğan veri kayıplarından platformumuz sorumlu tutulamaz.</p>
+                    </div>
+                  </div>
+                )}
+
+                {activePolicy === 'legal' && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-black text-slate-100 border-b border-slate-800 pb-3 flex items-center gap-2">
+                      <AlertCircle className="text-blue-400" size={18} />
+                      <span>Yasal Uyarı</span>
+                    </h3>
+                    <div className="text-xs text-slate-300 leading-relaxed space-y-3 font-semibold text-left">
+                      <p><strong>Yasal Sorumluluk Beyanı</strong></p>
+                      <p>K.A.S portalında yer alan tüm veriler, analiz sonuçları ve grafikler yalnızca eğitim kurumlarına yardımcı nitelikte istatistiksel raporlar sunmaktadır. Kararların veya akademik yönlendirmelerin nihai sorumluluğu eğitim kurumu yöneticilerine ve velilere aittir.</p>
+                      <p><strong>Marka ve Telif Hakları</strong></p>
+                      <p>'K.A.S' ve 'Kurum Analiz Sistemleri' tescilli markalar olup, sistem arayüzleri ve marka unsurlarının izinsiz ticari amaçla taklit edilmesi veya kullanılması durumunda yasal işlem başlatılacaktır.</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-4 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setActivePolicy(null)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+                  >
+                    Anladım, Kapat
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         /* REGISTERED USER WORKSPACE SIDEBAR + VIEWS SYSTEM */
