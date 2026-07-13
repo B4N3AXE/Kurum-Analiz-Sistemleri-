@@ -89,6 +89,30 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
   });
 
   const [formError, setFormError] = useState('');
+  const [targetNetInput, setTargetNetInput] = useState('');
+
+  // Handle Target Net updating
+  const handleUpdateTargetNet = async (newTarget: number) => {
+    if (!detailData) return;
+    try {
+      const res = await fetch(`/api/ogrenci/${detailData.student.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': token },
+        body: JSON.stringify({ hedef_net: newTarget })
+      });
+      if (res.ok) {
+        setDetailData(prev => prev ? {
+          ...prev,
+          student: {
+            ...prev.student,
+            hedef_net: newTarget
+          }
+        } : null);
+      }
+    } catch (err) {
+      console.error("Error updating target net:", err);
+    }
+  };
 
   // Fetch student records & lookup tables
   const loadData = async () => {
@@ -133,6 +157,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
       if (res.ok) {
         const data = await res.json();
         setDetailData(data);
+        setTargetNetInput(data.student.hedef_net ? String(data.student.hedef_net) : '95');
         setSelectedStudentId(id);
         setView('detail');
       }
@@ -777,9 +802,9 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
           </div>
 
           {/* Development Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
             {/* SVG Development curve graph */}
-            <div className="md:col-span-8 bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div className="xl:col-span-6 bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-sm">
               <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-4">Sınav Toplam Net Gelişim Eğrisi</h4>
               {detailData.sonuclar.length === 0 ? (
                 <div className="h-44 flex items-center justify-center text-slate-500 text-xs">Bu öğrenci henüz bir sınava girmemiştir.</div>
@@ -867,14 +892,13 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                       <span className="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse"></span>
                       <span className="text-amber-400">Gelecek Sınav Projeksiyonu (Beklenen Net)</span>
                     </span>
-                    <span className="text-slate-600 font-medium">• Yatay: Denemeler | Dikey: Net Skorları</span>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Course-by-course Net Comparison */}
-            <div className="md:col-span-4 bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div className="xl:col-span-3 bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-sm">
               <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-4">Son Ders Netleri</h4>
               {detailData.sonuclar.length === 0 ? (
                 <div className="h-40 flex items-center justify-center text-slate-500 text-xs">Ders net verisi yok.</div>
@@ -912,6 +936,87 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                   );
                 })()
               )}
+            </div>
+
+            {/* Academic Target Tracking (Suggestion 4) */}
+            <div className="xl:col-span-3 bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider">🎯 Akademik Hedef</h4>
+                  <span className="text-[9px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 px-1.5 py-0.5 rounded font-black uppercase">YKS / LGS</span>
+                </div>
+
+                {(() => {
+                  const target = detailData.student.hedef_net || 95;
+                  const currentNet = detailData.sonuclar.length > 0 
+                    ? Number(detailData.sonuclar[detailData.sonuclar.length - 1].toplam_net) 
+                    : 0;
+                  const achievementPct = Math.min(100, Math.round((currentNet / target) * 100));
+                  const gap = Math.max(0, parseFloat((target - currentNet).toFixed(1)));
+
+                  let tip = '';
+                  if (gap === 0) {
+                    tip = "Harika! Öğrencimiz belirlediği net hedefine ulaştı! Motivasyonu koruyalım. 🎉";
+                  } else if (gap <= 10) {
+                    tip = "Müthiş! Hedefe son derece yakın. Nokta atışı konu eksik analizleriyle hedefe ulaşabiliriz! 💪";
+                  } else if (gap <= 22) {
+                    tip = "İstikrarlı gidiyor. Hatalı soruların analizine ve düzenli etütlere ağırlık verilmeli. 📈";
+                  } else {
+                    tip = "Öğrenme eğrisi başlangıcında. Haftalık ders çalışma planına tam sadakat gerekiyor. 🎯";
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Radial-like visual block */}
+                      <div className="bg-slate-950/40 border border-slate-850/80 rounded-xl p-4 text-center space-y-2">
+                        <span className="text-[10px] text-slate-400 font-semibold block uppercase">Hedef Başarı Oranı</span>
+                        <div className="text-3xl font-black text-indigo-400 tracking-tight">{achievementPct}%</div>
+                        
+                        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
+                          <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full" style={{ width: `${achievementPct}%` }}></div>
+                        </div>
+
+                        <div className="flex justify-between text-[10px] text-slate-400 font-bold pt-1.5">
+                          <span>Son Net: {currentNet}</span>
+                          <span>Hedef Net: {target}</span>
+                        </div>
+                      </div>
+
+                      {/* Gap message */}
+                      <div className="text-[11px] font-bold text-slate-200">
+                        {gap > 0 ? (
+                          <span className="text-amber-400">Hedefe Kalan: {gap} Net</span>
+                        ) : (
+                          <span className="text-emerald-400">🎯 Hedef Başarıyla Gerçekleşti!</span>
+                        )}
+                        <p className="text-[10px] text-slate-400 font-medium leading-relaxed mt-1">{tip}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Target edit input */}
+              <div className="mt-4 pt-3 border-t border-slate-800 space-y-2">
+                <label className="text-[10px] text-slate-500 font-bold uppercase block">Hedef Net Güncelle</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="number"
+                    value={targetNetInput}
+                    onChange={(e) => setTargetNetInput(e.target.value)}
+                    className="w-full bg-slate-950 text-slate-200 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs focus:outline-none focus:border-indigo-500 font-bold text-center"
+                    placeholder="95"
+                    min="1"
+                    max="120"
+                  />
+                  <button 
+                    onClick={() => handleUpdateTargetNet(Number(targetNetInput) || 95)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-slate-100 px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow"
+                  >
+                    🎯 Güncelle
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 

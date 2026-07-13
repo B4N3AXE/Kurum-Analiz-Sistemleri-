@@ -59,6 +59,16 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Intro Animation State
+  const [isIntroComplete, setIsIntroComplete] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsIntroComplete(true);
+    }, 2600); // 2.6 seconds centered intro, then slide into place!
+    return () => clearTimeout(timer);
+  }, []);
+
   // Form Fields
   const [email, setEmail] = useState('');
   const [sifre, setSifre] = useState('');
@@ -536,13 +546,58 @@ export default function App() {
       {/* Main UI body */}
       {!isLoggedIn ? (
         /* PREMIUM HIGH-CONVERTING SaaS LANDING & AUTH PAGE */
-        <div className="flex-1 flex flex-col min-h-screen bg-slate-950">
+        <div className="flex-1 flex flex-col min-h-screen bg-slate-950 relative overflow-hidden">
           
+          {/* 1. INTRO ANIMATION SCREEN (Centered Logo flying into place) */}
+          <AnimatePresence>
+            {!isIntroComplete && !showAuthScreen && (
+              <motion.div 
+                className="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center p-6"
+                exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
+              >
+                <div className="text-center space-y-8 flex flex-col items-center justify-center">
+                  <motion.div 
+                    layoutId="hero-logo-card"
+                    className="w-[180px] h-[180px] sm:w-[240px] sm:h-[240px] p-1.5 bg-slate-950 rounded-[2.5rem] border border-slate-900 shadow-2xl relative overflow-hidden"
+                    transition={{ type: "spring", stiffness: 45, damping: 14 }}
+                  >
+                    <div className="absolute -inset-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2.5rem] blur opacity-40"></div>
+                    <img 
+                      src="/logo.svg" 
+                      alt="K.A.S Logo" 
+                      className="w-full h-full object-contain rounded-[2.2rem] shadow-inner"
+                      referrerPolicy="no-referrer"
+                    />
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3, duration: 0.7 }}
+                    className="space-y-2 max-w-md mx-auto"
+                  >
+                    <span className="text-[11px] font-black tracking-[0.25em] text-blue-400 uppercase block">KİŞİSELLEŞTİRİLMİŞ EĞİTİM YÖNETİMİ</span>
+                    <h2 className="text-2xl sm:text-3xl font-black text-slate-500 tracking-tight leading-none">
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-slate-200 to-slate-400">Kurum Analiz Sistemine</span><br />
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 font-extrabold mt-1 inline-block">Hoşgeldiniz</span>
+                    </h2>
+                    <p className="text-xs text-slate-500 font-medium">Yapay zeka destekli akıllı takip ve karne otomasyonu</p>
+                  </motion.div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Left Side: Professional SaaS Marketing & Pitch Panel (Scrollable) */}
           <div className={`flex-1 ${showAuthScreen ? 'hidden' : 'flex flex-col'} lg:h-screen lg:overflow-y-auto px-6 md:px-12 lg:px-16 py-12 lg:py-20 space-y-16 scrollbar-thin bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950`}>
             
             {/* Header / Brand */}
-            <div className="flex items-center justify-between border-b border-slate-900/40 pb-4 max-w-5xl mx-auto w-full">
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={isIntroComplete ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
+              transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
+              className="flex items-center justify-between border-b border-slate-900/40 pb-4 max-w-7xl mx-auto w-full"
+            >
               <div className="flex items-center gap-2.5">
                 <div className="p-1 bg-blue-600/5 rounded-xl border border-slate-800 shadow-lg shadow-blue-500/5">
                   <img src="/favicon.svg" alt="K.A.S Logo" className="w-9 h-9 object-contain" referrerPolicy="no-referrer" />
@@ -582,15 +637,20 @@ export default function App() {
                   Kurum Kaydı (Ücretsiz)
                 </button>
               </div>
-            </div>
-
+            </motion.div>
+ 
             {/* Inner Marketing Wrapper (Centers and boundaries the content when full-width) */}
-            <div className="max-w-5xl mx-auto w-full space-y-16 flex-1">
-
+            <div className="max-w-7xl mx-auto w-full space-y-16 flex-1">
+ 
               {/* Hero Section with 2-Column Layout */}
               <div className="flex flex-col lg:flex-row gap-12 items-center justify-between">
                 {/* Hero Text Column */}
-                <div className="flex-1 space-y-6">
+                <motion.div 
+                  initial={{ opacity: 0, x: -40 }}
+                  animate={isIntroComplete ? { opacity: 1, x: 0 } : { opacity: 0, x: -40 }}
+                  transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+                  className="flex-1 space-y-6"
+                >
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest text-blue-400 bg-blue-500/10 rounded-full border border-blue-500/10 shadow-inner">
                     <Sparkles size={11} className="animate-pulse text-blue-400" /> %94 Zaman Tasarrufu & Akıllı Eğitim Otomasyonu
                   </span>
@@ -617,20 +677,26 @@ export default function App() {
                       </div>
                     ))}
                   </div>
-                </div>
-
-                 {/* Hero Logo Column */}
-                <div className="w-full lg:w-[420px] flex justify-center items-center">
-                  <div className="relative group p-1.5 bg-slate-950 rounded-[2.5rem] border border-slate-900 shadow-2xl overflow-hidden w-full max-w-sm lg:max-w-none">
-                    <div className="absolute -inset-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2.5rem] blur opacity-15 group-hover:opacity-30 transition duration-1000 group-hover:duration-200"></div>
-                    <img 
-                      src="/logo.svg" 
-                      alt="Kurum Analiz Sistemleri Logo" 
-                      className="w-full aspect-square object-contain rounded-[2.2rem] shadow-inner transform group-hover:scale-[1.02] transition-transform duration-500"
-                      referrerPolicy="no-referrer"
-                    />
+                </motion.div>
+ 
+                  {/* Hero Logo Column */}
+                  <div className="w-full lg:w-[420px] flex justify-center items-center">
+                    {isIntroComplete && (
+                      <motion.div 
+                        layoutId="hero-logo-card"
+                        className="relative group p-1.5 bg-slate-950 rounded-[2.5rem] border border-slate-900 shadow-2xl overflow-hidden w-full max-w-sm lg:max-w-none cursor-pointer"
+                        transition={{ type: "spring", stiffness: 45, damping: 14 }}
+                      >
+                        <div className="absolute -inset-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2.5rem] blur opacity-15 group-hover:opacity-30 transition duration-1000 group-hover:duration-200"></div>
+                        <img 
+                          src="/logo.svg" 
+                          alt="Kurum Analiz Sistemleri Logo" 
+                          className="w-full aspect-square object-contain rounded-[2.2rem] shadow-inner transform group-hover:scale-[1.02] transition-transform duration-500"
+                          referrerPolicy="no-referrer"
+                        />
+                      </motion.div>
+                    )}
                   </div>
-                </div>
               </div>
 
             {/* Nasıl Çalışır? - İlk Defa Girenler İçin Hızlı Başlangıç Kılavuzu */}

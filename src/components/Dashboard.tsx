@@ -34,7 +34,9 @@ export default function Dashboard({ user, token }: DashboardProps) {
     riskStudents: [] as RiskStudent[],
     trends: [] as TrendData[],
     recentExams: [] as any[],
-    thresholds: { TYT: 60, AYT: 45, LGS: 55 } as Record<string, number>
+    thresholds: { TYT: 60, AYT: 45, LGS: 55 } as Record<string, number>,
+    classAnalysis: [] as any[],
+    teacherAnalysis: [] as any[]
   });
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -383,6 +385,125 @@ export default function Dashboard({ user, token }: DashboardProps) {
         {/* Calendar and Sidebar elements */}
         <div className="xl:col-span-4 space-y-4">
           {renderCalendar()}
+        </div>
+      </div>
+
+      {/* 1. CLASSROOM & TEACHER ANALYSIS GRID (Suggestion 1) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Class-by-Subject analysis */}
+        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+            <div>
+              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <span className="text-blue-400">📊</span> Sınıf Bazlı Ders/Konu Ortalamaları
+              </h3>
+              <p className="text-[10px] text-slate-500 mt-0.5">Sınıfların ders gruplarına göre ortalama net başarı analizi</p>
+            </div>
+            <span className="text-[9px] bg-blue-500/10 text-blue-400 border border-blue-500/10 px-2 py-0.5 rounded font-black uppercase">Konu Dağılımı</span>
+          </div>
+
+          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+            {stats.classAnalysis && stats.classAnalysis.length > 0 ? (
+              stats.classAnalysis.map((c, idx) => (
+                <div key={idx} className="bg-slate-950/40 p-3.5 border border-slate-850 rounded-xl space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-black text-slate-200">{c.sinif_adi}</span>
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                      Genel Ort: {((c.turkce + c.matematik + c.sosyal + c.fen) / 4).toFixed(1)} Net
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-[10px] font-semibold text-slate-400">
+                    {/* Türkçe */}
+                    <div className="space-y-1 bg-slate-900/30 p-2 rounded border border-slate-900">
+                      <div className="flex justify-between">
+                        <span>Türkçe</span>
+                        <span className="text-blue-400 font-bold">{c.turkce} Net</span>
+                      </div>
+                      <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${(c.turkce / 40) * 100}%` }}></div>
+                      </div>
+                    </div>
+                    {/* Matematik */}
+                    <div className="space-y-1 bg-slate-900/30 p-2 rounded border border-slate-900">
+                      <div className="flex justify-between">
+                        <span>Matematik</span>
+                        <span className="text-indigo-400 font-bold">{c.matematik} Net</span>
+                      </div>
+                      <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: `${(c.matematik / 40) * 100}%` }}></div>
+                      </div>
+                    </div>
+                    {/* Sosyal Bilimler */}
+                    <div className="space-y-1 bg-slate-900/30 p-2 rounded border border-slate-900">
+                      <div className="flex justify-between">
+                        <span>Sosyal</span>
+                        <span className="text-amber-400 font-bold">{c.sosyal} Net</span>
+                      </div>
+                      <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: `${(c.sosyal / 20) * 100}%` }}></div>
+                      </div>
+                    </div>
+                    {/* Fen Bilimleri */}
+                    <div className="space-y-1 bg-slate-900/30 p-2 rounded border border-slate-900">
+                      <div className="flex justify-between">
+                        <span>Fen Bilimleri</span>
+                        <span className="text-emerald-400 font-bold">{c.fen} Net</span>
+                      </div>
+                      <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${(c.fen / 20) * 100}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6 text-slate-500 text-xs">Sınıf bazlı veri bulunmuyor.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Teacher Efficiency / Tutoring statistics */}
+        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+            <div>
+              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <span className="text-emerald-400">🎓</span> Öğretmen Başarı ve Etüt Verimliliği
+              </h3>
+              <p className="text-[10px] text-slate-500 mt-0.5">Öğretmenlerin birebir dersleri ve başarı endeks analizi</p>
+            </div>
+            <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/10 px-2 py-0.5 rounded font-black uppercase">Verimlilik</span>
+          </div>
+
+          <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
+            {stats.teacherAnalysis && stats.teacherAnalysis.length > 0 ? (
+              stats.teacherAnalysis.map((t, idx) => (
+                <div key={idx} className="bg-slate-950/40 p-3 border border-slate-850 rounded-xl space-y-2 hover:border-slate-800 transition">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="h-6 w-6 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-black flex items-center justify-center">
+                        {idx + 1}
+                      </span>
+                      <span className="text-xs font-bold text-slate-200">{t.ogretmen}</span>
+                    </div>
+                    <span className="text-xs font-black text-emerald-400">{t.basari_orani}% Başarı</span>
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${t.basari_orani}%` }}></div>
+                    </div>
+                    <div className="flex justify-between text-[9px] text-slate-500 font-bold">
+                      <span>Aktif Öğrenci: {t.ogrenci_sayisi}</span>
+                      <span>Haftalık Birebir: {t.etut_sayisi} Saat</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6 text-slate-500 text-xs">Öğretmen verisi bulunmuyor.</div>
+            )}
+          </div>
         </div>
       </div>
 

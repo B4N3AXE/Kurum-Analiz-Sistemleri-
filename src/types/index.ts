@@ -37,6 +37,7 @@ export interface Ogrenci {
   aktif: boolean;
   son_net?: number | string;
   son_puan?: number | string;
+  hedef_net?: number;
 }
 
 export interface SinavTanim {
