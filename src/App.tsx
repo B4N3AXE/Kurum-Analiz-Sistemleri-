@@ -549,44 +549,42 @@ export default function App() {
         <div className="flex-1 flex flex-col min-h-screen bg-slate-950 relative overflow-hidden">
           
           {/* 1. INTRO ANIMATION SCREEN (Centered Logo flying into place) */}
-          <AnimatePresence>
-            {!isIntroComplete && !showAuthScreen && (
-              <motion.div 
-                className="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center p-6"
-                exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
-              >
-                <div className="text-center space-y-8 flex flex-col items-center justify-center">
-                  <motion.div 
-                    layoutId="hero-logo-card"
-                    className="w-[180px] h-[180px] sm:w-[240px] sm:h-[240px] p-1.5 bg-slate-950 rounded-[2.5rem] border border-slate-900 shadow-2xl relative overflow-hidden"
-                    transition={{ type: "spring", stiffness: 45, damping: 14 }}
-                  >
-                    <div className="absolute -inset-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2.5rem] blur opacity-40"></div>
-                    <img 
-                      src="/logo.svg" 
-                      alt="K.A.S Logo" 
-                      className="w-full h-full object-contain rounded-[2.2rem] shadow-inner"
-                      referrerPolicy="no-referrer"
-                    />
-                  </motion.div>
-                  
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3, duration: 0.7 }}
-                    className="space-y-2 max-w-md mx-auto"
-                  >
-                    <span className="text-[11px] font-black tracking-[0.25em] text-blue-400 uppercase block">KİŞİSELLEŞTİRİLMİŞ EĞİTİM YÖNETİMİ</span>
-                    <h2 className="text-2xl sm:text-3xl font-black text-slate-500 tracking-tight leading-none">
-                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-slate-200 to-slate-400">Kurum Analiz Sistemine</span><br />
-                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 font-extrabold mt-1 inline-block">Hoşgeldiniz</span>
-                    </h2>
-                    <p className="text-xs text-slate-500 font-medium">Yapay zeka destekli akıllı takip ve karne otomasyonu</p>
-                  </motion.div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div 
+            className={`fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center p-6 transition-all duration-1000 ease-in-out ${
+              (!isIntroComplete && !showAuthScreen) 
+                ? "opacity-100 pointer-events-auto" 
+                : "opacity-0 pointer-events-none"
+            }`}
+          >
+            <div className="text-center space-y-8 flex flex-col items-center justify-center">
+              {!isIntroComplete && !showAuthScreen && (
+                <motion.div 
+                  layoutId="hero-logo-card"
+                  className="w-[180px] h-[180px] sm:w-[240px] sm:h-[240px] p-1.5 bg-slate-950 rounded-[2.5rem] border border-slate-900 shadow-2xl relative overflow-hidden"
+                  transition={{ type: "spring", stiffness: 45, damping: 14 }}
+                >
+                  <div className="absolute -inset-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2.5rem] blur opacity-40"></div>
+                  <img 
+                    src="/logo.svg" 
+                    alt="K.A.S Logo" 
+                    className="w-full h-full object-contain rounded-[2.2rem] shadow-inner"
+                    referrerPolicy="no-referrer"
+                  />
+                </motion.div>
+              )}
+              
+              <div className={`space-y-2 max-w-md mx-auto transition-all duration-500 ${
+                (!isIntroComplete && !showAuthScreen) ? "opacity-100 scale-100" : "opacity-0 scale-95"
+              }`}>
+                <span className="text-[11px] font-black tracking-[0.25em] text-blue-400 uppercase block">KİŞİSELLEŞTİRİLMİŞ EĞİTİM YÖNETİMİ</span>
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-500 tracking-tight leading-none">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-slate-200 to-slate-400">Kurum Analiz Sistemine</span><br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 font-extrabold mt-1 inline-block">Hoşgeldiniz</span>
+                </h2>
+                <p className="text-xs text-slate-500 font-medium">Yapay zeka destekli akıllı takip ve karne otomasyonu</p>
+              </div>
+            </div>
+          </div>
 
           {/* Left Side: Professional SaaS Marketing & Pitch Panel (Scrollable) */}
           <div className={`flex-1 ${showAuthScreen ? 'hidden' : 'flex flex-col'} lg:h-screen lg:overflow-y-auto px-6 md:px-12 lg:px-16 py-12 lg:py-20 space-y-16 scrollbar-thin bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950`}>
