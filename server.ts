@@ -1680,6 +1680,7 @@ app.post('/api/pdf/upload', async (req, res) => {
     }
 
     let parsedResults: any[] = [];
+    let warning: string | null = null;
 
     if (ai) {
       console.log('Sending base64 to Gemini for PDF analysis...');
@@ -1727,13 +1728,15 @@ app.post('/api/pdf/upload', async (req, res) => {
         const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\[\s*\{[\s\S]*\}\s*\]/);
         const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : text;
         parsedResults = JSON.parse(jsonStr.trim());
-      } catch (e) {
+      } catch (e: any) {
         console.error('Gemini parsing in PDF upload failed, falling back to mock generator:', e);
         parsedResults = generateMockParsedDataForUpload(examType);
+        warning = `Gemini API hatası nedeniyle demo modu aktif edildi (Sadece 4 örnek öğrenci yüklendi). Hata detayı: ${e.message || e}`;
       }
     } else {
       console.log('Gemini not available, generating high-fidelity local parser simulation...');
       parsedResults = generateMockParsedDataForUpload(examType);
+      warning = "Sisteminizde GEMINI_API_KEY (Gemini API Anahtarı) çevre değişkeni tanımlanmamış. Bu yüzden sistem otomatik olarak demo moduna geçerek her PDF için 4 adet örnek öğrenci verisi üretmektedir. Gerçek PDF okuma için sunucunuzda bu anahtarı ayarlamalısınız.";
     }
 
     // Map and match with existing students in DB
@@ -1773,7 +1776,8 @@ app.post('/api/pdf/upload', async (req, res) => {
 
     res.json({
       results,
-      extractedCount: results.length
+      extractedCount: results.length,
+      warning
     });
   } catch (err: any) {
     console.error('Error in /api/pdf/upload:', err);

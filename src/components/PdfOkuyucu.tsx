@@ -36,6 +36,7 @@ export default function PdfOkuyucu({ user, token }: PdfOkuyucuProps) {
   const [loadingStep, setLoadingStep] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [warning, setWarning] = useState('');
 
   // Scanned lists
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
@@ -119,6 +120,7 @@ export default function PdfOkuyucu({ user, token }: PdfOkuyucuProps) {
     setLoading(true);
     setParsedRows([]);
     setError('');
+    setWarning('');
 
     const steps = [
       "Dosya sunucuya gönderiliyor...",
@@ -160,6 +162,9 @@ export default function PdfOkuyucu({ user, token }: PdfOkuyucuProps) {
       if (res.ok) {
         const data = await res.json();
         setParsedRows(data.results);
+        if (data.warning) {
+          setWarning(data.warning);
+        }
         setSuccess(`Tebrikler! Dosya başarıyla okundu. Toplam ${data.extractedCount} adet öğrencinin sınav sonuçları çıkarıldı. Lütfen aşağıdaki eşleştirmeleri ve ders netlerini kontrol edip onaylayın.`);
       } else {
         const errData = await res.json();
@@ -398,6 +403,13 @@ export default function PdfOkuyucu({ user, token }: PdfOkuyucuProps) {
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3.5 rounded-xl flex items-start gap-2">
           <AlertCircle size={15} className="mt-0.5 flex-shrink-0" />
           <p className="font-semibold leading-relaxed">{error}</p>
+        </div>
+      )}
+
+      {warning && (
+        <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs p-3.5 rounded-xl flex items-start gap-2">
+          <AlertCircle size={15} className="mt-0.5 flex-shrink-0" />
+          <p className="font-semibold leading-relaxed">{warning}</p>
         </div>
       )}
 
