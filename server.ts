@@ -592,18 +592,43 @@ app.get('/api/dashboard/stats', (req, res) => {
   });
 
   // Calculate teacher success rate (Öğretmen Başarı Analizleri)
-  const distinctTeachers = Array.from(new Set(db.getDersProgramlari().map(dp => dp.ogretmen_adi))).filter(Boolean);
-  if (distinctTeachers.length === 0) {
-    distinctTeachers.push("Ahmet Yılmaz (Matematik)", "Zeynep Kaya (Türkçe)", "Mustafa Demir (Fizik)", "Elif Şahin (Sosyal)");
-  }
+  const teachersFromDb = db.getKullanicilar().filter(u => u.rol === 'ogretmen');
+  const teachersFromLessons = Array.from(new Set(db.getDersProgramlari().map(dp => dp.ogretmen_adi))).filter(Boolean);
   
-  const teacherAnalysis = distinctTeachers.map((teacher, idx) => {
-    const base = 75 + (idx * 4) % 18;
+  // Merge both to get all distinct teacher names
+  const allTeacherNames = new Set<string>();
+  teachersFromDb.forEach(t => allTeacherNames.add(t.ad_soyad));
+  teachersFromLessons.forEach(t => allTeacherNames.add(t));
+  
+  const distinctTeachers = Array.from(allTeacherNames);
+  
+  const teacherAnalysis = distinctTeachers.map((teacher) => {
+    const teacherLessons = db.getDersProgramlari().filter(l => l.ogretmen_adi === teacher);
+    const uniqueStudents = new Set(teacherLessons.map(l => l.ogrenci_id));
+    const ogrenci_sayisi = uniqueStudents.size;
+    const etut_sayisi = teacherLessons.length;
+    
+    // Calculate a real success rate if they have exams
+    let basari_orani = 100;
+    if (ogrenci_sayisi > 0) {
+      const studentIds = Array.from(uniqueStudents);
+      const studentResults = results.filter(r => studentIds.includes(r.ogrenci_id));
+      if (studentResults.length > 0) {
+        const avgNet = studentResults.reduce((sum, r) => sum + (r.toplam_net || 0), 0) / studentResults.length;
+        // Map average net (out of 120) to a reasonable success rate percentage
+        basari_orani = Math.min(100, Math.max(50, Math.round(50 + (avgNet / 120) * 50)));
+      } else {
+        basari_orani = 85; // Default if they have students but no exams yet
+      }
+    } else {
+      basari_orani = 0; // 0% if they have no students/lessons scheduled yet
+    }
+    
     return {
       ogretmen: teacher,
-      basari_orani: base,
-      ogrenci_sayisi: 8 + (idx * 3) % 12,
-      etut_sayisi: 6 + (idx * 2) % 8
+      basari_orani,
+      ogrenci_sayisi,
+      etut_sayisi
     };
   });
 
