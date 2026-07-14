@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Sinif, User as Staff, SinavTanim } from '../types';
-import { Plus, Trash2, Award, Briefcase, Key, Shield, Layers, HelpCircle, AlertCircle, CheckCircle2, Calendar, Clock, BookOpen } from 'lucide-react';
+import { Plus, Trash2, Edit, Award, Briefcase, Key, Shield, Layers, HelpCircle, AlertCircle, CheckCircle2, Calendar, Clock, BookOpen } from 'lucide-react';
 
 interface TanimlarProps {
   user: User;
@@ -24,6 +24,37 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'sinif' | 'sinav' | 'ders_programi' | 'ogretmen' | 'rehber' | 'veli'; id: number } | null>(null);
+  const [editingItem, setEditingItem] = useState<{ type: 'sinif' | 'ogretmen' | 'rehber' | 'veli'; id: number } | null>(null);
+
+  const handleEditClick = (type: 'sinif' | 'ogretmen' | 'rehber' | 'veli', item: any) => {
+    setEditingItem({ type, id: item.id });
+    setError('');
+    setSuccess('');
+    
+    if (type === 'sinif') {
+      setClassAd(item.ad);
+      setClassSeviye(item.seviye.toString());
+    } else {
+      setStaffName(item.ad_soyad);
+      setStaffEmail(item.email);
+      setStaffPassword('');
+      setStaffPhone(item.telefon || '');
+      if (type === 'ogretmen') {
+        setSelectedClassIds(item.sinif_ids || []);
+      }
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItem(null);
+    setClassAd('');
+    setClassSeviye('12');
+    setStaffName('');
+    setStaffEmail('');
+    setStaffPassword('');
+    setStaffPhone('');
+    setSelectedClassIds([]);
+  };
 
   // Form states
   const [error, setError] = useState('');
@@ -105,23 +136,32 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
   };
 
   useEffect(() => {
+    handleCancelEdit();
     loadTabData();
   }, [activeTab]);
 
-  // Handle Class Creation
+  // Handle Class Creation / Editing
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!classAd) return;
     try {
-      const res = await fetch('/api/sinif', {
-        method: 'POST',
+      const isEdit = editingItem && editingItem.type === 'sinif';
+      const endpoint = isEdit ? `/api/sinif/${editingItem!.id}` : '/api/sinif';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(endpoint, {
+        method,
         headers: { 'Content-Type': 'application/json', 'Authorization': token },
-        body: JSON.stringify({ ad: classAd, seviye: classSeviye, kurum_id: user.kurum_id })
+        body: JSON.stringify({ ad: classAd, seviye: Number(classSeviye), kurum_id: user.kurum_id })
       });
       if (res.ok) {
-        setSuccess("Sınıf başarıyla tanımlandı.");
+        setSuccess(isEdit ? "Sınıf başarıyla güncellendi." : "Sınıf başarıyla tanımlandı.");
         setClassAd('');
+        setEditingItem(null);
         loadTabData();
+      } else {
+        const data = await res.json();
+        setError(data.error || "Sınıf kaydedilemedi.");
       }
     } catch (err) {
       setError("Bağlantı hatası.");
@@ -147,45 +187,75 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
     }
   };
 
-  // Handle Teacher/Counselor/Parent Creation
+  // Handle Teacher/Counselor/Parent Deletion
+  const handleDeleteStaff = async (type: 'ogretmen' | 'rehber' | 'veli', id: number) => {
+    try {
+      const endpoint = `/api/${type}/${id}`;
+      const res = await fetch(endpoint, {
+        method: 'DELETE',
+        headers: { 'Authorization': token }
+      });
+      if (res.ok) {
+        setSuccess("Kayıt başarıyla silindi.");
+        loadTabData();
+      } else {
+        const data = await res.json();
+        setError(data.error || "Silme işlemi başarısız.");
+      }
+    } catch (err) {
+      setError("Bağlantı hatası.");
+    }
+  };
+
+  // Handle Teacher/Counselor/Parent Creation / Editing
   const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-    if (!staffName || !staffEmail || !staffPassword || !staffPhone) {
+    const isEdit = editingItem && editingItem.type === activeTab;
+
+    if (!staffName || !staffEmail || (!isEdit && !staffPassword) || !staffPhone) {
       setError("Lütfen zorunlu alanları eksiksiz doldurun.");
       return;
     }
 
-    const payload = {
+    const payload: any = {
       ad_soyad: staffName,
       email: staffEmail,
-      sifre: staffPassword,
       telefon: staffPhone,
       kurum_id: user.kurum_id,
       sinif_ids: activeTab === 'ogretmen' ? selectedClassIds : []
     };
 
+    if (staffPassword) {
+      payload.sifre = staffPassword;
+    }
+
     try {
-      const endpoint = activeTab === 'ogretmen' ? '/api/ogretmen' : activeTab === 'rehber' ? '/api/rehber' : '/api/veli';
+      const endpoint = isEdit
+        ? `/api/${activeTab}/${editingItem!.id}`
+        : activeTab === 'ogretmen' ? '/api/ogretmen' : activeTab === 'rehber' ? '/api/rehber' : '/api/veli';
+      const method = isEdit ? 'PUT' : 'POST';
+
       const res = await fetch(endpoint, {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json', 'Authorization': token },
         body: JSON.stringify(payload)
       });
 
       if (res.ok) {
-        setSuccess("Kullanıcı kaydı başarıyla oluşturuldu.");
+        setSuccess(isEdit ? "Kullanıcı bilgileri başarıyla güncellendi." : "Kullanıcı kaydı başarıyla oluşturuldu.");
         setStaffName('');
         setStaffEmail('');
         setStaffPassword('');
         setStaffPhone('');
         setSelectedClassIds([]);
+        setEditingItem(null);
         loadTabData();
       } else {
         const data = await res.json();
-        setError(data.error || "Kayıt eklenemedi.");
+        setError(data.error || "İşlem başarısız oldu.");
       }
     } catch (err) {
       setError("Bağlantı hatası.");
@@ -313,13 +383,28 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Register Form */}
         <div className="lg:col-span-4 bg-slate-900/50 border border-slate-800 rounded-xl p-5 shadow h-fit space-y-4">
-          <h3 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2">
-            {activeTab === 'sinif' && "Yeni Sınıf Tanımla"}
-            {activeTab === 'ogretmen' && "Öğretmen Kaydet"}
-            {activeTab === 'rehber' && "Rehber Öğretmen Kaydet"}
-            {activeTab === 'veli' && "Yeni Veli Kaydet"}
-            {activeTab === 'sinav' && "Manuel Sınav Tanımla"}
-            {activeTab === 'ders_programi' && "Ders Programı Girişi"}
+          <h3 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex justify-between items-center">
+            <span>
+              {editingItem ? "Bilgileri Düzenle" : (
+                <>
+                  {activeTab === 'sinif' && "Yeni Sınıf Tanımla"}
+                  {activeTab === 'ogretmen' && "Öğretmen Kaydet"}
+                  {activeTab === 'rehber' && "Rehber Öğretmen Kaydet"}
+                  {activeTab === 'veli' && "Yeni Veli Kaydet"}
+                  {activeTab === 'sinav' && "Manuel Sınav Tanımla"}
+                  {activeTab === 'ders_programi' && "Ders Programı Girişi"}
+                </>
+              )}
+            </span>
+            {editingItem && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="text-[10px] text-red-400 hover:underline cursor-pointer"
+              >
+                İptal Et
+              </button>
+            )}
           </h3>
 
           {/* Form: Sınıf */}
@@ -353,7 +438,9 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                   <option value="12">12. Sınıf / Mezun</option>
                 </select>
               </div>
-              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs transition">Sınıfı Tanımla</button>
+              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs transition">
+                {editingItem ? 'Sınıf Bilgilerini Güncelle' : 'Sınıfı Tanımla'}
+              </button>
             </form>
           )}
 
@@ -397,11 +484,13 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Şifre *</label>
+                  <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">
+                    {editingItem ? 'Şifre (Değişmesin ise Boş)' : 'Şifre *'}
+                  </label>
                   <input
                     type="password"
-                    required
-                    placeholder="Şifre"
+                    required={!editingItem}
+                    placeholder={editingItem ? "Değişmesin ise boş bırakın" : "Şifre"}
                     value={staffPassword}
                     onChange={e => setStaffPassword(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-100 font-medium focus:outline-none focus:border-blue-500 transition-all"
@@ -430,7 +519,9 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
               )}
 
               <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs transition">
-                {activeTab === 'ogretmen' ? 'Öğretmen Hesabını Aç' : activeTab === 'rehber' ? 'Rehber Hesabını Aç' : 'Veli Hesabını Aç'}
+                {editingItem ? 'Değişiklikleri Kaydet' : (
+                  activeTab === 'ogretmen' ? 'Öğretmen Hesabını Aç' : activeTab === 'rehber' ? 'Rehber Hesabını Aç' : 'Veli Hesabını Aç'
+                )}
               </button>
             </form>
           )}
@@ -657,7 +748,7 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                         <th className="pb-2">Sınıf Adı</th>
                         <th className="pb-2">Öğretim Seviyesi</th>
                         <th className="pb-2">Durum</th>
-                        <th className="pb-2 text-right">Sil</th>
+                        <th className="pb-2 text-right">İşlemler</th>
                       </>
                     )}
                     {activeTab === 'ogretmen' && (
@@ -665,6 +756,7 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                         <th className="pb-2">Öğretmen</th>
                         <th className="pb-2">İrtibat / E-Posta</th>
                         <th className="pb-2">Atanmış Sınıflar</th>
+                        <th className="pb-2 text-right">İşlemler</th>
                       </>
                     )}
                     {(activeTab === 'rehber' || activeTab === 'veli') && (
@@ -672,6 +764,7 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                         <th className="pb-2">Adı Soyadı</th>
                         <th className="pb-2">E-Posta Adresi</th>
                         <th className="pb-2">Telefon Numarası</th>
+                        <th className="pb-2 text-right">İşlemler</th>
                       </>
                     )}
                     {activeTab === 'sinav' && (
@@ -692,34 +785,43 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                       <td className="py-2.5 text-slate-400">{c.seviye}. Sınıf</td>
                       <td className="py-2.5 text-emerald-400">Aktif</td>
                       <td className="py-2.5 text-right">
-                        {deleteConfirm?.type === 'sinif' && deleteConfirm.id === c.id ? (
-                          <div className="flex justify-end gap-1 items-center">
-                            <span className="text-[10px] text-red-400 font-bold">Silinsin mi?</span>
-                            <button
-                              onClick={() => {
-                                handleDeleteClass(c.id);
-                                setDeleteConfirm(null);
-                              }}
-                              className="px-1.5 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[9px] font-extrabold rounded cursor-pointer"
-                            >
-                              Evet
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm(null)}
-                              className="px-1.5 py-0.5 bg-slate-850 hover:bg-slate-700 text-slate-300 text-[9px] font-extrabold rounded cursor-pointer"
-                            >
-                              Hayır
-                            </button>
-                          </div>
-                        ) : (
+                        <div className="flex justify-end items-center gap-1.5">
                           <button
-                            onClick={() => setDeleteConfirm({ type: 'sinif', id: c.id })}
-                            className="p-1 bg-slate-950 hover:bg-slate-800 text-red-500 rounded transition cursor-pointer"
-                            title="Sınıfı Sil"
+                            onClick={() => handleEditClick('sinif', c)}
+                            className="p-1 bg-slate-950 hover:bg-slate-800 text-blue-400 rounded transition cursor-pointer"
+                            title="Sınıfı Düzenle"
                           >
-                            <Trash2 size={13} />
+                            <Edit size={13} />
                           </button>
-                        )}
+                          {deleteConfirm?.type === 'sinif' && deleteConfirm.id === c.id ? (
+                            <div className="flex justify-end gap-1 items-center bg-slate-950 p-1 rounded border border-slate-800 z-10">
+                              <span className="text-[10px] text-red-400 font-bold">Silinsin mi?</span>
+                              <button
+                                onClick={() => {
+                                  handleDeleteClass(c.id);
+                                  setDeleteConfirm(null);
+                                }}
+                                className="px-1.5 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[9px] font-extrabold rounded cursor-pointer"
+                              >
+                                Evet
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(null)}
+                                className="px-1.5 py-0.5 bg-slate-850 hover:bg-slate-700 text-slate-300 text-[9px] font-extrabold rounded cursor-pointer"
+                              >
+                                Hayır
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setDeleteConfirm({ type: 'sinif', id: c.id })}
+                              className="p-1 bg-slate-950 hover:bg-slate-800 text-red-500 rounded transition cursor-pointer"
+                              title="Sınıfı Sil"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -738,6 +840,45 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                           <span className="text-slate-600 text-[11px]">Sınıf Atanmamış</span>
                         )}
                       </td>
+                      <td className="py-2.5 text-right">
+                        <div className="flex justify-end items-center gap-1.5">
+                          <button
+                            onClick={() => handleEditClick('ogretmen', t)}
+                            className="p-1 bg-slate-950 hover:bg-slate-800 text-blue-400 rounded transition cursor-pointer"
+                            title="Öğretmeni Düzenle"
+                          >
+                            <Edit size={13} />
+                          </button>
+                          {deleteConfirm?.type === 'ogretmen' && deleteConfirm.id === t.id ? (
+                            <div className="flex justify-end gap-1 items-center bg-slate-950 p-1 rounded border border-slate-800 z-10">
+                              <span className="text-[10px] text-red-400 font-bold">Silinsin mi?</span>
+                              <button
+                                onClick={() => {
+                                  handleDeleteStaff('ogretmen', t.id);
+                                  setDeleteConfirm(null);
+                                }}
+                                className="px-1.5 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[9px] font-extrabold rounded cursor-pointer"
+                              >
+                                Evet
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(null)}
+                                className="px-1.5 py-0.5 bg-slate-850 hover:bg-slate-700 text-slate-300 text-[9px] font-extrabold rounded cursor-pointer"
+                              >
+                                Hayır
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setDeleteConfirm({ type: 'ogretmen', id: t.id })}
+                              className="p-1 bg-slate-950 hover:bg-slate-800 text-red-500 rounded transition cursor-pointer"
+                              title="Öğretmeni Sil"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
 
@@ -746,6 +887,45 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                       <td className="py-2.5 font-bold text-slate-200">{c.ad_soyad}</td>
                       <td className="py-2.5 font-mono text-slate-400 text-[11px]">{c.email}</td>
                       <td className="py-2.5 font-mono text-slate-400 text-[11px]">{c.telefon}</td>
+                      <td className="py-2.5 text-right">
+                        <div className="flex justify-end items-center gap-1.5">
+                          <button
+                            onClick={() => handleEditClick('rehber', c)}
+                            className="p-1 bg-slate-950 hover:bg-slate-800 text-blue-400 rounded transition cursor-pointer"
+                            title="Rehberi Düzenle"
+                          >
+                            <Edit size={13} />
+                          </button>
+                          {deleteConfirm?.type === 'rehber' && deleteConfirm.id === c.id ? (
+                            <div className="flex justify-end gap-1 items-center bg-slate-950 p-1 rounded border border-slate-800 z-10">
+                              <span className="text-[10px] text-red-400 font-bold">Silinsin mi?</span>
+                              <button
+                                onClick={() => {
+                                  handleDeleteStaff('rehber', c.id);
+                                  setDeleteConfirm(null);
+                                }}
+                                className="px-1.5 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[9px] font-extrabold rounded cursor-pointer"
+                              >
+                                Evet
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(null)}
+                                className="px-1.5 py-0.5 bg-slate-850 hover:bg-slate-700 text-slate-300 text-[9px] font-extrabold rounded cursor-pointer"
+                              >
+                                Hayır
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setDeleteConfirm({ type: 'rehber', id: c.id })}
+                              className="p-1 bg-slate-950 hover:bg-slate-800 text-red-500 rounded transition cursor-pointer"
+                              title="Rehberi Sil"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
 
@@ -761,6 +941,45 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                       </td>
                       <td className="py-2.5 font-mono text-slate-400 text-[11px]">{p.email}</td>
                       <td className="py-2.5 font-mono text-slate-400 text-[11px]">{p.telefon}</td>
+                      <td className="py-2.5 text-right">
+                        <div className="flex justify-end items-center gap-1.5">
+                          <button
+                            onClick={() => handleEditClick('veli', p)}
+                            className="p-1 bg-slate-950 hover:bg-slate-800 text-blue-400 rounded transition cursor-pointer"
+                            title="Veliyi Düzenle"
+                          >
+                            <Edit size={13} />
+                          </button>
+                          {deleteConfirm?.type === 'veli' && deleteConfirm.id === p.id ? (
+                            <div className="flex justify-end gap-1 items-center bg-slate-950 p-1 rounded border border-slate-800 z-10">
+                              <span className="text-[10px] text-red-400 font-bold">Silinsin mi?</span>
+                              <button
+                                onClick={() => {
+                                  handleDeleteStaff('veli', p.id);
+                                  setDeleteConfirm(null);
+                                }}
+                                className="px-1.5 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[9px] font-extrabold rounded cursor-pointer"
+                              >
+                                Evet
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(null)}
+                                className="px-1.5 py-0.5 bg-slate-850 hover:bg-slate-700 text-slate-300 text-[9px] font-extrabold rounded cursor-pointer"
+                              >
+                                Hayır
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setDeleteConfirm({ type: 'veli', id: p.id })}
+                              className="p-1 bg-slate-950 hover:bg-slate-800 text-red-500 rounded transition cursor-pointer"
+                              title="Veliyi Sil"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
 

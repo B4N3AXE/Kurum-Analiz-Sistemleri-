@@ -33,11 +33,14 @@ export interface Ogrenci {
   veli_adi?: string;
   veli_telefon?: string;
   veli_email?: string;
-  alan: 'Sayısal' | 'Sözel' | 'Eşit Ağırlık' | 'Yabancı Dil';
+  alan: 'Sayısal' | 'Sözel' | 'Eşit Ağırlık' | 'Yabancı Dil' | 'LGS';
   aktif: boolean;
   son_net?: number | string;
   son_puan?: number | string;
   hedef_net?: number;
+  danisman_id?: number | null;
+  danisman_adi?: string;
+  sifre?: string;
 }
 
 export interface SinavTanim {

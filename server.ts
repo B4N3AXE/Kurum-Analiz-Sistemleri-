@@ -100,26 +100,29 @@ app.post('/api/auth/login', (req, res) => {
   
   if (!user) {
     // Check if there is a student with matching TC identity number (as login username)
-    // allowing login with TC No as username and TC No as password
+    // allowing login with TC No as username and TC No as password (or custom password)
     const student = db.getOgrenciler().find(s => s.tc_no === email);
-    if (student && (sifre === student.tc_no || sifre === 'ogrenci123')) {
-      const sClass = db.getSiniflar().find(c => c.id === student.sinif_id);
-      const institutionId = sClass ? sClass.kurum_id : 1;
-      const institution = db.getKurumlar().find(k => k.id === institutionId);
-      
-      registerLoginAttempt(email, true);
-      return res.json({
-        user: {
-          id: student.id + 10000, // Unique client-side ID space
-          ad_soyad: student.ad_soyad,
-          email: `${student.tc_no}@kas.com`,
-          rol: 'ogrenci',
-          telefon: '',
-          kurum_id: institutionId,
-          kurum_adi: institution?.ad || 'K.A.S Kurumu',
-          abonelik_turu: institution?.abonelik_turu || 'trial'
-        }
-      });
+    if (student) {
+      const studentPassword = student.sifre || student.tc_no || 'ogrenci123';
+      if (sifre === studentPassword || sifre === student.tc_no || sifre === 'ogrenci123') {
+        const sClass = db.getSiniflar().find(c => c.id === student.sinif_id);
+        const institutionId = sClass ? sClass.kurum_id : 1;
+        const institution = db.getKurumlar().find(k => k.id === institutionId);
+        
+        registerLoginAttempt(email, true);
+        return res.json({
+          user: {
+            id: student.id + 10000, // Unique client-side ID space
+            ad_soyad: student.ad_soyad,
+            email: `${student.tc_no}@kas.com`,
+            rol: 'ogrenci',
+            telefon: '',
+            kurum_id: institutionId,
+            kurum_adi: institution?.ad || 'K.A.S Kurumu',
+            abonelik_turu: institution?.abonelik_turu || 'trial'
+          }
+        });
+      }
     }
   }
 
@@ -1239,6 +1242,7 @@ app.get('/api/ogrenci', (req, res) => {
   let students = db.getOgrenciler();
   const classes = db.getSiniflar();
   const parents = db.getKullanicilar().filter(u => u.rol === 'veli');
+  const counselorsAndTeachers = db.getKullanicilar().filter(u => u.rol === 'rehber' || u.rol === 'ogretmen');
 
   if (sinif_id) {
     students = students.filter(s => s.sinif_id === Number(sinif_id));
@@ -1258,12 +1262,14 @@ app.get('/api/ogrenci', (req, res) => {
   const joined = students.map(s => {
     const cls = classes.find(c => c.id === s.sinif_id);
     const parent = parents.find(p => p.id === s.veli_id);
+    const danisman = counselorsAndTeachers.find(u => u.id === s.danisman_id);
     return {
       ...s,
       sinif_adi: cls ? cls.ad : 'Sınıfsız',
       seviye: cls ? cls.seviye : null,
       veli_adi: parent ? parent.ad_soyad : 'Veli Atanmamış',
-      veli_telefon: parent ? parent.telefon : ''
+      veli_telefon: parent ? parent.telefon : '',
+      danisman_adi: danisman ? danisman.ad_soyad : 'Atanmamış'
     };
   });
 
@@ -1271,7 +1277,7 @@ app.get('/api/ogrenci', (req, res) => {
 });
 
 app.post('/api/ogrenci', (req, res) => {
-  const { ad_soyad, tc_no, sinif_id, veli_id, alan, aktif, hedef_net } = req.body;
+  const { ad_soyad, tc_no, sinif_id, veli_id, alan, aktif, hedef_net, danisman_id, sifre } = req.body;
   if (!ad_soyad || !sinif_id || !alan) {
     return res.status(400).json({ error: 'Ad Soyad, Sınıf ve Alan gereklidir.' });
   }
@@ -1282,14 +1288,16 @@ app.post('/api/ogrenci', (req, res) => {
     veli_id: veli_id ? Number(veli_id) : null,
     alan,
     aktif: aktif !== undefined ? Boolean(aktif) : true,
-    hedef_net: hedef_net ? Number(hedef_net) : 95
+    hedef_net: hedef_net ? Number(hedef_net) : 95,
+    danisman_id: danisman_id ? Number(danisman_id) : null,
+    sifre: sifre || ''
   });
   res.json(student);
 });
 
 app.put('/api/ogrenci/:id', (req, res) => {
   const id = Number(req.params.id);
-  const { ad_soyad, tc_no, sinif_id, veli_id, alan, aktif, hedef_net } = req.body;
+  const { ad_soyad, tc_no, sinif_id, veli_id, alan, aktif, hedef_net, danisman_id, sifre } = req.body;
 
   const updates: any = {};
   if (ad_soyad !== undefined) updates.ad_soyad = ad_soyad;
@@ -1299,6 +1307,8 @@ app.put('/api/ogrenci/:id', (req, res) => {
   if (alan !== undefined) updates.alan = alan;
   if (aktif !== undefined) updates.aktif = Boolean(aktif);
   if (hedef_net !== undefined) updates.hedef_net = Number(hedef_net);
+  if (danisman_id !== undefined) updates.danisman_id = danisman_id ? Number(danisman_id) : null;
+  if (sifre !== undefined) updates.sifre = sifre;
 
   const success = db.update('ogrenciler', id, updates);
   if (success) {
@@ -1330,6 +1340,7 @@ app.get('/api/ogrenci/:id', (req, res) => {
   }
   const studentClass = db.getSiniflar().find(c => c.id === student.sinif_id);
   const parent = db.getKullanicilar().find(u => u.id === student.veli_id);
+  const danisman = db.getKullanicilar().find(u => u.id === student.danisman_id);
   
   const results = db.getSinavSonuclari().filter(r => r.ogrenci_id === studentId);
   const exams = db.getSinavTanimlari();
@@ -1360,7 +1371,8 @@ app.get('/api/ogrenci/:id', (req, res) => {
       ...student,
       sinif_adi: studentClass ? studentClass.ad : 'Sınıfsız',
       veli_adi: parent ? parent.ad_soyad : 'Veli Atanmamış',
-      veli_telefon: parent ? parent.telefon : ''
+      veli_telefon: parent ? parent.telefon : '',
+      danisman_adi: danisman ? danisman.ad_soyad : 'Atanmamış'
     },
     sonuclar: joinedResults,
     notlar: joinedNotes,
@@ -1416,6 +1428,20 @@ app.post('/api/sinif', (req, res) => {
     kurum_id: 1
   });
   res.json(cls);
+});
+
+app.put('/api/sinif/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const { ad, seviye } = req.body;
+  const updates: any = {};
+  if (ad !== undefined) updates.ad = ad;
+  if (seviye !== undefined) updates.seviye = Number(seviye);
+  const success = db.update('siniflar', id, updates);
+  if (success) {
+    res.json({ message: 'Sınıf güncellendi.' });
+  } else {
+    res.status(404).json({ error: 'Sınıf bulunamadı.' });
+  }
 });
 
 app.delete('/api/sinif/:id', (req, res) => {
@@ -1508,6 +1534,23 @@ app.post('/api/veli', (req, res) => {
   res.json(parent);
 });
 
+app.put('/api/veli/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const { ad_soyad, email, sifre, telefon } = req.body;
+  const user = db.getKullanicilar().find(u => u.id === id);
+  if (!user || user.rol !== 'veli') {
+    return res.status(404).json({ error: 'Veli bulunamadı.' });
+  }
+  const updates: any = {};
+  if (ad_soyad !== undefined) updates.ad_soyad = ad_soyad;
+  if (email !== undefined) updates.email = email;
+  if (sifre !== undefined) updates.sifre = sifre;
+  if (telefon !== undefined) updates.telefon = telefon;
+
+  db.update('kullanicilar', id, updates);
+  res.json({ message: 'Veli bilgileri güncellendi.' });
+});
+
 app.delete('/api/veli/:id', (req, res) => {
   const id = Number(req.params.id);
   const user = db.getKullanicilar().find(u => u.id === id);
@@ -1522,11 +1565,27 @@ app.delete('/api/veli/:id', (req, res) => {
 // 4. OGRETMEN (TEACHERS) ENDPOINTS
 app.get('/api/ogretmen', (req, res) => {
   const teachers = db.getKullanicilar().filter(u => u.rol === 'ogretmen');
-  res.json(teachers);
+  const ogretmenSinifList = db.getOgretmenSinif();
+  const classesList = db.getSiniflar();
+  
+  const teachersWithClasses = teachers.map(t => {
+    const assignedClassIds = ogretmenSinifList
+      .filter(os => os.ogretmen_id === t.id)
+      .map(os => os.sinif_id);
+    const assignedClassNames = classesList
+      .filter(c => assignedClassIds.includes(c.id))
+      .map(c => c.ad);
+    return {
+      ...t,
+      sinif_ids: assignedClassIds,
+      siniflar: assignedClassNames
+    };
+  });
+  res.json(teachersWithClasses);
 });
 
 app.post('/api/ogretmen', (req, res) => {
-  const { ad_soyad, email, sifre, telefon } = req.body;
+  const { ad_soyad, email, sifre, telefon, sinif_ids } = req.body;
   if (!ad_soyad || !email || !sifre) {
     return res.status(400).json({ error: 'Ad Soyad, E-posta ve Şifre gereklidir.' });
   }
@@ -1538,7 +1597,54 @@ app.post('/api/ogretmen', (req, res) => {
     telefon,
     kurum_id: 1
   });
+
+  // Save class assignments if passed
+  if (Array.isArray(sinif_ids)) {
+    for (const classId of sinif_ids) {
+      db.insert('ogretmen_sinif', {
+        ogretmen_id: teacher.id,
+        sinif_id: Number(classId)
+      });
+    }
+  }
+
   res.json(teacher);
+});
+
+app.put('/api/ogretmen/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const { ad_soyad, email, sifre, telefon, sinif_ids } = req.body;
+  
+  const user = db.getKullanicilar().find(u => u.id === id);
+  if (!user || user.rol !== 'ogretmen') {
+    return res.status(404).json({ error: 'Öğretmen bulunamadı.' });
+  }
+  
+  const updates: any = {};
+  if (ad_soyad !== undefined) updates.ad_soyad = ad_soyad;
+  if (email !== undefined) updates.email = email;
+  if (sifre !== undefined) updates.sifre = sifre;
+  if (telefon !== undefined) updates.telefon = telefon;
+  
+  db.update('kullanicilar', id, updates);
+  
+  // Update class assignments
+  if (Array.isArray(sinif_ids)) {
+    // Delete existing assignments
+    const existing = db.getOgretmenSinif().filter(os => os.ogretmen_id === id);
+    for (const item of existing) {
+      db.delete('ogretmen_sinif', item.id);
+    }
+    // Add new assignments
+    for (const classId of sinif_ids) {
+      db.insert('ogretmen_sinif', {
+        ogretmen_id: id,
+        sinif_id: Number(classId)
+      });
+    }
+  }
+  
+  res.json({ message: 'Öğretmen bilgileri başarıyla güncellendi.' });
 });
 
 app.delete('/api/ogretmen/:id', (req, res) => {
@@ -1546,6 +1652,11 @@ app.delete('/api/ogretmen/:id', (req, res) => {
   const user = db.getKullanicilar().find(u => u.id === id);
   if (user && user.rol === 'ogretmen') {
     db.delete('kullanicilar', id);
+    // clean up class assignments
+    const existing = db.getOgretmenSinif().filter(os => os.ogretmen_id === id);
+    for (const item of existing) {
+      db.delete('ogretmen_sinif', item.id);
+    }
     res.json({ message: 'Öğretmen silindi.' });
   } else {
     res.status(404).json({ error: 'Öğretmen bulunamadı.' });
@@ -1572,6 +1683,23 @@ app.post('/api/rehber', (req, res) => {
     kurum_id: 1
   });
   res.json(counselor);
+});
+
+app.put('/api/rehber/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const { ad_soyad, email, sifre, telefon } = req.body;
+  const user = db.getKullanicilar().find(u => u.id === id);
+  if (!user || user.rol !== 'rehber') {
+    return res.status(404).json({ error: 'Rehber öğretmen bulunamadı.' });
+  }
+  const updates: any = {};
+  if (ad_soyad !== undefined) updates.ad_soyad = ad_soyad;
+  if (email !== undefined) updates.email = email;
+  if (sifre !== undefined) updates.sifre = sifre;
+  if (telefon !== undefined) updates.telefon = telefon;
+
+  db.update('kullanicilar', id, updates);
+  res.json({ message: 'Rehber öğretmen bilgileri güncellendi.' });
 });
 
 app.delete('/api/rehber/:id', (req, res) => {

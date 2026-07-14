@@ -57,6 +57,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
   const [students, setStudents] = useState<Ogrenci[]>([]);
   const [classes, setClasses] = useState<Sinif[]>([]);
   const [parents, setParents] = useState<any[]>([]);
+  const [advisors, setAdvisors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirmStudentId, setDeleteConfirmStudentId] = useState<number | null>(null);
   const [deleteConfirmNoteId, setDeleteConfirmNoteId] = useState<number | null>(null);
@@ -85,6 +86,8 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
     tc_no: '',
     sinif_id: '',
     veli_id: '',
+    danisman_id: '',
+    sifre: '',
     alan: 'Sayısal' as any,
     aktif: true
   });
@@ -126,16 +129,22 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
       if (selectedAlan) query += `&alan=${encodeURIComponent(selectedAlan)}`;
       if (selectedStatus !== 'all') query += `&aktif=${selectedStatus}`;
 
-      const [resStudents, resClasses, resParents] = await Promise.all([
+      const [resStudents, resClasses, resParents, resTeachers, resCounselors] = await Promise.all([
         fetch(query, { headers: { 'Authorization': token } }),
         fetch(`/api/sinif?kurum_id=${user.kurum_id}`, { headers: { 'Authorization': token } }),
-        fetch(`/api/veli?kurum_id=${user.kurum_id}`, { headers: { 'Authorization': token } })
+        fetch(`/api/veli?kurum_id=${user.kurum_id}`, { headers: { 'Authorization': token } }),
+        fetch(`/api/ogretmen?kurum_id=${user.kurum_id}`, { headers: { 'Authorization': token } }),
+        fetch(`/api/rehber?kurum_id=${user.kurum_id}`, { headers: { 'Authorization': token } })
       ]);
 
-      if (resStudents.ok && resClasses.ok && resParents.ok) {
+      if (resStudents.ok && resClasses.ok && resParents.ok && resTeachers.ok && resCounselors.ok) {
         setStudents(await resStudents.json());
         setClasses(await resClasses.json());
         setParents(await resParents.json());
+        
+        const teachersList = await resTeachers.json();
+        const counselorsList = await resCounselors.json();
+        setAdvisors([...teachersList, ...counselorsList]);
       }
     } catch (err) {
       console.error("Error loading students data:", err);
@@ -145,9 +154,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
   };
 
   useEffect(() => {
-    if (view === 'list') {
-      loadData();
-    }
+    loadData();
   }, [view, search, selectedClass, selectedAlan, selectedStatus]);
 
   // Load particular student detail
@@ -212,14 +219,19 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
       return;
     }
 
-    const payload = {
+    const payload: any = {
       ad_soyad: formData.ad_soyad,
       tc_no: formData.tc_no,
       sinif_id: parseInt(formData.sinif_id),
       veli_id: formData.veli_id ? parseInt(formData.veli_id) : null,
+      danisman_id: formData.danisman_id ? parseInt(formData.danisman_id) : null,
       alan: formData.alan,
       aktif: formData.aktif
     };
+
+    if (formData.sifre) {
+      payload.sifre = formData.sifre;
+    }
 
     try {
       const url = view === 'add' ? '/api/ogrenci' : `/api/ogrenci/${formData.id}`;
@@ -339,6 +351,8 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
       tc_no: '',
       sinif_id: classes.length > 0 ? classes[0].id.toString() : '',
       veli_id: '',
+      danisman_id: '',
+      sifre: '',
       alan: 'Sayısal',
       aktif: true
     });
@@ -352,6 +366,8 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
       tc_no: s.tc_no,
       sinif_id: s.sinif_id.toString(),
       veli_id: s.veli_id ? s.veli_id.toString() : '',
+      danisman_id: s.danisman_id ? s.danisman_id.toString() : '',
+      sifre: s.sifre || '',
       alan: s.alan,
       aktif: s.aktif
     });
@@ -691,6 +707,35 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                   <option value="">-- Veli Yok / Sonra Ata --</option>
                   {parents.map(p => <option key={p.id} value={p.id}>{p.ad_soyad} ({p.email})</option>)}
                 </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-slate-400 font-bold mb-1.5 uppercase tracking-wider">Danışman Öğretmen</label>
+                <select
+                  value={formData.danisman_id}
+                  onChange={e => setFormData({ ...formData, danisman_id: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-200 font-medium focus:outline-none focus:border-blue-500 transition-all"
+                >
+                  <option value="">-- Danışman Yok --</option>
+                  {advisors.map(adv => (
+                    <option key={`${adv.id}-${adv.rol}`} value={adv.id}>
+                      {adv.ad_soyad} ({adv.rol === 'ogretmen' ? 'Öğretmen' : 'Rehberlik'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-400 font-bold mb-1.5 uppercase tracking-wider">Giriş Şifresi</label>
+                <input
+                  type="text"
+                  placeholder={view === 'edit' ? "Değiştirmek istemiyorsanız boş bırakın" : "Varsayılan: Şifresiz / T.C. ile giriş"}
+                  value={formData.sifre}
+                  onChange={e => setFormData({ ...formData, sifre: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-100 font-medium focus:outline-none focus:border-blue-500 transition-all"
+                />
               </div>
             </div>
 
