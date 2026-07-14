@@ -60,11 +60,13 @@ if (db.getKurumlar().length === 0) {
   db.insert('kurumlar', { ad: 'Gelecek Koleji', tur: 'Özel Anadolu Lisesi' });
 }
 
-// Gemini API instance (optional chaining fallback if no API key)
-let ai: GoogleGenAI | null = null;
-try {
-  if (process.env.GEMINI_API_KEY) {
-    ai = new GoogleGenAI({
+// Lazy Gemini API loader helper
+function getGeminiClient(): GoogleGenAI | null {
+  if (!process.env.GEMINI_API_KEY) {
+    return null;
+  }
+  try {
+    return new GoogleGenAI({
       apiKey: process.env.GEMINI_API_KEY,
       httpOptions: {
         headers: {
@@ -72,9 +74,10 @@ try {
         }
       }
     });
+  } catch (error) {
+    console.error('Failed to initialize GoogleGenAI client lazily:', error);
+    return null;
   }
-} catch (error) {
-  console.error('Failed to initialize GoogleGenAI client:', error);
 }
 
 // Auth API Routes
@@ -842,6 +845,7 @@ app.post('/api/exams/upload', upload.single('file'), async (req, res) => {
     let parsedResults: any[] = [];
 
     // Check if we have Gemini API available for full OCR
+    const ai = getGeminiClient();
     if (ai) {
       console.log('Sending file to Gemini API for OCR and custom parsing...');
       const fileBuffer = req.file.buffer;
@@ -1707,6 +1711,7 @@ app.post('/api/pdf/upload', async (req, res) => {
     let parsedResults: any[] = [];
     let warning: string | null = null;
 
+    const ai = getGeminiClient();
     if (ai) {
       console.log('Sending base64 to Gemini for PDF analysis...');
       let rawBase64 = fileData;
