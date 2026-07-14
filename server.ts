@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import multer from 'multer';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
@@ -10,7 +11,7 @@ import { db, Kullanici, SinavSonuc, Ogrenci } from './server/db';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.NODE_ENV === 'production' ? (Number(process.env.PORT) || 3000) : 3001;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
 // Setup JSON and multipart body parsing
 app.use(express.json({ limit: '15mb' }));
@@ -2385,16 +2386,28 @@ app.get('/api/paytr/fail', (req, res) => {
   `);
 });
 
-// Serve frontend SPA in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static('dist'));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.resolve('dist/index.html'));
+async function startServer() {
+  // Serve frontend SPA in development or production
+  if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.resolve('dist');
+    app.use(express.static(distPath));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) return next();
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
+
+  // Start Server on configured port
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server started on http://0.0.0.0:${PORT} under NODE_ENV=${process.env.NODE_ENV}`);
   });
 }
 
-// Start Server on configured port
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server started on http://0.0.0.0:${PORT} under NODE_ENV=${process.env.NODE_ENV}`);
-});
+startServer();
