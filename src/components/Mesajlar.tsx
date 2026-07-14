@@ -20,6 +20,7 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
   // Dropdowns lists
   const [parents, setParents] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<any[]>([]);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -43,8 +44,7 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
   useEffect(() => {
     loadMessages();
 
-    // Staff lookups
-    if (user.rol !== 'veli') {
+    if (user.rol === 'admin' || user.rol === 'ogretmen' || user.rol === 'rehber') {
       const fetchLookups = async () => {
         try {
           const [resParents, resStudents] = await Promise.all([
@@ -60,6 +60,27 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
         }
       };
       fetchLookups();
+    } else {
+      const fetchStaff = async () => {
+        try {
+          const [resTeachers, resCounselors] = await Promise.all([
+            fetch(`/api/ogretmen?kurum_id=${user.kurum_id}`, { headers: { 'Authorization': token } }),
+            fetch(`/api/rehber?kurum_id=${user.kurum_id}`, { headers: { 'Authorization': token } })
+          ]);
+          if (resTeachers.ok && resCounselors.ok) {
+            const teachers = await resTeachers.json();
+            const counselors = await resCounselors.json();
+            const combined = [
+              ...teachers.map((t: any) => ({ ...t, displayRol: 'Öğretmen' })),
+              ...counselors.map((c: any) => ({ ...c, displayRol: 'Rehberlik' }))
+            ];
+            setStaffList(combined);
+          }
+        } catch (err) {
+          console.error("Error loading staff lookups:", err);
+        }
+      };
+      fetchStaff();
     }
   }, [user.id, user.rol, token]);
 
@@ -84,8 +105,12 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
     setError('');
     setSuccess('');
 
+    const isStudentOrParent = user.rol === 'veli' || user.rol === 'ogrenci';
+
     if (!selectedParentId || !konu || !mesaj) {
-      setError("Lütfen alıcı veli, konu ve mesaj alanlarını eksiksiz doldurun.");
+      setError(isStudentOrParent
+        ? "Lütfen alıcı öğretmen/rehber, konu ve mesaj alanlarını eksiksiz doldurun."
+        : "Lütfen alıcı veli, konu ve mesaj alanlarını eksiksiz doldurun.");
       return;
     }
 
@@ -99,14 +124,16 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
         body: JSON.stringify({
           gonderen_id: user.id,
           alici_id: parseInt(selectedParentId),
-          ogrenci_id: selectedStudentId ? parseInt(selectedStudentId) : null,
+          ogrenci_id: selectedStudentId ? parseInt(selectedStudentId) : (user.rol === 'ogrenci' ? (user.id - 10000) : null),
           konu,
           mesaj
         })
       });
 
       if (res.ok) {
-        setSuccess("Mesajınız ilgili öğrenci velisine başarıyla iletildi.");
+        setSuccess(isStudentOrParent
+          ? "Mesajınız öğretmenimize/rehberlik birimine başarıyla iletildi."
+          : "Mesajınız ilgili öğrenci velisine başarıyla iletildi.");
         setMesaj('');
         setSelectedStudentId('');
         setSelectedParentId('');
@@ -121,91 +148,111 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      {/* COLUMN 1: Messenger Form (Only for Teachers/Counselors/Admin) */}
-      {user.rol !== 'veli' && (
-        <div className="lg:col-span-4 bg-slate-900/50 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 h-fit">
-          <h3 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex items-center gap-1.5">
-            <Send size={14} className="text-blue-500 animate-pulse" /> Veli Bilgilendirme Formu
-          </h3>
+      {/* COLUMN 1: Messenger Form */}
+      <div className="lg:col-span-4 bg-slate-900/50 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 h-fit">
+        <h3 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex items-center gap-1.5">
+          <Send size={14} className="text-blue-500 animate-pulse" /> 
+          {user.rol === 'veli' || user.rol === 'ogrenci' ? 'Öğretmen / Rehberlik Mesaj Formu' : 'Veli Bilgilendirme Formu'}
+        </h3>
 
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-2.5 rounded-lg flex items-center gap-2">
-              <AlertCircle size={14} /> {error}
-            </div>
-          )}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-2.5 rounded-lg flex items-center gap-2">
+            <AlertCircle size={14} /> {error}
+          </div>
+        )}
 
-          {success && (
-            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs p-2.5 rounded-lg flex items-center gap-2">
-              <CheckCircle2 size={14} /> {success}
-            </div>
-          )}
+        {success && (
+          <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs p-2.5 rounded-lg flex items-center gap-2">
+            <CheckCircle2 size={14} /> {success}
+          </div>
+        )}
 
-          <form onSubmit={handleSendMessage} className="space-y-4">
+        <form onSubmit={handleSendMessage} className="space-y-4">
+          {user.rol === 'veli' || user.rol === 'ogrenci' ? (
             <div>
-              <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Alıcı Veli Seçimi *</label>
+              <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Alıcı Öğretmen / Rehber Seçimi *</label>
               <select
                 value={selectedParentId}
                 onChange={e => setSelectedParentId(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
               >
-                <option value="">-- Veli Seçin --</option>
-                {parents.map(p => (
-                  <option key={p.id} value={p.id}>{p.ad_soyad} ({p.telefon})</option>
+                <option value="">-- Öğretmen / Rehber Seçin --</option>
+                {staffList.map(s => (
+                  <option key={s.id} value={s.id}>{s.ad_soyad} ({s.displayRol})</option>
                 ))}
               </select>
             </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Alıcı Veli Seçimi *</label>
+                <select
+                  value={selectedParentId}
+                  onChange={e => setSelectedParentId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="">-- Veli Seçin --</option>
+                  {parents.map(p => (
+                    <option key={p.id} value={p.id}>{p.ad_soyad} ({p.telefon})</option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Öğrenci İlişkisi (İsteğe Bağlı)</label>
-              <select
-                value={selectedStudentId}
-                onChange={e => setSelectedStudentId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none"
-              >
-                <option value="">-- Genel / Sınıf Genel --</option>
-                {students.map(s => (
-                  <option key={s.id} value={s.id}>{s.ad_soyad} ({s.sinif_adi})</option>
-                ))}
-              </select>
-            </div>
+              <div>
+                <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Öğrenci İlişkisi (İsteğe Bağlı)</label>
+                <select
+                  value={selectedStudentId}
+                  onChange={e => setSelectedStudentId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none"
+                >
+                  <option value="">-- Genel / Sınıf Genel --</option>
+                  {students.map(s => (
+                    <option key={s.id} value={s.id}>{s.ad_soyad} ({s.sinif_adi})</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
 
-            <div>
-              <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Mesaj Konusu *</label>
-              <input
-                type="text"
-                value={konu}
-                onChange={e => setKonu(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none"
-              />
-            </div>
+          <div>
+            <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Mesaj Konusu *</label>
+            <input
+              type="text"
+              value={konu}
+              onChange={e => setKonu(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none"
+            />
+          </div>
 
-            <div>
-              <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Mesaj İçeriği *</label>
-              <textarea
-                rows={5}
-                placeholder="Öğrencinin ödev takip, etüt planı veya deneme durumu hakkında detaylı notunuzu yazın..."
-                value={mesaj}
-                onChange={e => setMesaj(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none"
-              />
-            </div>
+          <div>
+            <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Mesaj İçeriği *</label>
+            <textarea
+              rows={5}
+              placeholder={user.rol === 'veli' || user.rol === 'ogrenci' 
+                ? "Öğretmeninize veya rehberlik servisine iletmek istediğiniz soru veya mesajınızı buraya yazın..."
+                : "Öğrencinin ödev takip, etüt planı veya deneme durumu hakkında detaylı notunuzu yazın..."
+              }
+              value={mesaj}
+              onChange={e => setMesaj(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none"
+            />
+          </div>
 
-            <button
-              type="submit"
-              className="w-full flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs transition shadow-md shadow-blue-500/10"
-            >
-              <Send size={12} /> Mesajı Veliye İlet
-            </button>
-          </form>
-        </div>
-      )}
+          <button
+            type="submit"
+            className="w-full flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs transition shadow-md shadow-blue-500/10"
+          >
+            <Send size={12} /> {user.rol === 'veli' || user.rol === 'ogrenci' ? 'Mesajı Gönder' : 'Mesajı Veliye İlet'}
+          </button>
+        </form>
+      </div>
 
       {/* COLUMN 2: Message Logs */}
-      <div className={`${user.rol === 'veli' ? 'lg:col-span-12' : 'lg:col-span-8'} space-y-4`}>
+      <div className="lg:col-span-8 space-y-4">
         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
           <h3 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex items-center gap-1.5">
             <Mail size={14} className="text-indigo-400" />
-            {user.rol === 'veli' ? "Mesaj Kutunuz" : "Gönderdiğiniz Mesajların Takibi"}
+            {user.rol === 'veli' || user.rol === 'ogrenci' ? "Mesaj Kutunuz / Takip" : "Gönderdiğiniz Mesajların Takibi"}
           </h3>
 
           {loading ? (
@@ -214,9 +261,9 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
             </div>
           ) : messages.length === 0 ? (
             <div className="text-center py-12 text-slate-500 text-xs">
-              {user.rol === 'veli'
+              {user.rol === 'veli' || user.rol === 'ogrenci'
                 ? "Henüz kurum rehberliği veya öğretmenlerden gelen bir mesajınız bulunmuyor."
-                : "Velilere gönderilmiş herhangi bir bildirim mesajı bulunamadı."}
+                : "Velilere veya öğretmenlere gönderilmiş herhangi bir bildirim mesajı bulunamadı."}
             </div>
           ) : (
             <div className="space-y-3.5 max-h-[500px] overflow-y-auto pr-1">
@@ -232,13 +279,13 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
                   <div className="flex justify-between items-start">
                     <div>
                       <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wide block">
-                        {user.rol === 'veli' ? `Gönderen: ${m.gonderen_adi}` : `Alıcı Veli: ${m.alici_adi}`}
+                        {m.gonderen_id === user.id ? `Alıcı: ${m.alici_adi}` : `Gönderen: ${m.gonderen_adi}`}
                       </span>
                       <h4 className="text-xs font-bold text-slate-100 mt-0.5">{m.konu}</h4>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-[9px] text-slate-500 font-medium">{m.tarih}</span>
-                      {user.rol === 'veli' && !m.okundu && (
+                      {(user.rol === 'veli' || user.rol === 'ogrenci') && m.alici_id === user.id && !m.okundu && (
                         <button
                           onClick={() => handleMarkAsRead(m.id)}
                           className="flex items-center gap-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-[10px] px-2 py-0.5 rounded font-bold transition border border-blue-500/20"

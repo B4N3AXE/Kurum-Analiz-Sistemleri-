@@ -7,7 +7,7 @@ import Mesajlar from './components/Mesajlar';
 import Tanimlar from './components/Tanimlar';
 import Abonelik from './components/Abonelik';
 import RiskLimitleri from './components/RiskLimitleri';
-import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key } from 'lucide-react';
+import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key, Target, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Helper function to calculate expected net projection for the next practice exam
@@ -101,6 +101,9 @@ export default function App() {
   const [studentReport, setStudentReport] = useState<{ student: Ogrenci; sonuclar: any[]; notlar: any[]; ders_programi?: any[] } | null>(null);
   const [loadingStudent, setLoadingStudent] = useState(false);
   const [studentChartTab, setStudentChartTab] = useState<'TYT' | 'AYT' | 'LGS'>('TYT');
+  const [isEditingTargetNet, setIsEditingTargetNet] = useState(false);
+  const [tempTargetNet, setTempTargetNet] = useState<number>(95);
+  const [selectedExamDetail, setSelectedExamDetail] = useState<any | null>(null);
 
   // SaaS Marketing & Sales states
   const [currentSubscription, setCurrentSubscription] = useState<string>(() => localStorage.getItem('kas_subscription_plan') || 'trial');
@@ -246,12 +249,42 @@ export default function App() {
     try {
       const resDetail = await fetch(`/api/ogrenci/${studentId}`, { headers: { 'Authorization': sessionToken } });
       if (resDetail.ok) {
-        setStudentReport(await resDetail.json());
+        const data = await resDetail.json();
+        setStudentReport(data);
+        if (data.student && data.student.hedef_net) {
+          setTempTargetNet(data.student.hedef_net);
+        }
       }
     } catch (err) {
       console.error("Öğrenci bilgisi yükleme hatası:", err);
     } finally {
       setLoadingStudent(false);
+    }
+  };
+
+  const handleSaveTargetNet = async (newVal: number) => {
+    if (!studentReport || !token) return;
+    try {
+      const res = await fetch(`/api/ogrenci/${studentReport.student.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({ hedef_net: newVal })
+      });
+      if (res.ok) {
+        setStudentReport(prev => prev ? {
+          ...prev,
+          student: {
+            ...prev.student,
+            hedef_net: newVal
+          }
+        } : null);
+        setIsEditingTargetNet(false);
+      }
+    } catch (err) {
+      console.error("Öğrenci hedef net güncellenemedi:", err);
     }
   };
 
@@ -578,12 +611,12 @@ export default function App() {
               <div className={`space-y-2 max-w-md mx-auto transition-all duration-500 ${
                 (!isIntroComplete && !showAuthScreen) ? "opacity-100 scale-100" : "opacity-0 scale-95"
               }`}>
-                <span className="text-[11px] font-black tracking-[0.25em] text-blue-400 uppercase block">KİŞİSELLEŞTİRİLMİŞ EĞİTİM YÖNETİMİ</span>
+                <span className="text-[11px] font-black tracking-[0.25em] text-blue-400 uppercase block">YAPAY ZEKA DESTEKLİ EĞİTİM YÖNETİMİ</span>
                 <h2 className="text-2xl sm:text-3xl font-black text-slate-500 tracking-tight leading-none">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-slate-200 to-slate-400">Kurum Analiz Sistemine</span><br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 font-extrabold mt-1 inline-block">Hoşgeldiniz</span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-slate-200 to-slate-400">Yapay Zeka Destekli</span><br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 font-extrabold mt-1 inline-block">Kurum Analiz Sistemine Hoş Geldiniz</span>
                 </h2>
-                <p className="text-xs text-slate-500 font-medium">Yapay zeka destekli akıllı takip ve karne otomasyonu</p>
+                <p className="text-xs text-slate-400 font-medium">Gelişmiş yapay zeka algoritmalarıyla, yüklediğiniz PDF sınav sonuçlarını saniyeler içinde analiz edin, veli ve öğrencilerinizle anlık paylaşın.</p>
               </div>
             </div>
           </div>
@@ -600,12 +633,12 @@ export default function App() {
             >
               <div className="flex items-center gap-2.5">
                 <div className="p-1 bg-blue-600/5 rounded-xl border border-slate-800 shadow-lg shadow-blue-500/5">
-                  <img src="/favicon.svg" alt="K.A.S Logo" className="w-9 h-9 object-contain" referrerPolicy="no-referrer" />
+                  <img src="/favicon.svg" alt="Kurum Analiz Logo" className="w-9 h-9 object-contain" referrerPolicy="no-referrer" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-black tracking-widest text-blue-400 uppercase">Kişiselleştirilmiş Eğitim Yönetimi</span>
+                  <span className="text-[10px] font-black tracking-widest text-blue-400 uppercase">Yapay Zeka Destekli Eğitim Yönetimi</span>
                   <h1 className="text-lg font-black text-slate-100 flex items-center gap-1.5 leading-none">
-                    K.A.S <span className="text-[10px] bg-slate-900 text-slate-400 border border-slate-800/80 font-semibold px-2 py-0.5 rounded-full tracking-wide">Kurumsal Portal</span>
+                    Kurum Analiz <span className="text-[10px] bg-slate-900 text-slate-400 border border-slate-800/80 font-semibold px-2 py-0.5 rounded-full tracking-wide">Yapay Zeka Altyapısı</span>
                   </h1>
                 </div>
               </div>
@@ -652,14 +685,14 @@ export default function App() {
                   className="flex-1 space-y-6"
                 >
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest text-blue-400 bg-blue-500/10 rounded-full border border-blue-500/10 shadow-inner">
-                    <Sparkles size={11} className="animate-pulse text-blue-400" /> %94 Zaman Tasarrufu & Akıllı Eğitim Otomasyonu
+                    <Sparkles size={11} className="animate-pulse text-blue-400" /> Yapay Zeka Destekli %94 Zaman Tasarrufu & Eğitim Otomasyonu
                   </span>
                   <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-transparent bg-clip-text bg-gradient-to-r from-slate-50 via-slate-100 to-slate-400">
                     Eğitim Kurumları İçin <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500">Akıllı Takip & Analiz</span> Portali
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500">Yapay Zeka Destekli Kurum Analiz</span> Sistemi
                   </h2>
                   <p className="text-xs md:text-sm text-slate-400 leading-relaxed font-semibold max-w-xl">
-                    Sınav analizlerini, birebir ders programlarını ve veli bilgilendirmelerini tek ekrandan yönetin. Kurumunuza zaman kazandırın, veli memnuniyetini zirveye taşıyın.
+                    Gelişmiş yapay zeka algoritmalarıyla, yüklediğiniz PDF sınav sonuçlarını saniyeler içinde analiz edin. Birebir ders programlarını ve veli bilgilendirmelerini tek ekrandan yöneterek kurumunuza zaman kazandırın, veli memnuniyetini zirveye taşıyın.
                   </p>
                   
                   {/* Trust Badge Metrics */}
@@ -703,10 +736,10 @@ export default function App() {
             <div id="nasil-calisir" className="space-y-6 scroll-mt-6">
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 text-[9px] bg-blue-500/10 border border-blue-500/20 text-blue-400 font-black rounded-md uppercase tracking-wider">PRESTİJLİ BAŞLANGIÇ</span>
-                <h3 className="text-sm font-bold text-slate-200">K.A.S Nasıl Çalışır? (3 Adımda Tam Otomasyon)</h3>
+                <h3 className="text-sm font-bold text-slate-200">Yapay Zeka Destekli Kurum Analiz Nasıl Çalışır? (3 Adımda Tam Otomasyon)</h3>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed max-w-2xl">
-                K.A.S Kurum Analiz ve Birebir Ders Yönetim Platformu ile dijital dönüşümünüzü tamamlamak çok kolay. Karmaşık kurulum süreçleriyle vakit kaybetmeden, sadece 3 basit adımda geleceğin eğitim teknolojisine geçiş yapın:
+                Yapay Zeka Destekli Kurum Analiz ve Birebir Ders Yönetim Platformu ile dijital dönüşümünüzü tamamlamak çok kolay. Karmaşık kurulum süreçleriyle vakit kaybetmeden, sadece 3 basit adımda geleceğin eğitim teknolojisine geçiş yapın:
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -758,7 +791,7 @@ export default function App() {
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div className="space-y-1">
                   <span className="text-xs font-extrabold text-blue-500 uppercase tracking-wider">CANLI SİSTEM DEMOLARI</span>
-                  <h3 className="text-2xl font-extrabold text-slate-100">K.A.S Panel Tasarımını Keşfedin</h3>
+                  <h3 className="text-2xl font-extrabold text-slate-100">Kurum Analiz Sistemi Panel Tasarımını Keşfedin</h3>
                   <p className="text-xs text-slate-400 font-semibold max-w-xl">
                     Sistemimizin nasıl göründüğünü ve çalıştığını merak mı ediyorsunuz? Aşağıdaki interaktif sekmelere tıklayarak modüllerimizin canlı arayüz tasarımlarını inceleyin.
                   </p>
@@ -1032,7 +1065,7 @@ export default function App() {
             <div id="ozellikler" className="space-y-6 scroll-mt-6">
               <div className="flex flex-col space-y-1">
                 <span className="text-xs font-extrabold text-blue-500 uppercase tracking-wider">TEKNOLOJİK ALTYAPI</span>
-                <h3 className="text-2xl font-extrabold text-slate-100">K.A.S Hangi Problemleri Çözer?</h3>
+                <h3 className="text-2xl font-extrabold text-slate-100">Kurum Analiz Sistemi Hangi Problemleri Çözer?</h3>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -1080,7 +1113,7 @@ export default function App() {
                   <span className="text-[10px] font-black text-blue-400 uppercase tracking-wider flex items-center gap-1">
                     <Award size={12} /> BİZ KİMİZ & NEDEN BİZ?
                   </span>
-                  <h3 className="text-xl font-black text-slate-100">K.A.S Eğitim Teknolojileri</h3>
+                  <h3 className="text-xl font-black text-slate-100">Yapay Zeka Destekli Kurum Analiz Eğitim Teknolojileri</h3>
                 </div>
                 <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 font-black text-xs rounded-full">
                   Güvenilir Eğitim Çözümü
@@ -1089,7 +1122,7 @@ export default function App() {
 
               <div className="space-y-5">
                 <p className="text-xs text-slate-400 leading-relaxed font-semibold">
-                  K.A.S, eğitim sektörünün içinden gelen deneyimli eğitimciler, rehberlik koordinatörleri ve yazılım mühendisleri tarafından kurulan profesyonel bir eğitim otomasyon platformudur. Amacımız, modern teknolojiyi geleneksel eğitim disipliniyle birleştirerek kurumların yönetimsel yükünü azaltmak ve başarı oranlarını artırmaktır.
+                  Kurum Analiz Sistemi, eğitim sektörünün içinden gelen deneyimli eğitimciler, rehberlik koordinatörleri ve yazılım mühendisleri tarafından kurulan profesyonel, yapay zeka destekli bir eğitim otomasyon platformudur. Amacımız, modern teknolojiyi geleneksel eğitim disipliniyle birleştirerek kurumların yönetimsel yükünü azaltmak ve başarı oranlarını artırmaktır.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1125,7 +1158,7 @@ export default function App() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="space-y-1">
                   <span className="text-xs font-extrabold text-blue-500 uppercase tracking-wider font-sans">ŞEFFAF VE TEK FİYAT</span>
-                  <h3 className="text-2xl font-extrabold text-slate-100 font-sans tracking-tight">K.A.S Sınırsız Portal Lisansı</h3>
+                  <h3 className="text-2xl font-extrabold text-slate-100 font-sans tracking-tight">Kurum Analiz Sistemi Sınırsız Portal Lisansı</h3>
                 </div>
 
                 {/* Billing Toggle Switcher */}
@@ -1210,7 +1243,7 @@ export default function App() {
                   
                   <div className="space-y-4">
                     <div>
-                      <h4 className="text-base font-black text-slate-100 mt-2">K.A.S Sınırsız Premium</h4>
+                      <h4 className="text-base font-black text-slate-100 mt-2">Kurum Analiz Sınırsız Premium</h4>
                       <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Sınırsız Öğrenci, Veli ve Şube</span>
                     </div>
                     
@@ -1375,10 +1408,10 @@ export default function App() {
                     <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
                       <img src="/favicon.svg" alt="K.A.S" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />
                     </div>
-                    <span className="text-xs font-black text-slate-200 tracking-wider">K.A.S KURUMSAL</span>
+                    <span className="text-xs font-black text-slate-200 tracking-wider">KURUM ANALİZ SİSTEMLERİ</span>
                   </div>
                   <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
-                    Eğitim kurumlarında zaman tasarrufu, veri doğruluğu ve veli memnuniyeti sağlayan yeni nesil SaaS bulut otomasyonu.
+                    Eğitim kurumlarında zaman tasarrufu, veri doğruluğu ve veli memnuniyeti sağlayan yapay zeka destekli yeni nesil SaaS bulut otomasyonu.
                   </p>
                   <div className="pt-1">
                     <a
@@ -2159,22 +2192,24 @@ export default function App() {
 
                 <div className="pt-4 border-t border-slate-900 mt-6 space-y-3">
                   {/* License Info */}
-                  <div className="bg-slate-900/60 border border-slate-850/60 p-3 rounded-2xl flex items-center justify-between">
-                    <div>
-                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block">Lisans Durumu</span>
-                      <span className="text-[10px] text-slate-300 font-extrabold">
-                        {currentSubscription === 'trial' ? `Deneme Sürümü (${trialTimeLeftStr || `${trialDaysLeft} Gün`})` : "Sınırsız Premium 💎"}
-                      </span>
+                  {user.rol === 'admin' && (
+                    <div className="bg-slate-900/60 border border-slate-850/60 p-3 rounded-2xl flex items-center justify-between">
+                      <div>
+                        <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block">Lisans Durumu</span>
+                        <span className="text-[10px] text-slate-300 font-extrabold">
+                          {currentSubscription === 'trial' ? `Deneme Sürümü (${trialTimeLeftStr || `${trialDaysLeft} Gün`})` : "Sınırsız Premium 💎"}
+                        </span>
+                      </div>
+                      {currentSubscription === 'trial' && (
+                        <button
+                          onClick={() => { setCurrentTab('abonelik'); setIsMobileMenuOpen(false); }}
+                          className="text-[9px] bg-blue-600 text-white font-extrabold px-2.5 py-1 rounded-lg"
+                        >
+                          Yükselt ⚡
+                        </button>
+                      )}
                     </div>
-                    {user.rol === 'admin' && currentSubscription === 'trial' && (
-                      <button
-                        onClick={() => { setCurrentTab('abonelik'); setIsMobileMenuOpen(false); }}
-                        className="text-[9px] bg-blue-600 text-white font-extrabold px-2.5 py-1 rounded-lg"
-                      >
-                        Yükselt ⚡
-                      </button>
-                    )}
-                  </div>
+                  )}
 
                   {/* Profile & Logout */}
                   <div className="flex items-center justify-between bg-slate-900/30 p-2.5 rounded-2xl border border-slate-900">
@@ -2417,23 +2452,25 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="bg-slate-950/40 border border-slate-850/60 p-3 rounded-2xl space-y-1">
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Lisans Durumu</span>
-                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded block text-center ${
-                  currentSubscription === 'trial' ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' :
-                  'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-                }`}>
-                  {currentSubscription === 'trial' ? `Deneme Sürümü (${trialTimeLeftStr || `${trialDaysLeft} Gün`})` : "Sınırsız Premium 💎"}
-                </span>
-                {user.rol === 'admin' && currentSubscription === 'trial' && (
-                  <button 
-                    onClick={() => setCurrentTab('abonelik')}
-                    className="text-[9px] text-blue-400 hover:text-blue-300 font-extrabold underline block text-center w-full mt-1 cursor-pointer"
-                  >
-                    Şimdi Paketini Yükselt ⚡
-                  </button>
-                )}
-              </div>
+              {user.rol === 'admin' && (
+                <div className="bg-slate-950/40 border border-slate-850/60 p-3 rounded-2xl space-y-1">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Lisans Durumu</span>
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded block text-center ${
+                    currentSubscription === 'trial' ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' :
+                    'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                  }`}>
+                    {currentSubscription === 'trial' ? `Deneme Sürümü (${trialTimeLeftStr || `${trialDaysLeft} Gün`})` : "Sınırsız Premium 💎"}
+                  </span>
+                  {currentSubscription === 'trial' && (
+                    <button 
+                      onClick={() => setCurrentTab('abonelik')}
+                      className="text-[9px] text-blue-400 hover:text-blue-300 font-extrabold underline block text-center w-full mt-1 cursor-pointer"
+                    >
+                      Şimdi Paketini Yükselt ⚡
+                    </button>
+                  )}
+                </div>
+              )}
 
               <div className="text-[10px] text-slate-500 font-bold space-y-0.5 px-1">
                 <p>Kurum Analiz Sistemi v1.5</p>
@@ -2445,7 +2482,7 @@ export default function App() {
           {/* Core App Viewport */}
           <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full overflow-y-auto">
             
-            {currentSubscription === 'trial' && trialDaysLeft <= 0 ? (
+            {user.rol === 'admin' && currentSubscription === 'trial' && trialDaysLeft <= 0 ? (
               user.rol === 'admin' && currentTab === 'abonelik' ? (
                 <Abonelik 
                   user={user} 
@@ -2582,7 +2619,7 @@ export default function App() {
                       <span className="bg-indigo-500/10 text-indigo-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Veli Bilgilendirme Ekranı</span>
                       <h3 className="text-xl font-bold text-slate-100 mt-2">Öğrenci: <strong className="text-blue-400 font-extrabold">{childReport.student.ad_soyad}</strong></h3>
                       <p className="text-xs text-slate-400 font-medium mt-1">
-                        Sınıfı: {childReport.student.sinif_adi} • Sınav Gelişim Alanı: {childReport.student.alan}
+                        Sınıfı: {childReport.student.sinif_adi} • Sınav Gelişim Alanı: {childReport.student.alan} • Öğrencinin Seçtiği Yıl Sonu Hedef Neti: <span className="text-amber-400 font-extrabold">{childReport.student.hedef_net || 95} Net</span>
                       </p>
                     </div>
 
@@ -2794,7 +2831,11 @@ export default function App() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Sınav listesi */}
                       <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow">
-                        <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 mb-3">Tüm Sınav Karneleri</h4>
+                        <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+                          <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider">Tüm Sınav Karneleri</h4>
+                          <span className="text-[10px] text-amber-400 font-bold animate-pulse">Sınava Tıklayın 🔍</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-medium mb-3">Herhangi bir denemeye tıklayarak öğrencimizin ders bazlı netlerini ve detaylı gelişim analizini görebilirsiniz.</p>
                         <div className="overflow-x-auto">
                           <table className="w-full text-left text-xs text-slate-300">
                             <thead>
@@ -2803,15 +2844,23 @@ export default function App() {
                                 <th className="pb-2">Ders Netleri (T/S/M/F)</th>
                                 <th className="pb-2 text-center">Toplam Net</th>
                                 <th className="pb-2 text-right">Puan</th>
+                                <th className="pb-2 text-right">Detay</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-800/40">
                               {childReport.sonuclar.map((r, idx) => (
-                                <tr key={idx}>
-                                  <td className="py-2.5 font-bold text-slate-200">{r.sinav_adi}</td>
+                                <tr 
+                                  key={idx}
+                                  onClick={() => setSelectedExamDetail(r)}
+                                  className="cursor-pointer hover:bg-slate-800/50 transition-colors group"
+                                >
+                                  <td className="py-2.5 font-bold text-slate-200 group-hover:text-blue-400 transition-colors">{r.sinav_adi}</td>
                                   <td className="py-2.5 font-mono text-slate-400 text-[11px]">{r.turkce_net}/{r.sosyal_net}/{r.matematik_net}/{r.fen_net}</td>
                                   <td className="py-2.5 text-center font-bold text-slate-200">{r.toplam_net}</td>
                                   <td className="py-2.5 text-right font-black text-blue-400">{r.puan}</td>
+                                  <td className="py-2.5 text-right text-slate-500 group-hover:text-amber-400 transition-colors">
+                                    <Eye size={14} className="inline" />
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
@@ -2916,13 +2965,51 @@ export default function App() {
                           <span className="text-lg font-black text-slate-100 font-mono">{studentReport.sonuclar.length} Sınav</span>
                         </div>
                       </div>
-                      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 flex items-center gap-3.5">
-                        <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400">
-                          <UserCheck size={20} />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-slate-500 font-bold block uppercase">Öğrenci Hesabı</span>
-                          <span className="text-xs font-black text-slate-100 uppercase tracking-wide">TC ile Giriş</span>
+                      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-3.5">
+                        <div className="flex items-center gap-3.5">
+                          <div className="p-3 rounded-xl bg-amber-500/10 text-amber-500">
+                            <Target size={20} />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 font-bold block uppercase">Yıl Sonu Hedef Netim 🎯</span>
+                            {isEditingTargetNet ? (
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <input
+                                  type="number"
+                                  value={tempTargetNet}
+                                  onChange={e => setTempTargetNet(Number(e.target.value))}
+                                  className="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-slate-100 font-bold font-mono focus:outline-none focus:border-amber-500"
+                                />
+                                <button
+                                  onClick={() => handleSaveTargetNet(tempTargetNet)}
+                                  className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded transition"
+                                >
+                                  Kaydet
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setIsEditingTargetNet(false);
+                                    setTempTargetNet(studentReport.student.hedef_net || 95);
+                                  }}
+                                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded transition"
+                                >
+                                  İptal
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-baseline gap-2 mt-0.5">
+                                <span className="text-lg font-black text-slate-100 font-mono">
+                                  {studentReport.student.hedef_net || 95}
+                                </span>
+                                <button
+                                  onClick={() => setIsEditingTargetNet(true)}
+                                  className="text-[10px] text-amber-400 hover:text-amber-300 underline font-semibold transition"
+                                >
+                                  Değiştir
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -3154,7 +3241,11 @@ export default function App() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Sınav karnelerim */}
                       <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow">
-                        <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 mb-3">Tüm Sınav Karnelerim</h4>
+                        <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+                          <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider">Tüm Sınav Karnelerim</h4>
+                          <span className="text-[10px] text-amber-400 font-bold animate-pulse">Sınava Tıklayın 🔍</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-medium mb-3">Herhangi bir denemeye tıklayarak ders bazlı netlerinizi ve başarı analizlerini detaylıca görebilirsiniz.</p>
                         <div className="overflow-x-auto">
                           <table className="w-full text-left text-xs text-slate-300">
                             <thead>
@@ -3163,15 +3254,23 @@ export default function App() {
                                 <th className="pb-2 text-center">Net Dağılımı (T/S/M/F)</th>
                                 <th className="pb-2 text-center">Toplam Net</th>
                                 <th className="pb-2 text-right">Puan</th>
+                                <th className="pb-2 text-right">Detay</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-800/40">
                               {studentReport.sonuclar.map((r, idx) => (
-                                <tr key={idx}>
-                                  <td className="py-2.5 font-bold text-slate-200">{r.sinav_adi}</td>
+                                <tr 
+                                  key={idx}
+                                  onClick={() => setSelectedExamDetail(r)}
+                                  className="cursor-pointer hover:bg-slate-800/50 transition-colors group"
+                                >
+                                  <td className="py-2.5 font-bold text-slate-200 group-hover:text-blue-400 transition-colors">{r.sinav_adi}</td>
                                   <td className="py-2.5 text-center font-mono text-slate-400 text-[11px]">{r.turkce_net}/{r.sosyal_net}/{r.matematik_net}/{r.fen_net}</td>
                                   <td className="py-2.5 text-center font-bold text-slate-200">{r.toplam_net}</td>
                                   <td className="py-2.5 text-right font-black text-blue-400">{r.puan}</td>
+                                  <td className="py-2.5 text-right text-slate-500 group-hover:text-amber-400 transition-colors">
+                                    <Eye size={14} className="inline" />
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
@@ -3208,6 +3307,138 @@ export default function App() {
       </main>
         </div>
       )}
+
+      <AnimatePresence>
+        {selectedExamDetail && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm"
+            onClick={() => setSelectedExamDetail(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl relative"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setSelectedExamDetail(null)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-100 p-1.5 rounded-xl bg-slate-950/40 border border-slate-800 hover:border-slate-700 transition"
+              >
+                <X size={16} />
+              </button>
+
+              {/* Header */}
+              <div className="p-6 pb-4 border-b border-slate-800 bg-gradient-to-b from-slate-950/20 to-transparent">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="bg-blue-500/10 text-blue-400 text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-blue-500/10">
+                    Sınav Karnesi Detayı
+                  </span>
+                  <span className="bg-amber-500/10 text-amber-400 text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-amber-500/10">
+                    {selectedExamDetail.sinav_adi?.toUpperCase().includes('LGS') ? 'LGS' : selectedExamDetail.sinav_adi?.toUpperCase().includes('AYT') ? 'AYT' : 'TYT'}
+                  </span>
+                </div>
+                <h3 className="text-base font-extrabold text-slate-100 font-sans tracking-tight">{selectedExamDetail.sinav_adi}</h3>
+                <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-wider">{selectedExamDetail.tarih || 'Sınav Tarihi Belirtilmemiş'}</p>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 space-y-5">
+                {/* Score and Total Net stats row */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-950/40 border border-slate-850 p-3.5 rounded-2xl text-center space-y-0.5">
+                    <span className="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Toplam Net</span>
+                    <span className="text-2xl font-black text-amber-400 font-mono">{selectedExamDetail.toplam_net}</span>
+                  </div>
+                  <div className="bg-slate-950/40 border border-slate-850 p-3.5 rounded-2xl text-center space-y-0.5">
+                    <span className="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Sınav Puanı</span>
+                    <span className="text-2xl font-black text-blue-400 font-mono">{selectedExamDetail.puan}</span>
+                  </div>
+                </div>
+
+                {/* Course Breakdowns */}
+                <div className="space-y-4">
+                  <h4 className="text-[10px] text-slate-400 font-black uppercase tracking-wider border-b border-slate-800 pb-1.5">Ders Bazlı Detaylı Analiz</h4>
+                  {(() => {
+                    const isLGS = selectedExamDetail.sinav_adi?.toUpperCase().includes('LGS') || selectedExamDetail.sinav_turu === 'LGS';
+                    const maxTurkce = isLGS ? 20 : 40;
+                    const maxSosyal = isLGS ? 10 : 20;
+                    const maxMatematik = isLGS ? 20 : 40;
+                    const maxFen = isLGS ? 20 : 20;
+
+                    const courses = [
+                      { name: "Türkçe", net: selectedExamDetail.turkce_net, max: maxTurkce, color: "bg-blue-500", text: "text-blue-400", bg: "bg-blue-500/10" },
+                      { name: "Sosyal Bilimler", net: selectedExamDetail.sosyal_net, max: maxSosyal, color: "bg-amber-500", text: "text-amber-400", bg: "bg-amber-500/10" },
+                      { name: "Matematik", net: selectedExamDetail.matematik_net, max: maxMatematik, color: "bg-indigo-500", text: "text-indigo-400", bg: "bg-indigo-500/10" },
+                      { name: "Fen Bilimleri", net: selectedExamDetail.fen_net, max: maxFen, color: "bg-emerald-500", text: "text-emerald-400", bg: "bg-emerald-500/10" }
+                    ];
+
+                    return (
+                      <div className="space-y-3.5">
+                        {courses.map((c, i) => {
+                          const pct = Math.min(100, Math.max(0, (c.net / c.max) * 100));
+                          return (
+                            <div key={i} className="bg-slate-950/20 border border-slate-850 p-3 rounded-2xl space-y-2">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-2 h-2 rounded-full ${c.color}`}></span>
+                                  <span className="text-xs font-bold text-slate-300">{c.name}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-xs font-black text-slate-100 font-mono">{c.net}</span>
+                                  <span className="text-[10px] text-slate-500 font-medium font-mono"> / {c.max} Net</span>
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                                  <div className={`h-full ${c.color} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }}></div>
+                                </div>
+                                <div className="flex justify-between text-[8px] text-slate-500 font-black uppercase tracking-wider">
+                                  <span>Başarı Oranı</span>
+                                  <span className={c.text}>{pct.toFixed(0)}%</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Sınav Akıllı Öneri */}
+                <div className="bg-indigo-500/5 border border-indigo-500/10 p-3.5 rounded-2xl text-[11px] text-indigo-300 leading-relaxed">
+                  <span className="font-extrabold uppercase block text-[9px] text-indigo-400 mb-1">🎯 K.A.S Sınav Tavsiyesi:</span>
+                  {(() => {
+                    const minCourse = [
+                      { name: 'Türkçe', ratio: selectedExamDetail.turkce_net / (selectedExamDetail.sinav_adi?.toUpperCase().includes('LGS') ? 20 : 40), reco: 'Türkçe netlerini arttırmak için okuma hızını arttıracak çalışmalar yapmalı ve paragraf soru çözümlerinde süre tutmayı alışkanlık haline getirmelisin.' },
+                      { name: 'Matematik', ratio: selectedExamDetail.matematik_net / (selectedExamDetail.sinav_adi?.toUpperCase().includes('LGS') ? 20 : 40), reco: 'Matematik dersinde formülleri ezberlemek yerine mantığını anlamaya odaklanmalı ve çözemediğin her sorunun çözüm videosunu mutlaka izlemelisin.' },
+                      { name: 'Sosyal Bilimler', ratio: selectedExamDetail.sosyal_net / (selectedExamDetail.sinav_adi?.toUpperCase().includes('LGS') ? 10 : 20), reco: 'Sosyal netleri için temel kavramlar sözlüğüne göz gezdirebilir ve dökümanlardan konu özetleri okuyarak hızlıca net artışı sağlayabilirsin.' },
+                      { name: 'Fen Bilimleri', ratio: selectedExamDetail.fen_net / 20, reco: 'Fen bilimleri için her gün düzenli olarak 1-2 ünite değerlendirme testi çözerek formül ve bilgi boşluklarını kapatmalısın.' }
+                    ].sort((a, b) => a.ratio - b.ratio)[0];
+                    return minCourse.reco;
+                  })()}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 bg-slate-950/40 border-t border-slate-800 text-center">
+                <button
+                  onClick={() => setSelectedExamDetail(null)}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-5 py-2 rounded-xl transition"
+                >
+                  Kapat
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

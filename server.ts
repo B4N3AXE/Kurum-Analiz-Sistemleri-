@@ -1756,24 +1756,45 @@ app.get('/api/mesaj', (req, res) => {
   }
 
   const uid = Number(user_id);
-  let filtered = messages;
-
-  if (rol === 'veli') {
-    filtered = messages.filter(m => m.alici_id === uid);
-  } else {
-    filtered = messages.filter(m => m.gonderen_id === uid || m.alici_id === uid);
-  }
+  let filtered = messages.filter(m => m.gonderen_id === uid || m.alici_id === uid);
 
   const joined = filtered.map(m => {
-    const sender = users.find(u => u.id === m.gonderen_id);
-    const receiver = users.find(u => u.id === m.alici_id);
-    const student = students.find(s => s.id === m.ogrenci_id);
+    let gonderen_adi = 'Sistem';
+    let gonderen_rol = 'sistem';
+    if (m.gonderen_id >= 10000) {
+      const s = students.find(st => st.id === (m.gonderen_id - 10000));
+      if (s) {
+        gonderen_adi = s.ad_soyad;
+        gonderen_rol = 'ogrenci';
+      }
+    } else {
+      const sender = users.find(u => u.id === m.gonderen_id);
+      if (sender) {
+        gonderen_adi = sender.ad_soyad;
+        gonderen_rol = sender.rol;
+      }
+    }
+
+    let alici_adi = 'Alıcı';
+    if (m.alici_id >= 10000) {
+      const s = students.find(st => st.id === (m.alici_id - 10000));
+      if (s) {
+        alici_adi = s.ad_soyad;
+      }
+    } else {
+      const receiver = users.find(u => u.id === m.alici_id);
+      if (receiver) {
+        alici_adi = receiver.ad_soyad;
+      }
+    }
+
+    const studentObj = students.find(s => s.id === m.ogrenci_id);
     return {
       ...m,
-      gonderen_adi: sender ? sender.ad_soyad : 'Sistem',
-      gonderen_rol: sender ? sender.rol : 'sistem',
-      alici_adi: receiver ? receiver.ad_soyad : 'Alıcı',
-      ogrenci_adi: student ? student.ad_soyad : 'Tüm Öğrenciler'
+      gonderen_adi,
+      gonderen_rol,
+      alici_adi,
+      ogrenci_adi: studentObj ? studentObj.ad_soyad : 'Tüm Öğrenciler'
     };
   }).sort((a, b) => b.tarih.localeCompare(a.tarih));
 
