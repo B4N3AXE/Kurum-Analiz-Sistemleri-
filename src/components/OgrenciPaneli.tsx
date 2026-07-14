@@ -50,6 +50,7 @@ interface OgrenciPaneliProps {
 export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
   // Navigation & View State
   const [view, setView] = useState<'list' | 'add' | 'edit' | 'detail'>('list');
+  const [studentChartTab, setStudentChartTab] = useState<'TYT' | 'AYT' | 'LGS'>('TYT');
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
 
   // Lists
@@ -805,96 +806,134 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
             {/* SVG Development curve graph */}
             <div className="xl:col-span-6 bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-sm">
-              <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-4">Sınav Toplam Net Gelişim Eğrisi</h4>
-              {detailData.sonuclar.length === 0 ? (
-                <div className="h-44 flex items-center justify-center text-slate-500 text-xs">Bu öğrenci henüz bir sınava girmemiştir.</div>
-              ) : (
-                <div className="w-full">
-                  <svg viewBox="0 0 500 160" className="w-full h-44 overflow-visible">
-                    {/* Grid Lines */}
-                    {[0, 25, 50, 75, 100, 120].map((val, i) => {
-                      const y = 160 - (val / 120) * 140 - 10;
-                      return (
-                        <g key={i}>
-                          <line x1="30" y1={y} x2="500" y2={y} stroke="#1e293b" strokeDasharray="3,3" />
-                          <text x="5" y={y + 4} fill="#475569" className="text-[10px] font-bold">{val}</text>
-                        </g>
-                      );
-                    })}
-
-                    {/* Plot Line */}
-                    {(() => {
-                      const points: string[] = [];
-                      const count = detailData.sonuclar.length;
-                      // We use division by count to leave space for projection point on the right
-                      const stepX = (500 - 80) / count;
-
-                      detailData.sonuclar.forEach((res, index) => {
-                        const x = 40 + index * stepX;
-                        const y = 160 - (res.toplam_net / 120) * 140 - 10;
-                        points.push(`${x},${y}`);
-                      });
-
-                      // Calculate the expected projection for the upcoming practice exam
-                      const projectedNet = getProjectedNet(detailData.sonuclar);
-                      const projX = 40 + count * stepX;
-                      const projY = 160 - (projectedNet / 120) * 140 - 10;
-                      const lastX = 40 + (count - 1) * stepX;
-                      const lastY = 160 - (Number(detailData.sonuclar[count - 1].toplam_net) / 120) * 140 - 10;
-
-                      return (
-                        <>
-                          {/* Actual scores path */}
-                          <polyline fill="none" stroke="#3b82f6" strokeWidth="2.5" points={points.join(' ')} />
-                          
-                          {/* Projection dashed line from last actual to projected */}
-                          <line 
-                            x1={lastX} 
-                            y1={lastY} 
-                            x2={projX} 
-                            y2={projY} 
-                            stroke="#f59e0b" 
-                            strokeWidth="2.5" 
-                            strokeDasharray="4,4" 
-                          />
-
-                          {/* Actual points */}
-                          {detailData.sonuclar.map((res, index) => {
-                            const x = 40 + index * stepX;
-                            const y = 160 - (res.toplam_net / 120) * 140 - 10;
-                            return (
-                              <g key={index}>
-                                <circle cx={x} cy={y} r="4" fill="#60a5fa" stroke="#0f172a" strokeWidth="2" />
-                                <text x={x} y={y - 8} fill="#f1f5f9" className="text-[10px] font-extrabold" textAnchor="middle">{res.toplam_net}</text>
-                                <text x={x} y="158" fill="#64748b" className="text-[8px] font-bold" textAnchor="middle">{res.sinav_turu}</text>
-                              </g>
-                            );
-                          })}
-
-                          {/* Projected upcoming exam point */}
-                          <g>
-                            <circle cx={projX} cy={projY} r="5.5" fill="#f59e0b" stroke="#0f172a" strokeWidth="2" className="animate-pulse" />
-                            <circle cx={projX} cy={projY} r="9" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeOpacity="0.5" strokeDasharray="2,2" />
-                            <text x={projX} y={projY - 9} fill="#f59e0b" className="text-[11px] font-black" textAnchor="middle">{projectedNet}</text>
-                            <text x={projX} y="158" fill="#f59e0b" className="text-[8px] font-black tracking-wider uppercase" textAnchor="middle">Sıradaki (Beklenen 🎯)</text>
-                          </g>
-                        </>
-                      );
-                    })()}
-                  </svg>
-                  {/* Legends */}
-                  <div className="mt-4 flex flex-wrap justify-center items-center gap-x-4 gap-y-1.5 text-[10px] text-slate-400 font-bold">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#3b82f6]"></span>
-                      <span>Gerçekleşen Netler</span>
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse"></span>
-                      <span className="text-amber-400">Gelecek Sınav Projeksiyonu (Beklenen Net)</span>
-                    </span>
-                  </div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-slate-800 pb-3">
+                <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider">Gelişim Eğrisi</h4>
+                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-850">
+                  {(['TYT', 'AYT', 'LGS'] as const).map((t) => {
+                    const count = detailData.sonuclar.filter(res => (res.tur || res.sinav_turu || 'TYT') === t).length;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setStudentChartTab(t)}
+                        className={`text-[9px] font-extrabold px-2.5 py-1 rounded-md transition-all ${
+                          studentChartTab === t
+                            ? 'bg-blue-600 text-white shadow'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                        }`}
+                      >
+                        {t} ({count})
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
+
+              {(() => {
+                const filteredSonuclar = detailData.sonuclar.filter(res => (res.tur || res.sinav_turu || 'TYT') === studentChartTab);
+                const scaleMax = studentChartTab === 'TYT' ? 120 : studentChartTab === 'AYT' ? 80 : 90;
+                const scaleValues = studentChartTab === 'TYT' 
+                  ? [0, 25, 50, 75, 100, 120] 
+                  : studentChartTab === 'AYT' 
+                    ? [0, 20, 40, 60, 80] 
+                    : [0, 15, 30, 45, 60, 75, 90];
+
+                if (filteredSonuclar.length === 0) {
+                  return (
+                    <div className="h-44 flex items-center justify-center text-slate-500 text-xs italic">
+                      Bu öğrencinin henüz {studentChartTab} türünde girilmiş bir sınav sonucu bulunmamaktadır.
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="w-full">
+                    <svg viewBox="0 0 500 160" className="w-full h-44 overflow-visible">
+                      {/* Grid Lines */}
+                      {scaleValues.map((val, i) => {
+                        const y = 160 - (val / scaleMax) * 140 - 10;
+                        return (
+                          <g key={i}>
+                            <line x1="30" y1={y} x2="500" y2={y} stroke="#1e293b" strokeDasharray="3,3" />
+                            <text x="5" y={y + 4} fill="#475569" className="text-[10px] font-bold">{val}</text>
+                          </g>
+                        );
+                      })}
+
+                      {/* Plot Line */}
+                      {(() => {
+                        const points: string[] = [];
+                        const count = filteredSonuclar.length;
+                        // We use division by count to leave space for projection point on the right
+                        const stepX = (500 - 80) / count;
+
+                        filteredSonuclar.forEach((res, index) => {
+                          const x = 40 + index * stepX;
+                          const y = 160 - (res.toplam_net / scaleMax) * 140 - 10;
+                          points.push(`${x},${y}`);
+                        });
+
+                        // Calculate the expected projection for the upcoming practice exam
+                        const projectedNet = getProjectedNet(filteredSonuclar);
+                        const projX = 40 + count * stepX;
+                        const projY = 160 - (projectedNet / scaleMax) * 140 - 10;
+                        const lastX = 40 + (count - 1) * stepX;
+                        const lastY = 160 - (Number(filteredSonuclar[count - 1].toplam_net) / scaleMax) * 140 - 10;
+
+                        return (
+                          <>
+                            {/* Actual scores path */}
+                            <polyline fill="none" stroke="#3b82f6" strokeWidth="2.5" points={points.join(' ')} />
+                            
+                            {/* Projection dashed line from last actual to projected */}
+                            <line 
+                              x1={lastX} 
+                              y1={lastY} 
+                              x2={projX} 
+                              y2={projY} 
+                              stroke="#f59e0b" 
+                              strokeWidth="2.5" 
+                              strokeDasharray="4,4" 
+                            />
+
+                            {/* Actual points */}
+                            {filteredSonuclar.map((res, index) => {
+                              const x = 40 + index * stepX;
+                              const y = 160 - (res.toplam_net / scaleMax) * 140 - 10;
+                              return (
+                                <g key={index}>
+                                  <circle cx={x} cy={y} r="4" fill="#60a5fa" stroke="#0f172a" strokeWidth="2" />
+                                  <text x={x} y={y - 8} fill="#f1f5f9" className="text-[10px] font-extrabold font-mono" textAnchor="middle">{res.toplam_net}</text>
+                                  <text x={x} y="158" fill="#64748b" className="text-[8px] font-bold" textAnchor="middle">{res.sinav_adi.substring(0, 10)}...</text>
+                                </g>
+                              );
+                            })}
+
+                            {/* Projected upcoming exam point */}
+                            <g>
+                              <circle cx={projX} cy={projY} r="5.5" fill="#f59e0b" stroke="#0f172a" strokeWidth="2" className="animate-pulse" />
+                              <circle cx={projX} cy={projY} r="9" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeOpacity="0.5" strokeDasharray="2,2" />
+                              <text x={projX} y={projY - 9} fill="#f59e0b" className="text-[11px] font-black font-mono" textAnchor="middle">{projectedNet}</text>
+                              <text x={projX} y="158" fill="#f59e0b" className="text-[8px] font-black tracking-wider uppercase" textAnchor="middle">Sıradaki (Beklenen 🎯)</text>
+                            </g>
+                          </>
+                        );
+                      })()}
+                    </svg>
+                    {/* Legends */}
+                    <div className="mt-4 flex flex-wrap justify-center items-center gap-x-4 gap-y-1.5 text-[10px] text-slate-400 font-bold">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#3b82f6]"></span>
+                        <span>Gerçekleşen {studentChartTab} Netleri</span>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse"></span>
+                        <span className="text-amber-400">Gelecek Sınav Projeksiyonu</span>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Course-by-course Net Comparison */}

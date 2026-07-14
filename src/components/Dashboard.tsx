@@ -40,6 +40,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
   });
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [activeChartTab, setActiveChartTab] = useState<'TYT' | 'AYT' | 'LGS'>('TYT');
 
   // YKS/LGS countdown state (June 19, 2027 at 10:15 vs June 6, 2027 at 09:30)
   const [countdownType, setCountdownType] = useState<'YKS' | 'LGS'>('YKS');
@@ -295,91 +296,122 @@ export default function Dashboard({ user, token }: DashboardProps) {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         {/* Exam trend chart */}
         <div className="xl:col-span-8 bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-md">
-          <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 border-b border-slate-800 pb-3">
             <div>
               <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
                 <TrendingUp className="text-blue-500" size={18} />
-                Genel Sınav Net Gelişim Trendi
+                Sınav Net Gelişim Grafikleri (Ayrı Ayrı)
               </h3>
-              <p className="text-[10px] text-slate-500 mt-0.5">Uygulanan son deneme sınavlarının ortalama net grafiği</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">Sınav türlerine göre ayrılmış ortalama net grafikleri</p>
             </div>
-            <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">Kurum Ortalaması</span>
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-850">
+              {(['TYT', 'AYT', 'LGS'] as const).map((t) => {
+                const count = stats.trends.filter(x => x.tur === t).length;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setActiveChartTab(t)}
+                    className={`text-[10px] font-extrabold px-3 py-1.5 rounded-lg transition-all ${
+                      activeChartTab === t
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    }`}
+                  >
+                    {t} ({count})
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {stats.trends.length === 0 ? (
-            <div className="h-44 flex flex-col items-center justify-center text-slate-500 text-xs">
-              Trend çizelgesi için sisteme henüz sınav sonucu girilmemiştir.
-            </div>
-          ) : (
-            <div className="w-full">
-              <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-44 overflow-visible">
-                {/* Horizontal guide lines */}
-                {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
-                  const val = Math.round(p * maxNetValue);
-                  const y = chartHeight - p * (chartHeight - 20) - 10;
-                  return (
-                    <g key={i}>
-                      <line x1="30" y1={y} x2={chartWidth} y2={y} stroke="#1e293b" strokeDasharray="3,3" />
-                      <text x="5" y={y + 4} fill="#475569" className="text-[10px] font-bold">{val}</text>
-                    </g>
-                  );
-                })}
+          {(() => {
+            const filteredTrends = stats.trends.filter(t => t.tur === activeChartTab);
+            const maxLimit = activeChartTab === 'TYT' ? 120 : activeChartTab === 'AYT' ? 80 : 90;
+            const currentMaxNetValue = filteredTrends.length > 0 
+              ? Math.max(maxLimit, ...filteredTrends.map(t => Math.max(t.ortalama_net, t.en_yuksek_net)))
+              : maxLimit;
 
-                {/* Plot curves */}
-                {(() => {
-                  const pointsAvg: string[] = [];
-                  const pointsMax: string[] = [];
-                  const count = stats.trends.length;
-                  const stepX = (chartWidth - 50) / (count > 1 ? count - 1 : 1);
+            if (filteredTrends.length === 0) {
+              return (
+                <div className="h-44 flex flex-col items-center justify-center text-slate-500 text-xs italic">
+                  {activeChartTab} türünde henüz deneme sınavı sonucu girilmemiştir.
+                </div>
+              );
+            }
 
-                  stats.trends.forEach((t, index) => {
-                    const x = 40 + index * stepX;
-                    const yAvg = chartHeight - (t.ortalama_net / maxNetValue) * (chartHeight - 20) - 10;
-                    const yMax = chartHeight - (t.en_yuksek_net / maxNetValue) * (chartHeight - 20) - 10;
-                    pointsAvg.push(`${x},${yAvg}`);
-                    pointsMax.push(`${x},${yMax}`);
-                  });
+            return (
+              <div className="w-full">
+                <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-44 overflow-visible">
+                  {/* Horizontal guide lines */}
+                  {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
+                    const val = Math.round(p * currentMaxNetValue);
+                    const y = chartHeight - p * (chartHeight - 20) - 10;
+                    return (
+                      <g key={i}>
+                        <line x1="30" y1={y} x2={chartWidth} y2={y} stroke="#1e293b" strokeDasharray="3,3" />
+                        <text x="5" y={y + 4} fill="#475569" className="text-[10px] font-bold">{val}</text>
+                      </g>
+                    );
+                  })}
 
-                  return (
-                    <>
-                      {/* Average Net Line */}
-                      <polyline fill="none" stroke="#2563eb" strokeWidth="2.5" points={pointsAvg.join(' ')} />
-                      {/* Max Net Line */}
-                      <polyline fill="none" stroke="#10b981" strokeWidth="1.5" strokeDasharray="4,2" points={pointsMax.join(' ')} />
+                  {/* Plot curves */}
+                  {(() => {
+                    const pointsAvg: string[] = [];
+                    const pointsMax: string[] = [];
+                    const count = filteredTrends.length;
+                    const stepX = (chartWidth - 50) / (count > 1 ? count - 1 : 1);
 
-                      {/* Points Circles */}
-                      {stats.trends.map((t, index) => {
-                        const x = 40 + index * stepX;
-                        const yAvg = chartHeight - (t.ortalama_net / maxNetValue) * (chartHeight - 20) - 10;
-                        const yMax = chartHeight - (t.en_yuksek_net / maxNetValue) * (chartHeight - 20) - 10;
+                    filteredTrends.forEach((t, index) => {
+                      const x = 40 + index * stepX;
+                      const yAvg = chartHeight - (t.ortalama_net / currentMaxNetValue) * (chartHeight - 20) - 10;
+                      const yMax = chartHeight - (t.en_yuksek_net / currentMaxNetValue) * (chartHeight - 20) - 10;
+                      pointsAvg.push(`${x},${yAvg}`);
+                      pointsMax.push(`${x},${yMax}`);
+                    });
 
-                        return (
-                          <g key={index}>
-                            <circle cx={x} cy={yAvg} r="4" fill="#3b82f6" stroke="#0f172a" strokeWidth="2" />
-                            <circle cx={x} cy={yMax} r="3" fill="#10b981" stroke="#0f172a" strokeWidth="1.5" />
-                            {/* Value label */}
-                            <text x={x} y={yAvg - 8} fill="#94a3b8" className="text-[9px] font-bold" textAnchor="middle">{t.ortalama_net}</text>
-                            {/* Name label on axis */}
-                            <text x={x} y={chartHeight + 12} fill="#64748b" className="text-[8px] font-bold" textAnchor="middle" transform={`rotate(-15, ${x}, ${chartHeight + 12})`}>
-                              {t.sinav_adi.substring(0, 10)}...
-                            </text>
-                          </g>
-                        );
-                      })}
-                    </>
-                  );
-                })()}
-              </svg>
-              <div className="flex justify-center items-center gap-6 mt-6 text-[10px] font-bold">
-                <span className="flex items-center gap-2 text-blue-400">
-                  <span className="w-3 h-0.5 bg-blue-500 inline-block"></span> Ortalama Net
-                </span>
-                <span className="flex items-center gap-2 text-emerald-400">
-                  <span className="w-3 h-0.5 bg-emerald-500 stroke-dasharray inline-block"></span> En Yüksek Net
-                </span>
+                    return (
+                      <>
+                        {/* Average Net Line */}
+                        <polyline fill="none" stroke="#2563eb" strokeWidth="2.5" points={pointsAvg.join(' ')} />
+                        {/* Max Net Line */}
+                        <polyline fill="none" stroke="#10b981" strokeWidth="1.5" strokeDasharray="4,2" points={pointsMax.join(' ')} />
+
+                        {/* Points Circles */}
+                        {filteredTrends.map((t, index) => {
+                          const x = 40 + index * stepX;
+                          const yAvg = chartHeight - (t.ortalama_net / currentMaxNetValue) * (chartHeight - 20) - 10;
+                          const yMax = chartHeight - (t.en_yuksek_net / currentMaxNetValue) * (chartHeight - 20) - 10;
+
+                          return (
+                            <g key={index}>
+                              <circle cx={x} cy={yAvg} r="4" fill="#3b82f6" stroke="#0f172a" strokeWidth="2" />
+                              <circle cx={x} cy={yMax} r="3" fill="#10b981" stroke="#0f172a" strokeWidth="1.5" />
+                              {/* Value label */}
+                              <text x={x} y={yAvg - 8} fill="#94a3b8" className="text-[9px] font-bold font-mono" textAnchor="middle">{t.ortalama_net}</text>
+                              {/* Name label on axis */}
+                              <text x={x} y={chartHeight + 12} fill="#64748b" className="text-[8px] font-semibold" textAnchor="middle" transform={`rotate(-15, ${x}, ${chartHeight + 12})`}>
+                                {t.sinav_adi.substring(0, 10)}...
+                              </text>
+                            </g>
+                          );
+                        })}
+                      </>
+                    );
+                  })()}
+                </svg>
+                <div className="flex justify-center items-center gap-6 mt-6 text-[10px] font-bold">
+                  <span className="flex items-center gap-2 text-blue-400">
+                    <span className="w-3 h-0.5 bg-blue-500 inline-block"></span> Ortalama Net
+                  </span>
+                  <span className="flex items-center gap-2 text-emerald-400">
+                    <span className="w-3 h-0.5 bg-emerald-500 stroke-dasharray inline-block"></span> En Yüksek Net
+                  </span>
+                  <span className="text-slate-600 font-medium">• {activeChartTab} Sınavı Maksimum Limit: {maxLimit} Net</span>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* Calendar and Sidebar elements */}
