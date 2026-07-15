@@ -612,7 +612,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-600/30 selection:text-blue-300">
+    <div className={`bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-600/30 selection:text-blue-300 ${isLoggedIn ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
       
       {/* HEADER BANNER - Always visible when logged in, displaying Institution Name */}
       {isLoggedIn && user && (
@@ -2323,7 +2323,7 @@ export default function App() {
           </AnimatePresence>
 
           {/* Sidebar Navigation (Desktop Only) */}
-          <aside className="hidden md:flex md:flex-col w-64 bg-slate-900 border-r border-slate-800/80 p-4 space-y-4 z-10 shrink-0">
+          <aside className="hidden md:flex md:flex-col w-64 bg-slate-900 border-r border-slate-800/80 p-4 space-y-4 z-10 shrink-0 overflow-y-auto scrollbar-thin">
             
             {/* Sidebar Logo Header */}
             <div className="flex items-center gap-2.5 px-2 py-3 border-b border-slate-800/60 mb-2 shrink-0">
@@ -2574,18 +2574,6 @@ export default function App() {
               <div className="text-[10px] text-slate-500 font-bold space-y-0.5 px-1 pt-2 border-t border-slate-800/40">
                 <p>Kurum Analiz Sistemi v1.5</p>
                 <p className="text-[9px] text-slate-600 font-semibold">© 2026 K.A.S Portal • Premium</p>
-                <div className="pt-1.5 flex items-center gap-1 flex-wrap">
-                  <span className="text-[9px] text-slate-500">Geliştirici:</span>
-                  <a
-                    href="https://www.instagram.com/cagriscn.21/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-pink-400 hover:text-pink-300 font-black hover:underline inline-flex items-center gap-0.5"
-                  >
-                    <Instagram size={10} className="inline shrink-0" />
-                    <span>cagriscn.21</span>
-                  </a>
-                </div>
               </div>
             </div>
           </aside>
@@ -3923,21 +3911,7 @@ export default function App() {
                 {/* Modern Global Footer */}
                 <div className="mt-12 border-t border-slate-800/60 pt-6 pb-2 text-center space-y-2">
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Kurum Analiz Sistemi (K.A.S) © 2026</p>
-                  <div className="flex flex-col sm:flex-row justify-center items-center gap-1 text-xs">
-                    <span className="text-slate-400 font-medium">Bu sitenin tüm hakları ve mülkiyeti</span>
-                    <div className="flex items-center gap-1">
-                      <a 
-                        href="https://www.instagram.com/cagriscn.21/" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="bg-gradient-to-r from-pink-500 to-amber-500 text-transparent bg-clip-text font-black hover:opacity-80 transition inline-flex items-center gap-1"
-                      >
-                        <Instagram size={12} className="text-pink-500 inline shrink-0" />
-                        <span>Çağrı Saçan (cagriscn.21)</span>
-                      </a>
-                      <span className="text-slate-400 font-medium">'a aittir.</span>
-                    </div>
-                  </div>
+                  <p className="text-[9px] text-slate-600 font-semibold">Tüm Hakları Saklıdır.</p>
                 </div>
               </div>
             )}
