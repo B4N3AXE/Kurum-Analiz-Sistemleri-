@@ -258,20 +258,20 @@ export class Database {
         const defaultUsers = initialData.kullanicilar;
         const currentUsers = parsed.kullanicilar || [];
         for (const defUser of defaultUsers) {
-          if (!currentUsers.some((u: any) => u.email.toLowerCase() === defUser.email.toLowerCase())) {
+          if (defUser.rol !== 'ogrenci' && !currentUsers.some((u: any) => u.email.toLowerCase() === defUser.email.toLowerCase())) {
             currentUsers.push(defUser);
           }
         }
 
-        // Ensure default classes and students are seeded if the tables are empty
-        const currentClasses = parsed.siniflar && parsed.siniflar.length > 0 ? parsed.siniflar : initialData.siniflar;
-        const currentStudents = parsed.ogrenciler && parsed.ogrenciler.length > 0 ? parsed.ogrenciler : initialData.ogrenciler;
-        const currentExams = parsed.sinav_tanimlari && parsed.sinav_tanimlari.length > 0 ? parsed.sinav_tanimlari : initialData.sinav_tanimlari;
-        const currentResults = parsed.sinav_sonuclari && parsed.sinav_sonuclari.length > 0 ? parsed.sinav_sonuclari : initialData.sinav_sonuclari;
-        const currentTeacherClasses = parsed.ogretmen_sinif && parsed.ogretmen_sinif.length > 0 ? parsed.ogretmen_sinif : initialData.ogretmen_sinif;
-        const currentNotes = parsed.rehberlik_notlari && parsed.rehberlik_notlari.length > 0 ? parsed.rehberlik_notlari : initialData.rehberlik_notlari;
-        const currentMessages = parsed.mesajlar && parsed.mesajlar.length > 0 ? parsed.mesajlar : initialData.mesajlar;
-        const currentSchedules = parsed.ders_programlari && parsed.ders_programlari.length > 0 ? parsed.ders_programlari : initialData.ders_programlari;
+        // Ensure default classes and students are seeded if the tables are undefined/null
+        const currentClasses = parsed.siniflar !== undefined && parsed.siniflar !== null ? parsed.siniflar : initialData.siniflar;
+        const currentStudents = parsed.ogrenciler !== undefined && parsed.ogrenciler !== null ? parsed.ogrenciler : initialData.ogrenciler;
+        const currentExams = parsed.sinav_tanimlari !== undefined && parsed.sinav_tanimlari !== null ? parsed.sinav_tanimlari : initialData.sinav_tanimlari;
+        const currentResults = parsed.sinav_sonuclari !== undefined && parsed.sinav_sonuclari !== null ? parsed.sinav_sonuclari : initialData.sinav_sonuclari;
+        const currentTeacherClasses = parsed.ogretmen_sinif !== undefined && parsed.ogretmen_sinif !== null ? parsed.ogretmen_sinif : initialData.ogretmen_sinif;
+        const currentNotes = parsed.rehberlik_notlari !== undefined && parsed.rehberlik_notlari !== null ? parsed.rehberlik_notlari : initialData.rehberlik_notlari;
+        const currentMessages = parsed.mesajlar !== undefined && parsed.mesajlar !== null ? parsed.mesajlar : initialData.mesajlar;
+        const currentSchedules = parsed.ders_programlari !== undefined && parsed.ders_programlari !== null ? parsed.ders_programlari : initialData.ders_programlari;
 
         this.data = {
           kurumlar: parsed.kurumlar || initialData.kurumlar,
