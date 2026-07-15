@@ -2092,6 +2092,17 @@ export default function App() {
                 className="fixed inset-x-0 top-[53px] bottom-0 bg-slate-950/98 backdrop-blur-xl z-40 p-4 flex flex-col justify-between overflow-y-auto border-t border-slate-900 md:hidden"
               >
                 <div className="space-y-4">
+                  {/* Mobile Drawer Logo Header */}
+                  <div className="flex items-center gap-2.5 px-2 py-2 border-b border-slate-900 mb-2">
+                    <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
+                      <img src="/favicon.svg" alt="K.A.S Logo" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-blue-400 font-black uppercase tracking-wider block leading-none">KURUM ANALİZ</span>
+                      <span className="text-xs font-black text-slate-200 tracking-wide">SİSTEMLERİ</span>
+                    </div>
+                  </div>
+                  
                   <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-2 mb-1">Menü Seçenekleri</div>
                   <div className="grid grid-cols-1 gap-1.5">
                     {/* Tab: Dashboard (All staff roles) */}
@@ -2314,6 +2325,17 @@ export default function App() {
           {/* Sidebar Navigation (Desktop Only) */}
           <aside className="hidden md:flex md:flex-col w-64 bg-slate-900 border-r border-slate-800/80 p-4 space-y-4 z-10 shrink-0">
             
+            {/* Sidebar Logo Header */}
+            <div className="flex items-center gap-2.5 px-2 py-3 border-b border-slate-800/60 mb-2 shrink-0">
+              <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
+                <img src="/favicon.svg" alt="K.A.S Logo" className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
+              </div>
+              <div>
+                <span className="text-[10px] text-blue-400 font-black uppercase tracking-wider block leading-none">KURUM ANALİZ</span>
+                <span className="text-xs font-black text-slate-200 tracking-wide">SİSTEMLERİ</span>
+              </div>
+            </div>
+
             {/* Nav tabs list */}
             <div className="flex flex-col gap-1 w-full">
               
