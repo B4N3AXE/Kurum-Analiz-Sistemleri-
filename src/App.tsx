@@ -150,7 +150,7 @@ export default function App() {
   const [isAnnualBilling, setIsAnnualBilling] = useState(false);
   const [studentCountSlider, setStudentCountSlider] = useState(150);
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null);
-  const [previewTab, setPreviewTab] = useState<'admin' | 'student' | 'pdf' | 'birebir'>('admin');
+  const [previewTab, setPreviewTab] = useState<'admin' | 'student' | 'pdf' | 'birebir' | 'risk' | 'ai_reco'>('admin');
   const [activePolicy, setActivePolicy] = useState<'privacy' | 'kvkk' | 'terms' | 'legal' | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -871,7 +871,9 @@ export default function App() {
                   { id: "admin", label: "Yönetici Paneli" },
                   { id: "student", label: "Öğrenci & Veli Ekranı" },
                   { id: "pdf", label: "PDF Sınav Okuyucu" },
-                  { id: "birebir", label: "Birebir Planlama" }
+                  { id: "birebir", label: "Birebir Planlama" },
+                  { id: "risk", label: "Akademik Risk Limitleri" },
+                  { id: "ai_reco", label: "Yapay Zeka Tavsiye & Tahmin" }
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -1111,6 +1113,116 @@ export default function App() {
                           <button type="button" className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] px-4 py-2 rounded-xl transition">
                             Birebir Dersi Kaydet & Veliyi Bilgilendir
                           </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {previewTab === 'risk' && (
+                    <div className="space-y-6 animate-fade-in">
+                      <div className="flex justify-between items-center border-b border-slate-900 pb-3">
+                        <div>
+                          <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">AKADEMİK RİSK SINIRLARI</span>
+                          <h4 className="text-sm font-extrabold text-slate-100">Dinamik Risk Eşikleri & Erken Uyarı Sistemi</h4>
+                        </div>
+                        <span className="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2 py-0.5 rounded font-black">Erken Müdahale</span>
+                      </div>
+
+                      {/* Threshold Configurator */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {[
+                          { exam: "TYT Eşiği", math: "20.0 Net", verbal: "25.0 Net", total: "60.0 Net", alert: "3 Öğrenci Riskte", color: "border-red-500/30 bg-red-500/5 text-red-400 animate-pulse" },
+                          { exam: "AYT Eşiği", math: "15.0 Net", verbal: "15.0 Net", total: "45.0 Net", alert: "Güvenli Limit", color: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400" },
+                          { exam: "LGS Eşiği", math: "10.0 Net", verbal: "14.0 Net", total: "55.0 Net", alert: "1 Öğrenci Riskte", color: "border-yellow-500/30 bg-yellow-500/5 text-yellow-400" }
+                        ].map((item, idx) => (
+                          <div key={idx} className="bg-slate-900/40 border border-slate-900 p-3.5 rounded-2xl space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-black text-slate-200">{item.exam}</span>
+                              <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full border ${item.color}`}>{item.alert}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-[9px]">
+                              <div className="bg-slate-950 p-1.5 rounded-lg border border-slate-900">
+                                <span className="text-slate-500 block">Matematik</span>
+                                <span className="text-slate-300 font-bold">{item.math}</span>
+                              </div>
+                              <div className="bg-slate-950 p-1.5 rounded-lg border border-slate-900">
+                                <span className="text-slate-500 block">Türkçe</span>
+                                <span className="text-slate-300 font-bold">{item.verbal}</span>
+                              </div>
+                            </div>
+                            <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-900 flex justify-between items-center text-[9px]">
+                              <span className="text-slate-400 font-bold">Toplam Net Limiti</span>
+                              <span className="text-blue-400 font-black font-mono">{item.total}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Early Warning alert banner */}
+                      <div className="flex items-start gap-2.5 p-3.5 bg-red-500/10 border border-red-500/20 rounded-2xl text-[10px] text-red-300 leading-relaxed">
+                        <AlertCircle className="text-red-400 shrink-0 mt-0.5" size={14} />
+                        <div>
+                          <span className="font-extrabold block text-red-400 uppercase text-[9px] mb-0.5">⚠️ KRİTİK AKADEMİK RİSK UYARISI:</span>
+                          Son yapılan <span className="text-slate-100 font-bold">3D Türkiye Geneli TYT-1</span> sınavında Türkçe ve Matematik branşlarında belirlenen risk limitinin altında kalan 3 öğrencimiz için otomatik etüt ve ek birebir ders takvimi planlanması önerilmektedir.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {previewTab === 'ai_reco' && (
+                    <div className="space-y-6 animate-fade-in">
+                      <div className="flex justify-between items-center border-b border-slate-900 pb-3">
+                        <div>
+                          <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">YAPAY ZEKA DESTEKLİ ANALİZ</span>
+                          <h4 className="text-sm font-extrabold text-slate-100">Başarı Projeksiyonu & Akıllı Tavsiye Motoru</h4>
+                        </div>
+                        <span className="text-[10px] bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded font-black">Yapay Zeka</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* WMA Trend analysis prediction widget */}
+                        <div className="bg-slate-900/40 border border-slate-900 p-4 rounded-2xl space-y-3.5 flex flex-col justify-between">
+                          <div className="space-y-1.5">
+                            <span className="text-[9px] text-slate-500 font-black uppercase tracking-wider block">📈 SONRAKİ SINAV BAŞARI TAHMİNİ</span>
+                            <span className="text-[11px] text-slate-300 font-semibold leading-relaxed block">
+                              Öğrencinin son 3 deneme sınavı netleri, ağırlıklı hareketli ortalama ve sönümlü eğilim analiziyle değerlendirilmiştir.
+                            </span>
+                          </div>
+
+                          <div className="bg-slate-950 border border-slate-900 p-3 rounded-xl flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <span className="text-[8px] text-slate-500 block">ÖNCEKİ ORTALAMA</span>
+                              <span className="text-base font-black text-slate-400 font-mono">72.50 Net</span>
+                            </div>
+                            <div className="text-blue-500">
+                              <ArrowRight size={16} />
+                            </div>
+                            <div className="space-y-0.5 text-right">
+                              <span className="text-[8px] text-emerald-400 font-bold block uppercase tracking-wider">🎯 TAHMİNİ HEDEF NET</span>
+                              <span className="text-lg font-black text-emerald-400 font-mono">78.40 Net</span>
+                            </div>
+                          </div>
+
+                          <div className="text-[8px] text-slate-500 font-bold text-center uppercase tracking-wider">
+                            Güven Aralığı: %94 • Son 3 Sınav Verisi Analiz Edildi
+                          </div>
+                        </div>
+
+                        {/* AI advice widget */}
+                        <div className="bg-slate-900/40 border border-slate-900 p-4 rounded-2xl space-y-3 flex flex-col justify-between">
+                          <div>
+                            <span className="text-[9px] text-purple-400 font-black uppercase tracking-wider block">💡 K.A.S DERS TAVSİYESİ</span>
+                            <h5 className="text-xs font-extrabold text-slate-200 mt-1">Matematik Gelişim Stratejisi</h5>
+                          </div>
+                          
+                          <p className="text-[10px] text-slate-300 leading-relaxed font-medium bg-slate-950 p-3 rounded-xl border border-slate-900">
+                            "Matematik dersinde formülleri ezberlemek yerine mantığını anlamaya odaklanmalı ve çözemediğin her sorunun video çözümünü mutlaka izleyerek boşlukları kapatmalısın."
+                          </p>
+
+                          <div className="flex items-center gap-1.5 text-[8px] text-slate-500 font-black uppercase tracking-wider">
+                            <Sparkles className="text-purple-400 shrink-0" size={10} />
+                            <span>Yapay Zeka Tarafından Otomatik Üretilmiştir</span>
+                          </div>
                         </div>
                       </div>
                     </div>
