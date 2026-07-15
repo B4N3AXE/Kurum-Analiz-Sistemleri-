@@ -100,3 +100,22 @@ export interface DersProgrami {
   ders_adi: string;
   ogretmen_adi: string;
 }
+
+export interface OgretmenTavsiyesi {
+  id: number;
+  ogrenci_id: number;
+  ogretmen_id: number;
+  ogretmen_adi: string;
+  ders_adi: string;
+  tavsiye_metni: string;
+  tarih: string;
+}
+
+export interface VeliNotu {
+  id: number;
+  ogrenci_id: number;
+  veli_id: number;
+  veli_adi: string;
+  not_metni: string;
+  tarih: string;
+}

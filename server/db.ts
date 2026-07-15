@@ -94,6 +94,25 @@ export interface RiskThreshold {
   toplam_net: number;
 }
 
+export interface OgretmenTavsiyesi {
+  id: number;
+  ogrenci_id: number;
+  ogretmen_id: number;
+  ogretmen_adi: string;
+  ders_adi: string;
+  tavsiye_metni: string;
+  tarih: string;
+}
+
+export interface VeliNotu {
+  id: number;
+  ogrenci_id: number;
+  veli_id: number;
+  veli_adi: string;
+  not_metni: string;
+  tarih: string;
+}
+
 export interface DatabaseSchema {
   kullanicilar: Kullanici[];
   kurumlar: Kurum[];
@@ -106,6 +125,8 @@ export interface DatabaseSchema {
   mesajlar: Mesaj[];
   ders_programlari: DersProgrami[];
   risk_thresholds: RiskThreshold[];
+  ogretmen_tavsiyeleri?: OgretmenTavsiyesi[];
+  veli_notlari?: VeliNotu[];
 }
 
 export interface DersProgrami {
@@ -199,7 +220,9 @@ const initialData: DatabaseSchema = {
     { id: 1, tur: 'TYT', turkce_net: 25, sosyal_net: 12, matematik_net: 20, fen_net: 12, toplam_net: 60 },
     { id: 2, tur: 'AYT', turkce_net: 15, sosyal_net: 15, matematik_net: 15, fen_net: 15, toplam_net: 45 },
     { id: 3, tur: 'LGS', turkce_net: 14, sosyal_net: 18, matematik_net: 10, fen_net: 12, toplam_net: 55 }
-  ]
+  ],
+  ogretmen_tavsiyeleri: [],
+  veli_notlari: []
 };
 
 export class Database {
@@ -261,7 +284,9 @@ export class Database {
           rehberlik_notlari: currentNotes,
           mesajlar: currentMessages,
           ders_programlari: currentSchedules,
-          risk_thresholds: parsed.risk_thresholds
+          risk_thresholds: parsed.risk_thresholds,
+          ogretmen_tavsiyeleri: parsed.ogretmen_tavsiyeleri || [],
+          veli_notlari: parsed.veli_notlari || []
         };
 
         // Always save back to keep db.json perfectly seeded and up to date
@@ -294,6 +319,8 @@ export class Database {
   public getMesajlar() { return this.data.mesajlar || []; }
   public getDersProgramlari() { return this.data.ders_programlari || []; }
   public getRiskThresholds() { return this.data.risk_thresholds || []; }
+  public getOgretmenTavsiyeleri() { return this.data.ogretmen_tavsiyeleri || []; }
+  public getVeliNotlari() { return this.data.veli_notlari || []; }
 
   // Mutation helper wrapper to auto-save after calls
   public insert<K extends keyof DatabaseSchema>(table: K, item: any): any {

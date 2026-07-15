@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { User, Ogrenci } from './types';
-import Dashboard from './components/Dashboard';
+import Dashboard, { getTopicAnalysisForStudent } from './components/Dashboard';
 import OgrenciPaneli from './components/OgrenciPaneli';
 import PdfOkuyucu from './components/PdfOkuyucu';
 import Mesajlar from './components/Mesajlar';
 import Tanimlar from './components/Tanimlar';
 import Abonelik from './components/Abonelik';
 import RiskLimitleri from './components/RiskLimitleri';
-import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key, Target, Eye } from 'lucide-react';
+import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key, Target, Eye, Send, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Helper function to calculate expected net projection for the next practice exam
@@ -93,17 +93,32 @@ export default function App() {
   const [resetSuccess, setResetSuccess] = useState('');
 
   // Parent profile lookups
-  const [childReport, setChildReport] = useState<{ student: Ogrenci; sonuclar: any[]; notlar: any[]; ders_programi?: any[] } | null>(null);
+  const [childReport, setChildReport] = useState<{
+    student: Ogrenci;
+    sonuclar: any[];
+    notlar: any[];
+    ders_programi?: any[];
+    tavsiyeler?: any[];
+    veli_notlari?: any[];
+  } | null>(null);
   const [loadingChild, setLoadingChild] = useState(false);
   const [veliChartTab, setVeliChartTab] = useState<'TYT' | 'AYT' | 'LGS'>('TYT');
+  const [newVeliNote, setNewVeliNote] = useState('');
 
   // Student profile lookups
-  const [studentReport, setStudentReport] = useState<{ student: Ogrenci; sonuclar: any[]; notlar: any[]; ders_programi?: any[] } | null>(null);
+  const [studentReport, setStudentReport] = useState<{
+    student: Ogrenci;
+    sonuclar: any[];
+    notlar: any[];
+    ders_programi?: any[];
+    tavsiyeler?: any[];
+  } | null>(null);
   const [loadingStudent, setLoadingStudent] = useState(false);
   const [studentChartTab, setStudentChartTab] = useState<'TYT' | 'AYT' | 'LGS'>('TYT');
   const [isEditingTargetNet, setIsEditingTargetNet] = useState(false);
   const [tempTargetNet, setTempTargetNet] = useState<number>(95);
   const [selectedExamDetail, setSelectedExamDetail] = useState<any | null>(null);
+  const [studentSelectedKarneExamId, setStudentSelectedKarneExamId] = useState<number | null>(null);
 
   // SaaS Marketing & Sales states
   const [currentSubscription, setCurrentSubscription] = useState<string>(() => localStorage.getItem('kas_subscription_plan') || 'trial');
@@ -307,6 +322,55 @@ export default function App() {
       console.error("Veli çocuk bilgisi yükleme hatası:", err);
     } finally {
       setLoadingChild(false);
+    }
+  };
+
+  const handleAddVeliNote = async (e: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newVeliNote.trim() || !childReport || !token) return;
+
+    try {
+      const res = await fetch(`/api/ogrenci/${childReport.student.id}/veli-not`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          veli_id: user?.id,
+          veli_adi: user?.ad_soyad,
+          not_metni: newVeliNote
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setChildReport(prev => prev ? {
+          ...prev,
+          veli_notlari: [data.veliNot, ...(prev.veli_notlari || [])]
+        } : null);
+        setNewVeliNote('');
+      }
+    } catch (err) {
+      console.error("Veli geri bildirim ekleme hatası:", err);
+    }
+  };
+
+  const handleDeleteVeliNoteInParentPanel = async (noteId: number) => {
+    if (!childReport || !token) return;
+    try {
+      const res = await fetch(`/api/ogrenci/${childReport.student.id}/veli-not/${noteId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': token }
+      });
+      if (res.ok) {
+        setChildReport(prev => prev ? {
+          ...prev,
+          veli_notlari: (prev.veli_notlari || []).filter(n => n.id !== noteId)
+        } : null);
+      }
+    } catch (err) {
+      console.error("Veli geri bildirim silme hatası:", err);
     }
   };
 
@@ -1488,6 +1552,19 @@ export default function App() {
                 <p className="text-[10px] text-slate-500 font-bold">
                   © 2026 K.A.S SaaS Inc. Tüm hakları saklıdır. Eğitim Kurumları Yönetim ve Birebir Ders Otomasyon Platformu.
                 </p>
+                <p className="text-[10px] text-slate-500 font-bold flex items-center justify-center gap-1">
+                  <span>Bu site</span>
+                  <a
+                    href="https://www.instagram.com/cagriscn.21/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-pink-400 hover:text-pink-300 font-black hover:underline inline-flex items-center gap-0.5"
+                  >
+                    <Instagram size={11} className="inline shrink-0" />
+                    <span>cagriscn.21</span>
+                  </a>
+                  <span>tarafından geliştirilmiştir.</span>
+                </p>
                 <p className="text-[8px] text-slate-600 font-semibold leading-relaxed">
                   * K.A.S platformu üzerindeki tüm analizler, grafikler ve istatistiksel raporlar eğitim standartlarına ve başarı kriterlerine uygun olarak hazırlanmakta olup, eğitim süreçlerinde yüksek verimlilik sağlamaktadır.
                 </p>
@@ -2472,9 +2549,21 @@ export default function App() {
                 </div>
               )}
 
-              <div className="text-[10px] text-slate-500 font-bold space-y-0.5 px-1">
+              <div className="text-[10px] text-slate-500 font-bold space-y-0.5 px-1 pt-2 border-t border-slate-800/40">
                 <p>Kurum Analiz Sistemi v1.5</p>
                 <p className="text-[9px] text-slate-600 font-semibold">© 2026 K.A.S Portal • Premium</p>
+                <div className="pt-1.5 flex items-center gap-1 flex-wrap">
+                  <span className="text-[9px] text-slate-500">Geliştirici:</span>
+                  <a
+                    href="https://www.instagram.com/cagriscn.21/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-pink-400 hover:text-pink-300 font-black hover:underline inline-flex items-center gap-0.5"
+                  >
+                    <Instagram size={10} className="inline shrink-0" />
+                    <span>cagriscn.21</span>
+                  </a>
+                </div>
               </div>
             </div>
           </aside>
@@ -2621,6 +2710,133 @@ export default function App() {
                       <p className="text-xs text-slate-400 font-medium mt-1">
                         Sınıfı: {childReport.student.sinif_adi} • Sınav Gelişim Alanı: {childReport.student.alan} • Öğrencinin Seçtiği Yıl Sonu Hedef Neti: <span className="text-amber-400 font-extrabold">{childReport.student.hedef_net || 95} Net</span>
                       </p>
+                    </div>
+
+                    {/* Akademik Gelişim Değerlendirme Kartı */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+                        <span className="text-[10px] text-blue-400 font-black uppercase tracking-wider block">📈 Gelişim Trendi Değerlendirmesi</span>
+                        {(() => {
+                          if (!childReport.sonuclar || childReport.sonuclar.length === 0) {
+                            return <p className="text-xs text-slate-400 leading-normal font-semibold">Değerlendirme için en az 1 deneme sonucu gerekiyor.</p>;
+                          }
+                          const sonuclar = childReport.sonuclar;
+                          if (sonuclar.length === 1) {
+                            return (
+                              <div className="space-y-1">
+                                <span className="text-xs font-black text-amber-400 uppercase tracking-tight block">İlk Veri Girişi</span>
+                                <p className="text-[11px] text-slate-400 leading-normal font-semibold">Öğrencimizin ilk deneme sonucu kaydedildi. Sonraki sınavlarda gelişim grafiği otomatik olarak analiz edilmeye başlanacaktır.</p>
+                              </div>
+                            );
+                          }
+                          const lastVal = Number(sonuclar[sonuclar.length - 1].toplam_net);
+                          const prevVal = Number(sonuclar[sonuclar.length - 2].toplam_net);
+                          const diff = lastVal - prevVal;
+                          
+                          if (diff > 4) {
+                            return (
+                              <div className="space-y-1">
+                                <span className="text-xs font-black text-emerald-400 uppercase tracking-tight block">Hızlı Gelişim Gösteriyor 🚀</span>
+                                <p className="text-[11px] text-slate-400 leading-normal font-semibold">Son sınava göre <strong className="text-emerald-400 font-black">+{diff.toFixed(1)} netlik</strong> belirgin bir artış gösterdi. Çalışma disiplini son derece yüksek gidiyor.</p>
+                              </div>
+                            );
+                          } else if (diff > 0) {
+                            return (
+                              <div className="space-y-1">
+                                <span className="text-xs font-black text-blue-400 uppercase tracking-tight block">Yükseliş Eğiliminde 📈</span>
+                                <p className="text-[11px] text-slate-400 leading-normal font-semibold">Son sınavda <strong className="text-blue-400 font-black">+{diff.toFixed(1)} net</strong> artış yaşandı. İstikrarlı çalışmasını sürdürürse hedef netine rahatça ulaşacaktır.</p>
+                              </div>
+                            );
+                          } else if (diff > -3) {
+                            return (
+                              <div className="space-y-1">
+                                <span className="text-xs font-black text-slate-300 uppercase tracking-tight block">Stabil / Kararlı Seviye 📊</span>
+                                <p className="text-[11px] text-slate-400 leading-normal font-semibold">Net seviyesi benzer düzeylerde korundu ({diff.toFixed(1)} net değişim). Konu eksiklikleri giderilerek sıçrama yapması hedeflenmeli.</p>
+                              </div>
+                            );
+                          } else {
+                            return (
+                              <div className="space-y-1">
+                                <span className="text-xs font-black text-rose-400 uppercase tracking-tight block">Performans Düşüşü / Odaklanma Uyarısı ⚠️</span>
+                                <p className="text-[11px] text-slate-400 leading-normal font-semibold">Son sınavda <strong className="text-rose-400 font-black">{diff.toFixed(1)} netlik</strong> bir gerileme görüldü. Deneme sınavı analizleri incelenerek moral desteği sağlanmalı.</p>
+                              </div>
+                            );
+                          }
+                        })()}
+                      </div>
+
+                      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+                        <span className="text-[10px] text-emerald-400 font-black uppercase tracking-wider block">🎯 Yıl Sonu Hedefi Analizi</span>
+                        {(() => {
+                          const target = childReport.student.hedef_net || 95;
+                          if (!childReport.sonuclar || childReport.sonuclar.length === 0) {
+                            return <p className="text-xs text-slate-400 leading-normal font-semibold">Yıl sonu hedef analizi için sınav skoru bekleniyor.</p>;
+                          }
+                          const lastNet = Number(childReport.sonuclar[childReport.sonuclar.length - 1].toplam_net);
+                          const remaining = target - lastNet;
+                          const pct = Math.min(100, Math.max(0, (lastNet / target) * 100));
+
+                          return (
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-slate-300">Hedefe Yakınlık: %{pct.toFixed(0)}</span>
+                                <span className="text-[10px] font-extrabold text-amber-400">Hedef: {target} Net</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                                <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${pct}%` }}></div>
+                              </div>
+                              <p className="text-[11px] text-slate-400 leading-normal font-semibold">
+                                {remaining <= 0 ? (
+                                  <span className="text-emerald-400 font-bold">Harika! Yıl sonu hedef neti şimdiden yakalanmış durumda 🚀</span>
+                                ) : remaining <= 10 ? (
+                                  <span>Hedefe <strong className="text-emerald-400 font-black">{remaining.toFixed(1)} net</strong> kaldı. Öğrencimiz son derece yakın seviyede!</span>
+                                ) : remaining <= 25 ? (
+                                  <span>Hedefe <strong className="text-blue-400 font-black">{remaining.toFixed(1)} net</strong> uzaklıkta. Gelişim ivmesiyle yakalanabilir düzeyde.</span>
+                                ) : (
+                                  <span>Hedefe <strong className="text-amber-400 font-black">{remaining.toFixed(1)} net</strong> mesafe var. Tempolu konu tekrarları planlanmalı.</span>
+                                )}
+                              </p>
+                            </div>
+                          );
+                        })()}
+                      </div>
+
+                      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+                        <span className="text-[10px] text-amber-400 font-black uppercase tracking-wider block">🛡️ Akademik Risk & Destek İhtiyacı</span>
+                        {(() => {
+                          if (!childReport.sonuclar || childReport.sonuclar.length === 0) {
+                            return <p className="text-xs text-slate-400 leading-normal font-semibold">Risk analizi için en az 1 deneme sonucu bekleniyor.</p>;
+                          }
+                          const last = childReport.sonuclar[childReport.sonuclar.length - 1];
+                          const lowCourses: string[] = [];
+                          
+                          const tytMathLimit = 18;
+                          const tytTurLimit = 22;
+                          const tytFenLimit = 10;
+                          
+                          if (last.matematik_net < tytMathLimit) lowCourses.push("Matematik");
+                          if (last.turkce_net < tytTurLimit) lowCourses.push("Türkçe");
+                          if (last.fen_net < tytFenLimit) lowCourses.push("Fen Bilimleri");
+
+                          if (lowCourses.length === 0) {
+                            return (
+                              <div className="space-y-1">
+                                <span className="text-xs font-black text-emerald-400 uppercase tracking-tight block">Risk Bulunmuyor ✅</span>
+                                <p className="text-[11px] text-slate-400 leading-normal font-semibold">Tüm derslerdeki net ortalamaları okul sınır limitlerinin üzerinde seyrediyor. Mevcut tempoyu koruması yeterlidir.</p>
+                              </div>
+                            );
+                          } else {
+                            return (
+                              <div className="space-y-1">
+                                <span className="text-xs font-black text-rose-400 uppercase tracking-tight block">Kritik Ders Takviyesi Gerekli ⚠️</span>
+                                <p className="text-[11px] text-slate-400 leading-normal font-semibold">
+                                  <strong className="text-rose-400 font-black">{lowCourses.join(', ')}</strong> alanlarında net seviyesi kritik alt sınırda. Bu konular için ek soru çözümü ve rehberlik görüşmesi önerilir.
+                                </p>
+                              </div>
+                            );
+                          }
+                        })()}
+                      </div>
                     </div>
 
                     {/* Haftalık Birebir Ders Programı */}
@@ -2884,6 +3100,105 @@ export default function App() {
                                 <p className="text-xs text-slate-300 font-medium leading-relaxed">{n.not_metni}</p>
                               </div>
                             ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Veli & Öğretmen İletişim ve Tavsiye Portalı */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Left: Öğretmen Ders Tavsiyeleri */}
+                      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                        <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex justify-between items-center">
+                          <span>Öğretmenlerimizin Ders Çalışma Tavsiyeleri</span>
+                          <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            📖 Özel Tavsiyeler
+                          </span>
+                        </h4>
+                        
+                        {!(childReport.tavsiyeler && childReport.tavsiyeler.length > 0) ? (
+                          <div className="text-center py-12 text-xs text-slate-500">Ders öğretmenleri tarafından henüz eklenmiş çalışma tavsiyesi bulunmuyor.</div>
+                        ) : (
+                          <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                            {childReport.tavsiyeler.map(t => (
+                              <div key={t.id} className="bg-slate-950/60 p-3 border border-slate-850 rounded-xl space-y-1.5">
+                                <div className="flex justify-between items-center">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[9px] bg-emerald-500/10 text-emerald-400 font-extrabold px-1.5 py-0.5 rounded uppercase">
+                                      {t.ders_adi}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-slate-300 truncate max-w-[120px]">{t.ogretmen_adi}</span>
+                                  </div>
+                                  <span className="text-[9px] text-slate-500 font-medium">
+                                    {t.tarih ? new Date(t.tarih).toLocaleDateString('tr-TR') : ''}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-300 font-medium leading-relaxed">{t.tavsiye_metni}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right: Veli Geri Bildirim & Ev Takip Notu Ekleme */}
+                      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                        <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex justify-between items-center">
+                          <span>Okul Yönetimi & Öğretmenlere Geri Bildirim</span>
+                          <span className="text-[10px] text-purple-400 font-bold bg-purple-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            🏠 Evden Takip
+                          </span>
+                        </h4>
+
+                        <p className="text-[11px] text-slate-400 leading-normal font-semibold">
+                          Öğrencimizin evdeki çalışma disiplini, ödev düzeni veya merak ettiğiniz durumları buraya yazarak öğretmenlerimize ve rehberlik servisine anında iletebilirsiniz.
+                        </p>
+
+                        {/* Interactive Form */}
+                        <form onSubmit={handleAddVeliNote} className="space-y-2">
+                          <textarea
+                            placeholder="Evdeki çalışma durumu, motivasyonu ve sorularınızı yazın..."
+                            value={newVeliNote}
+                            onChange={e => setNewVeliNote(e.target.value)}
+                            rows={3}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-100 focus:outline-none focus:border-purple-500 placeholder-slate-600 resize-none"
+                          />
+                          <div className="flex justify-end">
+                            <button
+                              type="submit"
+                              className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow shadow-purple-500/10 cursor-pointer"
+                            >
+                              <Send size={12} /> Geri Bildirim Gönder
+                            </button>
+                          </div>
+                        </form>
+
+                        {/* Active Feedback List from this Parent */}
+                        {childReport.veli_notlari && childReport.veli_notlari.length > 0 && (
+                          <div className="space-y-2.5 pt-2">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Önceki Gönderimleriniz</span>
+                            <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                              {childReport.veli_notlari.map(n => (
+                                <div key={n.id} className="bg-slate-950/40 p-2.5 border border-slate-850 rounded-xl space-y-1 relative group">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-bold text-purple-400">Gönderen: Siz</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[9px] text-slate-500 font-medium">
+                                        {n.tarih ? new Date(n.tarih).toLocaleDateString('tr-TR') : ''}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteVeliNoteInParentPanel(n.id)}
+                                        className="text-slate-600 hover:text-red-400 transition"
+                                        title="Sil"
+                                      >
+                                        <Trash2 size={10} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <p className="text-[11px] text-slate-300 font-medium leading-normal">{n.not_metni}</p>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -3237,8 +3552,263 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* DETAYLI KONU ANALİZLİ SINAV KARNESİ (ÖĞRENCİ İÇİN YENİ EK) */}
+                    {studentReport.sonuclar.length > 0 && (
+                      (() => {
+                        const activeExamResult = studentReport.sonuclar.find(r => r.id === studentSelectedKarneExamId) || 
+                          studentReport.sonuclar[studentReport.sonuclar.length - 1];
+
+                        const topicAnalysis = getTopicAnalysisForStudent(
+                          studentReport.student.id,
+                          activeExamResult.id,
+                          activeExamResult.tur || (activeExamResult as any).sinav_turu || 'TYT',
+                          {
+                            turkce: activeExamResult.turkce_net,
+                            matematik: activeExamResult.matematik_net,
+                            sosyal: activeExamResult.sosyal_net,
+                            fen: activeExamResult.fen_net
+                          }
+                        );
+
+                        // Aggregate failures across ALL exams for warnings
+                        const aggregateTopicFailures = () => {
+                          const topicStats: Record<string, { topic: string; subject: string; correct: number; incorrect: number; total: number }> = {};
+                          
+                          studentReport.sonuclar.forEach(r => {
+                            const analysis = getTopicAnalysisForStudent(
+                              studentReport.student.id,
+                              r.id,
+                              r.tur || (r as any).sinav_turu || 'TYT',
+                              {
+                                turkce: r.turkce_net,
+                                matematik: r.matematik_net,
+                                sosyal: r.sosyal_net,
+                                fen: r.fen_net
+                              }
+                            );
+                            
+                            const addStats = (subjectName: string, topicsList: any[]) => {
+                              if (!topicsList) return;
+                              topicsList.forEach(t => {
+                                const key = `${subjectName}-${t.ad}`;
+                                if (!topicStats[key]) {
+                                  topicStats[key] = {
+                                    topic: t.ad,
+                                    subject: subjectName,
+                                    correct: 0,
+                                    incorrect: 0,
+                                    total: 0
+                                  };
+                                }
+                                topicStats[key].correct += t.d;
+                                topicStats[key].incorrect += t.y;
+                                topicStats[key].total += t.soru;
+                              });
+                            };
+                            
+                            addStats("TÜRKÇE", analysis.turkce);
+                            addStats("MATEMATİK", analysis.matematik);
+                            addStats("SOSYAL BİLGİLER", analysis.sosyal);
+                            addStats("FEN BİLİMLERİ", analysis.fen);
+                          });
+                          
+                          return Object.values(topicStats)
+                            .map(ts => {
+                              const successRate = ts.total > 0 ? Math.round((ts.correct / ts.total) * 100) : 100;
+                              return {
+                                ...ts,
+                                successRate
+                              };
+                            })
+                            .filter(ts => ts.incorrect > 0 || ts.successRate < 70)
+                            .sort((a, b) => b.incorrect - a.incorrect || a.successRate - b.successRate);
+                        };
+
+                        const weakTopics = aggregateTopicFailures();
+                        
+                        const getTopicAdvice = (subject: string, topic: string, incorrects: number, successRate: number) => {
+                          const normalizedTopic = topic.toLowerCase();
+                          let advice = "Bu konuda son denemelerde hedefin altında başarı sağlanmıştır. Konu anlatımı tekrar edilip eksikler kapatılmalıdır.";
+                          
+                          if (normalizedTopic.includes("yazım")) {
+                            advice = "Yazım kuralları kuramsal tekrarları yapılmalı, TDK güncel kılavuzu taranmalı ve her gün 15 kural sorusu çözülmelidir.";
+                          } else if (normalizedTopic.includes("noktalama")) {
+                            advice = "Noktalama işaretlerinin işlevleri özetlenmeli, özellikle virgülün kullanılmadığı yerlere dikkat edilerek 50 soru çözülmelidir.";
+                          } else if (normalizedTopic.includes("paragraf") || normalizedTopic.includes("anlam")) {
+                            advice = "Okuma anlama ve odaklanma hızı artırılmalı, günlük 20 paragraf sorusu süreli (dakika tutarak) çözülmelidir.";
+                          } else if (normalizedTopic.includes("dil bilgisi") || normalizedTopic.includes("ögeleri") || normalizedTopic.includes("ekler")) {
+                            advice = "Sözcük yapısı ve cümle ögeleri kuralları formülleştirilerek çalışılmalı, soru bankasından karma testler taranmalıdır.";
+                          } else if (normalizedTopic.includes("problem")) {
+                            advice = "Denklem kurma ve oran-orantı temelleri zayıf. Her gün farklı tiplerden (sayı, kesir, hız) 15 problem çözülmelidir.";
+                          } else if (normalizedTopic.includes("sayılar") || normalizedTopic.includes("rasyonel")) {
+                            advice = "Temel sayı kümeleri ve rasyonel işlemlerde işlem hatası yapılıyor. Sorularda işlemleri yazarak yapması önerilir.";
+                          } else if (normalizedTopic.includes("mutlak değer") || normalizedTopic.includes("eşitsizlik")) {
+                            advice = "Mutlak değer özellikleri (pozitif/negatif dışarı çıkış kuralları) formül özet kartlarına yazılmalı ve pekiştirilmelidir.";
+                          } else if (normalizedTopic.includes("geometri") || normalizedTopic.includes("açılar") || normalizedTopic.includes("üçgen") || normalizedTopic.includes("dörtgen")) {
+                            advice = "Şekil görme pratiği eksik. Geometride üçgen/açı kuralları özet kartı yapılmalı, her soruda yardımcı çizimler yapılmalıdır.";
+                          } else if (normalizedTopic.includes("fonksiyonlar")) {
+                            advice = "Fonksiyon tanım kümeleri ve grafik okuma eksik. Grafik sorularında x ve y eksen değerlerini eşleştirme pratiği yapılmalıdır.";
+                          } else if (normalizedTopic.includes("fizik") || normalizedTopic.includes("ısı") || normalizedTopic.includes("kuvvet") || normalizedTopic.includes("dalga") || normalizedTopic.includes("basınç")) {
+                            advice = "Fiziksel formüllerin günlük hayattaki sözel mantık yorumları kavranmalı, MEB kazanım testleri taranmalıdır.";
+                          } else if (normalizedTopic.includes("kimya") || normalizedTopic.includes("atom") || normalizedTopic.includes("periyodik") || normalizedTopic.includes("etkileşim")) {
+                            advice = "Kimya element adlandırmaları, atom modelleri ve etkileşim kuralları ezberlenmeli, kavram haritası çıkarılmalıdır.";
+                          } else if (normalizedTopic.includes("hücre") || normalizedTopic.includes("biyoloji") || normalizedTopic.includes("canlılar") || normalizedTopic.includes("kalıtım")) {
+                            advice = "Biyoloji konu ezberleri eksik kalmış. Görsel şemalar (soyağacı, hücre organelleri) çizilerek hafızaya alınmalıdır.";
+                          }
+                          
+                          return {
+                            title: `${subject} - ${topic}`,
+                            stats: `Geçmiş denemelerde ${incorrects} yanlış yapıldı (Başarı: %${successRate})`,
+                            advice
+                          };
+                        };
+
+                        const topWeakTopics = weakTopics.slice(0, 3).map(ts => getTopicAdvice(ts.subject, ts.topic, ts.incorrect, ts.successRate));
+
+                        const renderSubjectPanel = (title: string, net: number, topicsList: any[], borderTheme: string, textTheme: string) => {
+                          if (!topicsList || topicsList.length === 0) return null;
+                          return (
+                            <div className={`bg-slate-900/40 border ${borderTheme} rounded-2xl p-4 space-y-3`}>
+                              <div className="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                                <span className={`text-xs font-black uppercase tracking-wider ${textTheme}`}>{title}</span>
+                                <span className={`text-xs font-black px-2.5 py-0.5 rounded-full bg-slate-950 border border-slate-800 ${textTheme}`}>{net} NET</span>
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-left text-xs text-slate-300">
+                                  <thead>
+                                    <tr className="text-slate-500 font-extrabold border-b border-slate-850/50 text-[10px] uppercase">
+                                      <th className="pb-1.5">Konu Adı</th>
+                                      <th className="pb-1.5 text-center w-8">S</th>
+                                      <th className="pb-1.5 text-center w-8">D</th>
+                                      <th className="pb-1.5 text-center w-8">Y</th>
+                                      <th className="pb-1.5 text-center w-8">B</th>
+                                      <th className="pb-1.5 text-center w-12">Başarı</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-850/20 font-medium">
+                                    {topicsList.map((t: any, idx: number) => {
+                                      const successRate = t.soru > 0 ? Math.round((t.d / t.soru) * 100) : 100;
+                                      let rateColor = "text-emerald-400";
+                                      let rateBg = "bg-emerald-950/40 border-emerald-900/50";
+                                      if (successRate < 40) {
+                                        rateColor = "text-rose-400";
+                                        rateBg = "bg-rose-950/40 border-rose-900/50";
+                                      } else if (successRate < 75) {
+                                        rateColor = "text-amber-400";
+                                        rateBg = "bg-amber-950/40 border-amber-900/50";
+                                      }
+                                      
+                                      return (
+                                        <tr key={idx} className="hover:bg-slate-900/20">
+                                          <td className="py-2 pr-2 font-semibold text-slate-300">{t.ad}</td>
+                                          <td className="py-2 text-center font-bold text-slate-400">{t.soru}</td>
+                                          <td className="py-2 text-center font-extrabold text-emerald-400">{t.d}</td>
+                                          <td className="py-2 text-center font-extrabold text-rose-400">{t.y}</td>
+                                          <td className="py-2 text-center font-bold text-slate-500">{t.b}</td>
+                                          <td className="py-2 text-center">
+                                            <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-black border ${rateBg} ${rateColor}`}>
+                                              %{successRate}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          );
+                        };
+
+                        return (
+                          <div className="space-y-6">
+                            {/* Dynamic AI Study Recommendations based on aggregations */}
+                            {topWeakTopics.length > 0 && (
+                              <div className="bg-amber-950/10 border border-amber-900/40 rounded-2xl p-5 space-y-2 animate-fade-in">
+                                <div className="flex items-center gap-2 text-xs text-amber-400 font-black uppercase tracking-wider">
+                                  <Sparkles size={14} className="text-amber-400 animate-pulse" />
+                                  <span>Yapay Zeka Destekli Akademik Gelişim & Konu Analizi Uyarıların</span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
+                                  Geçmiş tüm deneme sınavların analiz edilerek en çok hata yaptığın ve odaklanması gereken kritik konular aşağıda listelenmiştir:
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                                  {topWeakTopics.map((item, idx) => (
+                                    <div key={idx} className="bg-slate-950/60 border border-slate-900 p-3.5 rounded-xl space-y-1.5 flex flex-col justify-between hover:border-amber-900/60 transition">
+                                      <div>
+                                        <span className="text-[10px] text-amber-400 font-black uppercase tracking-wider block truncate">{item.title}</span>
+                                        <span className="text-[9px] text-slate-500 font-bold block mt-0.5">{item.stats}</span>
+                                        <p className="text-[10px] text-slate-300 leading-relaxed font-semibold mt-1.5">
+                                          {item.advice}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Karne Render and Selector */}
+                            <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-4 animate-fade-in">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800/80 pb-3">
+                                <div>
+                                  <h4 className="text-sm font-bold text-slate-100 uppercase tracking-tight flex items-center gap-2">
+                                    <Award size={16} className="text-indigo-400" />
+                                    <span>Sınav Karnem & Konu Analizlerim</span>
+                                  </h4>
+                                  <p className="text-[10px] text-slate-500 font-bold block mt-0.5">Konu düzeyinde doğru, yanlış ve başarı oranların analizi</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] text-slate-400 font-bold uppercase">Sınav Seçimi:</span>
+                                  <select
+                                    value={studentSelectedKarneExamId || activeExamResult.id}
+                                    onChange={(e) => setStudentSelectedKarneExamId(Number(e.target.value))}
+                                    className="bg-slate-950 border border-slate-850 hover:border-slate-750 text-xs font-black text-indigo-400 rounded-xl px-3 py-1.5 focus:outline-none"
+                                  >
+                                    {studentReport.sonuclar.map((r) => (
+                                      <option key={r.id} value={r.id}>{r.sinav_adi} ({r.tur || (r as any).sinav_turu || 'TYT'})</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-bold text-slate-400">
+                                <div className="bg-slate-950/60 border border-slate-850 p-3 rounded-xl">
+                                  <span className="text-slate-500 block uppercase tracking-wider text-[9px] font-black">Öğrenci</span>
+                                  <span className="text-slate-200 font-black block truncate mt-0.5">{studentReport.student.ad_soyad}</span>
+                                </div>
+                                <div className="bg-slate-950/60 border border-slate-850 p-3 rounded-xl">
+                                  <span className="text-slate-500 block uppercase tracking-wider text-[9px] font-black">Sınıf / Alan</span>
+                                  <span className="text-slate-200 font-black block mt-0.5">{studentReport.student.sinif_adi} • {studentReport.student.alan}</span>
+                                </div>
+                                <div className="bg-slate-950/60 border border-slate-850 p-3 rounded-xl">
+                                  <span className="text-slate-500 block uppercase tracking-wider text-[9px] font-black">Sınav Adı</span>
+                                  <span className="text-slate-200 font-black block truncate mt-0.5">{activeExamResult.sinav_adi}</span>
+                                </div>
+                                <div className="bg-slate-950/60 border border-slate-850 p-3 rounded-xl">
+                                  <span className="text-slate-500 block uppercase tracking-wider text-[9px] font-black">Sınav Türü</span>
+                                  <span className="text-indigo-400 font-black block mt-0.5">{activeExamResult.tur || (activeExamResult as any).sinav_turu || 'TYT'}</span>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-1">
+                                <div className="space-y-6">
+                                  {renderSubjectPanel("TÜRKÇE", activeExamResult.turkce_net, topicAnalysis.turkce, "border-cyan-900/40 bg-cyan-950/5", "text-cyan-400")}
+                                  {renderSubjectPanel("SOSYAL BİLGİLER", activeExamResult.sosyal_net, topicAnalysis.sosyal, "border-amber-900/40 bg-amber-950/5", "text-amber-400")}
+                                </div>
+                                <div className="space-y-6">
+                                  {renderSubjectPanel("MATEMATİK", activeExamResult.matematik_net, topicAnalysis.matematik, "border-blue-900/40 bg-blue-950/5", "text-blue-400")}
+                                  {renderSubjectPanel("FEN BİLİMLERİ", activeExamResult.fen_net, topicAnalysis.fen, "border-emerald-900/40 bg-emerald-950/5", "text-emerald-400")}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    )}
+
                     {/* Interactive targets checklist */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       {/* Sınav karnelerim */}
                       <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow">
                         <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
@@ -3297,9 +3867,56 @@ export default function App() {
                           </div>
                         )}
                       </div>
+
+                      {/* Öğretmen Tavsiyeleri */}
+                      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow">
+                        <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 mb-3">Öğretmenlerimin Ders Çalışma Tavsiyeleri</h4>
+                        {!(studentReport.tavsiyeler && studentReport.tavsiyeler.length > 0) ? (
+                          <div className="text-center py-6 text-xs text-slate-500">Öğretmenleriniz henüz ders bazlı tavsiye eklememiş.</div>
+                        ) : (
+                          <div className="space-y-3 max-h-64 overflow-y-auto">
+                            {studentReport.tavsiyeler.map(t => (
+                              <div key={t.id} className="bg-slate-950/60 p-3 border border-slate-850 rounded-xl space-y-1.5">
+                                <div className="flex justify-between items-center">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[9px] bg-emerald-500/10 text-emerald-400 font-extrabold px-1.5 py-0.5 rounded uppercase font-mono">
+                                      {t.ders_adi}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-slate-300 truncate max-w-[120px]">{t.ogretmen_adi}</span>
+                                  </div>
+                                  <span className="text-[9px] text-slate-500 font-medium">
+                                    {t.tarih ? new Date(t.tarih).toLocaleDateString('tr-TR') : ''}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-300 font-medium leading-relaxed">{t.tavsiye_metni}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
+                
+                {/* Modern Global Footer */}
+                <div className="mt-12 border-t border-slate-800/60 pt-6 pb-2 text-center space-y-2">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Kurum Analiz Sistemi (K.A.S) © 2026</p>
+                  <div className="flex flex-col sm:flex-row justify-center items-center gap-1 text-xs">
+                    <span className="text-slate-400 font-medium">Bu sitenin tüm hakları ve mülkiyeti</span>
+                    <div className="flex items-center gap-1">
+                      <a 
+                        href="https://www.instagram.com/cagriscn.21/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="bg-gradient-to-r from-pink-500 to-amber-500 text-transparent bg-clip-text font-black hover:opacity-80 transition inline-flex items-center gap-1"
+                      >
+                        <Instagram size={12} className="text-pink-500 inline shrink-0" />
+                        <span>Çağrı Saçan (cagriscn.21)</span>
+                      </a>
+                      <span className="text-slate-400 font-medium">'a aittir.</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </>

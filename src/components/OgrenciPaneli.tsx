@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Ogrenci, Sinif, SinavSonuc, RehberlikNotu } from '../types';
-import { Search, Plus, Edit, Trash2, FileText, Download, ToggleLeft, ToggleRight, ArrowLeft, Send, AlertCircle, Sparkles, Calendar, Clock } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, FileText, Download, ToggleLeft, ToggleRight, ArrowLeft, Send, AlertCircle, Sparkles, Calendar, Clock, Award, Layers, Target } from 'lucide-react';
+import { getTopicAnalysisForStudent } from './Dashboard';
 
 // Helper function to calculate expected net projection for the next practice exam
 const getProjectedNet = (sonuclar: any[]): number => {
@@ -74,7 +75,17 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
     sonuclar: SinavSonuc[];
     notlar: RehberlikNotu[];
     ders_programi?: any[];
+    tavsiyeler?: any[];
+    veli_notlari?: any[];
   } | null>(null);
+
+  // Teacher advice form state
+  const [newTavsiyeCourse, setNewTavsiyeCourse] = useState('Matematik');
+  const [newTavsiyeText, setNewTavsiyeText] = useState('');
+  const [deleteConfirmTavsiyeId, setDeleteConfirmTavsiyeId] = useState<number | null>(null);
+
+  // Selected exam for detailed topic analysis / report card
+  const [selectedKarneExamId, setSelectedKarneExamId] = useState<number | null>(null);
 
   // Note text input
   const [newNote, setNewNote] = useState('');
@@ -167,6 +178,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
         setDetailData(data);
         setTargetNetInput(data.student.hedef_net ? String(data.student.hedef_net) : '95');
         setSelectedStudentId(id);
+        setSelectedKarneExamId(null);
         setView('detail');
       }
     } catch (err) {
@@ -341,6 +353,81 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
       }
     } catch (err) {
       console.error("Error deleting guidance note:", err);
+    }
+  };
+
+  // Add teacher recommendation
+  const handleAddTavsiye = async (e: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newTavsiyeText.trim() || !newTavsiyeCourse) return;
+
+    try {
+      const res = await fetch(`/api/ogrenci/${selectedStudentId}/tavsiye`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          ogretmen_id: user.id,
+          ogretmen_adi: user.ad_soyad,
+          ders_adi: newTavsiyeCourse,
+          tavsiye_metni: newTavsiyeText
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (detailData) {
+          setDetailData({
+            ...detailData,
+            tavsiyeler: [data.tavsiye, ...(detailData.tavsiyeler || [])]
+          });
+        }
+        setNewTavsiyeText('');
+      }
+    } catch (err) {
+      console.error("Error adding teacher advice:", err);
+    }
+  };
+
+  // Delete teacher recommendation
+  const handleDeleteTavsiye = async (tavsiyeId: number) => {
+    try {
+      const res = await fetch(`/api/ogrenci/${selectedStudentId}/tavsiye/${tavsiyeId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': token }
+      });
+      if (res.ok) {
+        if (detailData) {
+          setDetailData({
+            ...detailData,
+            tavsiyeler: (detailData.tavsiyeler || []).filter(t => t.id !== tavsiyeId)
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting teacher advice:", err);
+    }
+  };
+
+  // Delete parent feedback note
+  const handleDeleteVeliNot = async (noteId: number) => {
+    try {
+      const res = await fetch(`/api/ogrenci/${selectedStudentId}/veli-not/${noteId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': token }
+      });
+      if (res.ok) {
+        if (detailData) {
+          setDetailData({
+            ...detailData,
+            veli_notlari: (detailData.veli_notlari || []).filter(n => n.id !== noteId)
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting parent note:", err);
     }
   };
 
@@ -1104,6 +1191,261 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
             </div>
           </div>
 
+          {/* KONU ANALİZLİ SINAV KARNESİ (YENİ EK) */}
+          {detailData.sonuclar.length > 0 && (
+            (() => {
+              const activeExamResult = detailData.sonuclar.find(r => r.id === selectedKarneExamId) || 
+                detailData.sonuclar[detailData.sonuclar.length - 1];
+
+              const topicAnalysis = getTopicAnalysisForStudent(
+                detailData.student.id,
+                activeExamResult.id,
+                activeExamResult.tur || (activeExamResult as any).sinav_turu || 'TYT',
+                {
+                  turkce: activeExamResult.turkce_net,
+                  matematik: activeExamResult.matematik_net,
+                  sosyal: activeExamResult.sosyal_net,
+                  fen: activeExamResult.fen_net
+                }
+              );
+
+              // Aggregate failures across ALL exams for warnings
+              const aggregateTopicFailures = () => {
+                const topicStats: Record<string, { topic: string; subject: string; correct: number; incorrect: number; total: number }> = {};
+                
+                detailData.sonuclar.forEach(r => {
+                  const analysis = getTopicAnalysisForStudent(
+                    detailData.student.id,
+                    r.id,
+                    r.tur || (r as any).sinav_turu || 'TYT',
+                    {
+                      turkce: r.turkce_net,
+                      matematik: r.matematik_net,
+                      sosyal: r.sosyal_net,
+                      fen: r.fen_net
+                    }
+                  );
+                  
+                  const addStats = (subjectName: string, topicsList: any[]) => {
+                    if (!topicsList) return;
+                    topicsList.forEach(t => {
+                      const key = `${subjectName}-${t.ad}`;
+                      if (!topicStats[key]) {
+                        topicStats[key] = {
+                          topic: t.ad,
+                          subject: subjectName,
+                          correct: 0,
+                          incorrect: 0,
+                          total: 0
+                        };
+                      }
+                      topicStats[key].correct += t.d;
+                      topicStats[key].incorrect += t.y;
+                      topicStats[key].total += t.soru;
+                    });
+                  };
+                  
+                  addStats("TÜRKÇE", analysis.turkce);
+                  addStats("MATEMATİK", analysis.matematik);
+                  addStats("SOSYAL BİLGİLER", analysis.sosyal);
+                  addStats("FEN BİLİMLERİ", analysis.fen);
+                });
+                
+                return Object.values(topicStats)
+                  .map(ts => {
+                    const successRate = ts.total > 0 ? Math.round((ts.correct / ts.total) * 100) : 100;
+                    return {
+                      ...ts,
+                      successRate
+                    };
+                  })
+                  .filter(ts => ts.incorrect > 0 || ts.successRate < 70)
+                  .sort((a, b) => b.incorrect - a.incorrect || a.successRate - b.successRate);
+              };
+
+              const weakTopics = aggregateTopicFailures();
+              
+              const getTopicAdvice = (subject: string, topic: string, incorrects: number, successRate: number) => {
+                const normalizedTopic = topic.toLowerCase();
+                let advice = "Bu konuda son denemelerde hedefin altında başarı sağlanmıştır. Konu anlatımı tekrar edilip eksikler kapatılmalıdır.";
+                
+                if (normalizedTopic.includes("yazım")) {
+                  advice = "Yazım kuralları kuramsal tekrarları yapılmalı, TDK güncel kılavuzu taranmalı ve her gün 15 kural sorusu çözülmelidir.";
+                } else if (normalizedTopic.includes("noktalama")) {
+                  advice = "Noktalama işaretlerinin işlevleri özetlenmeli, özellikle virgülün kullanılmadığı yerlere dikkat edilerek 50 soru çözülmelidir.";
+                } else if (normalizedTopic.includes("paragraf") || normalizedTopic.includes("anlam")) {
+                  advice = "Okuma anlama and odaklanma hızı artırılmalı, günlük 20 paragraf sorusu süreli (dakika tutarak) çözülmelidir.";
+                } else if (normalizedTopic.includes("dil bilgisi") || normalizedTopic.includes("ögeleri") || normalizedTopic.includes("ekler")) {
+                  advice = "Sözcük yapısı ve cümle ögeleri kuralları formülleştirilerek çalışılmalı, soru bankasından karma testler taranmalıdır.";
+                } else if (normalizedTopic.includes("problem")) {
+                  advice = "Denklem kurma ve oran-orantı temelleri zayıf. Her gün farklı tiplerden (sayı, kesir, hız) 15 problem çözülmelidir.";
+                } else if (normalizedTopic.includes("sayılar") || normalizedTopic.includes("rasyonel")) {
+                  advice = "Temel sayı kümeleri ve rasyonel işlemlerde işlem hatası yapılıyor. Sorularda işlemleri yazarak yapması önerilir.";
+                } else if (normalizedTopic.includes("mutlak değer") || normalizedTopic.includes("eşitsizlik")) {
+                  advice = "Mutlak değer özellikleri (pozitif/negatif dışarı çıkış kuralları) formül özet kartlarına yazılmalı ve pekiştirilmelidir.";
+                } else if (normalizedTopic.includes("geometri") || normalizedTopic.includes("açılar") || normalizedTopic.includes("üçgen") || normalizedTopic.includes("dörtgen")) {
+                  advice = "Şekil görme pratiği eksik. Geometride üçgen/açı kuralları özet kartı yapılmalı, her soruda yardımcı çizimler yapılmalıdır.";
+                } else if (normalizedTopic.includes("fonksiyonlar")) {
+                  advice = "Fonksiyon tanım kümeleri ve grafik okuma eksik. Grafik sorularında x ve y eksen değerlerini eşleştirme pratiği yapılmalıdır.";
+                } else if (normalizedTopic.includes("fizik") || normalizedTopic.includes("ısı") || normalizedTopic.includes("kuvvet") || normalizedTopic.includes("dalga") || normalizedTopic.includes("basınç")) {
+                  advice = "Fiziksel formüllerin günlük hayattaki sözel mantık yorumları kavranmalı, MEB kazanım testleri taranmalıdır.";
+                } else if (normalizedTopic.includes("kimya") || normalizedTopic.includes("atom") || normalizedTopic.includes("periyodik") || normalizedTopic.includes("etkileşim")) {
+                  advice = "Kimya element adlandırmaları, atom modelleri ve etkileşim kuralları ezberlenmeli, kavram haritası çıkarılmalıdır.";
+                } else if (normalizedTopic.includes("hücre") || normalizedTopic.includes("biyoloji") || normalizedTopic.includes("canlılar") || normalizedTopic.includes("kalıtım")) {
+                  advice = "Biyoloji konu ezberleri eksik kalmış. Görsel şemalar (soyağacı, hücre organelleri) çizilerek hafızaya alınmalıdır.";
+                }
+                
+                return {
+                  title: `${subject} - ${topic}`,
+                  stats: `Geçmiş denemelerde ${incorrects} yanlış yapıldı (Başarı: %${successRate})`,
+                  advice
+                };
+              };
+
+              const topWeakTopics = weakTopics.slice(0, 3).map(ts => getTopicAdvice(ts.subject, ts.topic, ts.incorrect, ts.successRate));
+
+              const renderSubjectPanel = (title: string, net: number, topicsList: any[], borderTheme: string, textTheme: string) => {
+                if (!topicsList || topicsList.length === 0) return null;
+                return (
+                  <div className={`bg-slate-900/40 border ${borderTheme} rounded-2xl p-4 space-y-3`}>
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                      <span className={`text-xs font-black uppercase tracking-wider ${textTheme}`}>{title}</span>
+                      <span className={`text-xs font-black px-2.5 py-0.5 rounded-full bg-slate-950 border border-slate-800 ${textTheme}`}>{net} NET</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs text-slate-300">
+                        <thead>
+                          <tr className="text-slate-500 font-extrabold border-b border-slate-850/50 text-[10px] uppercase">
+                            <th className="pb-1.5">Konu Adı</th>
+                            <th className="pb-1.5 text-center w-8">S</th>
+                            <th className="pb-1.5 text-center w-8">D</th>
+                            <th className="pb-1.5 text-center w-8">Y</th>
+                            <th className="pb-1.5 text-center w-8">B</th>
+                            <th className="pb-1.5 text-center w-12">Başarı</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-850/20 font-medium">
+                          {topicsList.map((t: any, idx: number) => {
+                            const successRate = t.soru > 0 ? Math.round((t.d / t.soru) * 100) : 100;
+                            let rateColor = "text-emerald-400";
+                            let rateBg = "bg-emerald-950/40 border-emerald-900/50";
+                            if (successRate < 40) {
+                              rateColor = "text-rose-400";
+                              rateBg = "bg-rose-950/40 border-rose-900/50";
+                            } else if (successRate < 75) {
+                              rateColor = "text-amber-400";
+                              rateBg = "bg-amber-950/40 border-amber-900/50";
+                            }
+                            
+                            return (
+                              <tr key={idx} className="hover:bg-slate-900/20">
+                                <td className="py-2 pr-2 font-semibold text-slate-300">{t.ad}</td>
+                                <td className="py-2 text-center font-bold text-slate-400">{t.soru}</td>
+                                <td className="py-2 text-center font-extrabold text-emerald-400">{t.d}</td>
+                                <td className="py-2 text-center font-extrabold text-rose-400">{t.y}</td>
+                                <td className="py-2 text-center font-bold text-slate-500">{t.b}</td>
+                                <td className="py-2 text-center">
+                                  <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-black border ${rateBg} ${rateColor}`}>
+                                    %{successRate}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              };
+
+              return (
+                <div className="space-y-6">
+                  {/* Dynamic AI Study Recommendations based on aggregations */}
+                  {topWeakTopics.length > 0 && (
+                    <div className="bg-amber-950/10 border border-amber-900/40 rounded-2xl p-5 space-y-2 animate-fade-in">
+                      <div className="flex items-center gap-2 text-xs text-amber-400 font-black uppercase tracking-wider">
+                        <Sparkles size={14} className="text-amber-400 animate-pulse" />
+                        <span>Yapay Zeka Destekli Akademik Gelişim & Konu Analizi Uyarıları</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
+                        Öğrencinin geçmiş tüm deneme sınavları analiz edilerek en çok hata yaptığı ve odaklanması gereken kritik konular aşağıda listelenmiştir:
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                        {topWeakTopics.map((item, idx) => (
+                          <div key={idx} className="bg-slate-950/60 border border-slate-900 p-3.5 rounded-xl space-y-1.5 flex flex-col justify-between hover:border-amber-900/60 transition">
+                            <div>
+                              <span className="text-[10px] text-amber-400 font-black uppercase tracking-wider block truncate">{item.title}</span>
+                              <span className="text-[9px] text-slate-500 font-bold block mt-0.5">{item.stats}</span>
+                              <p className="text-[10px] text-slate-300 leading-relaxed font-semibold mt-1.5">
+                                {item.advice}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Karne Render and Selector */}
+                  <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-4 animate-fade-in">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800/80 pb-3">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-100 uppercase tracking-tight flex items-center gap-2">
+                          <Award size={16} className="text-indigo-400" />
+                          <span>Öğrenci Sınav Karnesi & Konu Analizi</span>
+                        </h4>
+                        <p className="text-[10px] text-slate-500 font-bold block mt-0.5">Konu düzeyinde doğru, yanlış ve başarı oranları analizi</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase">Sınav Seçimi:</span>
+                        <select
+                          value={selectedKarneExamId || activeExamResult.id}
+                          onChange={(e) => setSelectedKarneExamId(Number(e.target.value))}
+                          className="bg-slate-950 border border-slate-850 hover:border-slate-750 text-xs font-black text-indigo-400 rounded-xl px-3 py-1.5 focus:outline-none"
+                        >
+                          {detailData.sonuclar.map((r) => (
+                            <option key={r.id} value={r.id}>{r.sinav_adi} ({r.tur || (r as any).sinav_turu || 'TYT'})</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-bold text-slate-400">
+                      <div className="bg-slate-950/60 border border-slate-850 p-3 rounded-xl">
+                        <span className="text-slate-500 block uppercase tracking-wider text-[9px] font-black">Öğrenci</span>
+                        <span className="text-slate-200 font-black block truncate mt-0.5">{detailData.student.ad_soyad}</span>
+                      </div>
+                      <div className="bg-slate-950/60 border border-slate-850 p-3 rounded-xl">
+                        <span className="text-slate-500 block uppercase tracking-wider text-[9px] font-black">Sınıf / Alan</span>
+                        <span className="text-slate-200 font-black block mt-0.5">{detailData.student.sinif_adi} • {detailData.student.alan}</span>
+                      </div>
+                      <div className="bg-slate-950/60 border border-slate-850 p-3 rounded-xl">
+                        <span className="text-slate-500 block uppercase tracking-wider text-[9px] font-black">Sınav Adı</span>
+                        <span className="text-slate-200 font-black block truncate mt-0.5">{activeExamResult.sinav_adi}</span>
+                      </div>
+                      <div className="bg-slate-950/60 border border-slate-850 p-3 rounded-xl">
+                        <span className="text-slate-500 block uppercase tracking-wider text-[9px] font-black">Sınav Türü</span>
+                        <span className="text-indigo-400 font-black block mt-0.5">{activeExamResult.tur || (activeExamResult as any).sinav_turu || 'TYT'}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-1">
+                      <div className="space-y-6">
+                        {renderSubjectPanel("TÜRKÇE", activeExamResult.turkce_net, topicAnalysis.turkce, "border-cyan-900/40 bg-cyan-950/5", "text-cyan-400")}
+                        {renderSubjectPanel("SOSYAL BİLGİLER", activeExamResult.sosyal_net, topicAnalysis.sosyal, "border-amber-900/40 bg-amber-950/5", "text-amber-400")}
+                      </div>
+                      <div className="space-y-6">
+                        {renderSubjectPanel("MATEMATİK", activeExamResult.matematik_net, topicAnalysis.matematik, "border-blue-900/40 bg-blue-950/5", "text-blue-400")}
+                        {renderSubjectPanel("FEN BİLİMLERİ", activeExamResult.fen_net, topicAnalysis.fen, "border-emerald-900/40 bg-emerald-950/5", "text-emerald-400")}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()
+          )}
+
           {/* Exam log, Counselor guidance log */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Sınav Sonuçları Log */}
@@ -1142,82 +1484,227 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
               )}
             </div>
 
-            {/* Counselor notes log */}
-            <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-              <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex justify-between items-center">
-                <span>Rehberlik & Görüşme Notları</span>
-                <span className="text-[10px] text-blue-400 font-bold bg-blue-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <Sparkles size={11} /> Rehber Panel
-                </span>
-              </h4>
+            {/* School-Parent-Teacher Communication Hub */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Card 1: Rehberlik & Görüşme Notları */}
+              <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex justify-between items-center">
+                  <span>Rehberlik & Görüşme Notları</span>
+                  <span className="text-[10px] text-blue-400 font-bold bg-blue-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Sparkles size={11} /> Rehber Panel
+                  </span>
+                </h4>
 
-              {/* Guidance Add note form (Only Counselor/Admin can add notes) */}
-              {(user.rol === 'admin' || user.rol === 'rehber') && (
-                <form onSubmit={handleAddNote} className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Görüşme veya gelişim notu girin..."
-                    value={newNote}
-                    onChange={e => setNewNote(e.target.value)}
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.8 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
-                  />
-                  <button
-                    type="submit"
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-1.8 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow shadow-blue-500/10"
-                  >
-                    <Send size={12} /> Ekle
-                  </button>
-                </form>
-              )}
+                {/* Guidance Add note form (Only Counselor/Admin can add notes) */}
+                {(user.rol === 'admin' || user.rol === 'rehber') && (
+                  <form onSubmit={handleAddNote} className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Görüşme veya gelişim notu girin..."
+                      value={newNote}
+                      onChange={e => setNewNote(e.target.value)}
+                      className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow shadow-blue-500/10"
+                    >
+                      <Send size={12} /> Ekle
+                    </button>
+                  </form>
+                )}
 
-              {/* Notes display */}
-              {detailData.notlar.length === 0 ? (
-                <div className="text-center py-8 text-xs text-slate-500">Öğrenciye ait rehberlik veya görüşme kaydı bulunmuyor.</div>
-              ) : (
-                <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-                  {detailData.notlar.map(n => (
-                    <div key={n.id} className="bg-slate-950/60 p-3 border border-slate-850 rounded-xl space-y-1 relative group">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-blue-400">{n.rehber_adi}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9px] text-slate-500 font-medium">{n.tarih}</span>
-                           {(user.rol === 'admin' || user.rol === 'rehber') && (
-                            deleteConfirmNoteId === n.id ? (
-                              <div className="flex items-center gap-1 bg-slate-950 p-1 rounded border border-red-500/30">
-                                <span className="text-[9px] text-red-400 font-bold px-1">Silinsin mi?</span>
+                {/* Notes display */}
+                {detailData.notlar.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-slate-500">Öğrenciye ait rehberlik veya görüşme kaydı bulunmuyor.</div>
+                ) : (
+                  <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                    {detailData.notlar.map(n => (
+                      <div key={n.id} className="bg-slate-950/60 p-3 border border-slate-850 rounded-xl space-y-1 relative group">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-bold text-blue-400">{n.rehber_adi}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-slate-500 font-medium">{n.tarih}</span>
+                             {(user.rol === 'admin' || user.rol === 'rehber') && (
+                              deleteConfirmNoteId === n.id ? (
+                                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded border border-red-500/30">
+                                  <span className="text-[9px] text-red-400 font-bold px-1">Sil?</span>
+                                  <button
+                                    onClick={() => {
+                                      handleDeleteNote(n.id);
+                                      setDeleteConfirmNoteId(null);
+                                    }}
+                                    className="px-1 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[8px] font-black rounded cursor-pointer leading-none"
+                                  >
+                                    Evet
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteConfirmNoteId(null)}
+                                    className="px-1 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[8px] font-black rounded cursor-pointer leading-none"
+                                  >
+                                    Hayır
+                                  </button>
+                                </div>
+                              ) : (
                                 <button
-                                  onClick={() => {
-                                    handleDeleteNote(n.id);
-                                    setDeleteConfirmNoteId(null);
-                                  }}
-                                  className="px-1 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[8px] font-black rounded cursor-pointer leading-none"
+                                  onClick={() => setDeleteConfirmNoteId(n.id)}
+                                  className="text-slate-600 hover:text-red-400 transition ml-1"
+                                  title="Sil"
                                 >
-                                  Evet
+                                  <Trash2 size={11} />
                                 </button>
+                              )
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-300 font-medium leading-relaxed">{n.not_metni}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Card 2: Öğretmenlerin Ders Tavsiyeleri */}
+              <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex justify-between items-center">
+                  <span>Öğretmen Ders Tavsiyeleri</span>
+                  <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    📖 Ders Bazlı
+                  </span>
+                </h4>
+
+                {/* Add Teacher Advice Form (Only Admin, Teacher, Counselor can add) */}
+                {(user.rol === 'admin' || user.rol === 'ogretmen' || user.rol === 'rehber') && (
+                  <form onSubmit={handleAddTavsiye} className="space-y-2">
+                    <div className="flex gap-2">
+                      <select
+                        value={newTavsiyeCourse}
+                        onChange={e => setNewTavsiyeCourse(e.target.value)}
+                        className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none w-[100px]"
+                      >
+                        <option value="Matematik">Matematik</option>
+                        <option value="Geometri">Geometri</option>
+                        <option value="Türkçe">Türkçe</option>
+                        <option value="Fizik">Fizik</option>
+                        <option value="Kimya">Kimya</option>
+                        <option value="Biyoloji">Biyoloji</option>
+                        <option value="Tarih">Tarih</option>
+                        <option value="Coğrafya">Coğrafya</option>
+                        <option value="Felsefe">Felsefe</option>
+                        <option value="Rehberlik">Rehberlik</option>
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Özel ders tavsiyesi ekleyin..."
+                        value={newTavsiyeText}
+                        onChange={e => setNewTavsiyeText(e.target.value)}
+                        className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                      />
+                      <button
+                        type="submit"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
+                      >
+                        <Send size={11} />
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Teacher Advice display */}
+                {!(detailData.tavsiyeler && detailData.tavsiyeler.length > 0) ? (
+                  <div className="text-center py-8 text-xs text-slate-500">Eklenmiş ders tavsiyesi bulunmuyor.</div>
+                ) : (
+                  <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                    {detailData.tavsiyeler.map(t => (
+                      <div key={t.id} className="bg-slate-950/60 p-3 border border-slate-850 rounded-xl space-y-1.5 relative group">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] bg-emerald-500/10 text-emerald-400 font-extrabold px-1.5 py-0.5 rounded uppercase">
+                              {t.ders_adi}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-300 truncate max-w-[100px]">{t.ogretmen_adi}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] text-slate-500 font-medium">
+                              {t.tarih ? new Date(t.tarih).toLocaleDateString('tr-TR') : ''}
+                            </span>
+                            {(user.rol === 'admin' || user.id === t.ogretmen_id) && (
+                              deleteConfirmTavsiyeId === t.id ? (
+                                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded border border-red-500/30">
+                                  <button
+                                    onClick={() => {
+                                      handleDeleteTavsiye(t.id);
+                                      setDeleteConfirmTavsiyeId(null);
+                                    }}
+                                    className="px-1 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[8px] font-black rounded cursor-pointer leading-none"
+                                  >
+                                    Sil
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteConfirmTavsiyeId(null)}
+                                    className="px-1 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[8px] font-black rounded cursor-pointer leading-none"
+                                  >
+                                    X
+                                  </button>
+                                </div>
+                              ) : (
                                 <button
-                                  onClick={() => setDeleteConfirmNoteId(null)}
-                                  className="px-1 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[8px] font-black rounded cursor-pointer leading-none"
+                                  onClick={() => setDeleteConfirmTavsiyeId(t.id)}
+                                  className="text-slate-600 hover:text-red-400 transition"
+                                  title="Sil"
                                 >
-                                  İptal
+                                  <Trash2 size={10} />
                                 </button>
-                              </div>
-                            ) : (
+                              )
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-300 font-medium leading-relaxed">{t.tavsiye_metni}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Card 3: Veli Geri Bildirim Notları */}
+              <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex justify-between items-center">
+                  <span>Veli Geri Bildirim Notları</span>
+                  <span className="text-[10px] text-purple-400 font-bold bg-purple-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    🏠 Evden Geri Bildirim
+                  </span>
+                </h4>
+
+                {/* Veli Geri Bildirim display */}
+                {!(detailData.veli_notlari && detailData.veli_notlari.length > 0) ? (
+                  <div className="text-center py-8 text-xs text-slate-500">Veliden henüz bir geri bildirim notu gelmemiş.</div>
+                ) : (
+                  <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                    {detailData.veli_notlari.map(n => (
+                      <div key={n.id} className="bg-slate-950/60 p-3 border border-slate-850 rounded-xl space-y-1 relative group">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-bold text-purple-400">{n.veli_adi}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-slate-500 font-medium">
+                              {n.tarih ? new Date(n.tarih).toLocaleDateString('tr-TR') : ''}
+                            </span>
+                            {(user.rol === 'admin' || user.rol === 'rehber') && (
                               <button
-                                onClick={() => setDeleteConfirmNoteId(n.id)}
-                                className="text-slate-600 hover:text-red-400 transition ml-1"
-                                title="Sil"
+                                onClick={() => handleDeleteVeliNot(n.id)}
+                                className="text-slate-600 hover:text-red-400 transition"
+                                title="Geri Bildirimi Sil"
                               >
                                 <Trash2 size={11} />
                               </button>
-                            )
-                          )}
+                            )}
+                          </div>
                         </div>
+                        <p className="text-xs text-slate-300 font-medium leading-relaxed">{n.not_metni}</p>
                       </div>
-                      <p className="text-xs text-slate-300 font-medium leading-relaxed">{n.not_metni}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -439,11 +439,26 @@ app.post('/api/auth/register', (req, res) => {
 
 // App Dashboard Stats Route
 app.get('/api/dashboard/stats', (req, res) => {
-  const students = db.getOgrenciler();
+  const rol = req.query.rol as string;
+  const userId = Number(req.query.user_id);
+
+  let students = db.getOgrenciler();
   const exams = db.getSinavTanimlari();
   const results = db.getSinavSonuclari();
-  const classes = db.getSiniflar();
+  let classes = db.getSiniflar();
   const guidanceNotes = db.getRehberlikNotlari();
+
+  let assignedClassIds: number[] = [];
+  if (rol === 'ogretmen' && userId) {
+    assignedClassIds = db.getOgretmenSinif()
+      .filter(os => os.ogretmen_id === userId)
+      .map(os => os.sinif_id);
+    
+    if (assignedClassIds.length > 0) {
+      students = students.filter(s => assignedClassIds.includes(s.sinif_id));
+      classes = classes.filter(c => assignedClassIds.includes(c.id));
+    }
+  }
 
   // Active student count
   const activeStudents = students.filter(s => s.aktif);
@@ -1365,6 +1380,8 @@ app.get('/api/ogrenci/:id', (req, res) => {
   }).sort((a, b) => b.tarih.localeCompare(a.tarih));
 
   const schedule = db.getDersProgramlari().filter(dp => dp.ogrenci_id === student.id);
+  const tavsiyeler = db.getOgretmenTavsiyeleri().filter(t => t.ogrenci_id === studentId);
+  const veliNotlari = db.getVeliNotlari().filter(n => n.ogrenci_id === studentId);
 
   res.json({
     student: {
@@ -1376,8 +1393,65 @@ app.get('/api/ogrenci/:id', (req, res) => {
     },
     sonuclar: joinedResults,
     notlar: joinedNotes,
-    ders_programi: schedule
+    ders_programi: schedule,
+    tavsiyeler: tavsiyeler.sort((a, b) => b.tarih.localeCompare(a.tarih)),
+    veli_notlari: veliNotlari.sort((a, b) => b.tarih.localeCompare(a.tarih))
   });
+});
+
+// Teacher recommendations
+app.post('/api/ogrenci/:id/tavsiye', (req, res) => {
+  const ogrenci_id = Number(req.params.id);
+  const { ogretmen_id, ogretmen_adi, ders_adi, tavsiye_metni } = req.body;
+  if (!tavsiye_metni || !ders_adi) {
+    return res.status(400).json({ error: 'Ders adı ve tavsiye metni alanları gereklidir.' });
+  }
+  const tavsiye = db.insert('ogretmen_tavsiyeleri', {
+    ogrenci_id,
+    ogretmen_id: Number(ogretmen_id) || 3,
+    ogretmen_adi: ogretmen_adi || 'Öğretmen',
+    ders_adi,
+    tavsiye_metni,
+    tarih: new Date().toISOString()
+  });
+  res.json({ tavsiye });
+});
+
+app.delete('/api/ogrenci/:id/tavsiye/:tavsiyeId', (req, res) => {
+  const tavsiyeId = Number(req.params.tavsiyeId);
+  const success = db.delete('ogretmen_tavsiyeleri', tavsiyeId);
+  if (success) {
+    res.json({ success: true });
+  } else {
+    res.status(404).json({ error: 'Öğretmen tavsiyesi bulunamadı.' });
+  }
+});
+
+// Parent feedback notes
+app.post('/api/ogrenci/:id/veli-not', (req, res) => {
+  const ogrenci_id = Number(req.params.id);
+  const { veli_id, veli_adi, not_metni } = req.body;
+  if (!not_metni) {
+    return res.status(400).json({ error: 'Geri bildirim notu boş bırakılamaz.' });
+  }
+  const veliNot = db.insert('veli_notlari', {
+    ogrenci_id,
+    veli_id: Number(veli_id) || 5,
+    veli_adi: veli_adi || 'Veli',
+    not_metni,
+    tarih: new Date().toISOString()
+  });
+  res.json({ veliNot });
+});
+
+app.delete('/api/ogrenci/:id/veli-not/:noteId', (req, res) => {
+  const noteId = Number(req.params.noteId);
+  const success = db.delete('veli_notlari', noteId);
+  if (success) {
+    res.json({ success: true });
+  } else {
+    res.status(404).json({ error: 'Veli notu bulunamadı.' });
+  }
 });
 
 // Student guidance notes
