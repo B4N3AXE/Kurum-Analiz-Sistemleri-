@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { User, Ogrenci } from './types';
-import Dashboard, { getTopicAnalysisForStudent } from './components/Dashboard';
+import Dashboard, { getTopicAnalysisForStudent, TYT_SUBJECT_TOPICS, LGS_SUBJECT_TOPICS } from './components/Dashboard';
 import OgrenciPaneli from './components/OgrenciPaneli';
 import PdfOkuyucu from './components/PdfOkuyucu';
 import Mesajlar from './components/Mesajlar';
 import Tanimlar from './components/Tanimlar';
 import Abonelik from './components/Abonelik';
 import RiskLimitleri from './components/RiskLimitleri';
-import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key, Target, Eye, Send, Trash2 } from 'lucide-react';
+import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key, Target, Eye, Send, Trash2, Play, Pause, RotateCcw, Plus, Square, CheckSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Helper function to calculate expected net projection for the next practice exam
@@ -112,6 +112,9 @@ export default function App() {
     notlar: any[];
     ders_programi?: any[];
     tavsiyeler?: any[];
+    konu_takip?: any[];
+    calisma_seanslari?: any[];
+    haftalik_gorevler?: any[];
   } | null>(null);
   const [loadingStudent, setLoadingStudent] = useState(false);
   const [studentChartTab, setStudentChartTab] = useState<'TYT' | 'AYT' | 'LGS'>('TYT');
@@ -119,6 +122,16 @@ export default function App() {
   const [tempTargetNet, setTempTargetNet] = useState<number>(95);
   const [selectedExamDetail, setSelectedExamDetail] = useState<any | null>(null);
   const [studentSelectedKarneExamId, setStudentSelectedKarneExamId] = useState<number | null>(null);
+
+  // Expanded Student Panel states (Features 1, 2, 4)
+  const [timerMode, setTimerMode] = useState<'pomodoro' | 'stopwatch'>('pomodoro');
+  const [timerSeconds, setTimerSeconds] = useState<number>(25 * 60);
+  const [timerIsRunning, setTimerIsRunning] = useState<boolean>(false);
+  const [timerSubject, setTimerSubject] = useState<string>('Matematik');
+  const [expandedChecklistSubject, setExpandedChecklistSubject] = useState<string | null>(null);
+  const [newTaskText, setNewTaskText] = useState<string>('');
+  const [newTaskDay, setNewTaskDay] = useState<string>('Pazartesi');
+  const [newTaskSubject, setNewTaskSubject] = useState<string>('Matematik');
 
   // SaaS Marketing & Sales states
   const [currentSubscription, setCurrentSubscription] = useState<string>(() => localStorage.getItem('kas_subscription_plan') || 'trial');
@@ -160,6 +173,28 @@ export default function App() {
     }, 1000);
     return () => clearInterval(clockTimer);
   }, []);
+
+  useEffect(() => {
+    let interval: any = null;
+    if (timerIsRunning) {
+      interval = setInterval(() => {
+        setTimerSeconds((prev) => {
+          if (timerMode === 'pomodoro') {
+            if (prev <= 1) {
+              setTimerIsRunning(false);
+              return 0;
+            }
+            return prev - 1;
+          } else {
+            return prev + 1;
+          }
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [timerIsRunning, timerMode]);
 
   useEffect(() => {
     // Check if there is a custom simulated trial days left
@@ -300,6 +335,148 @@ export default function App() {
       }
     } catch (err) {
       console.error("Öğrenci hedef net güncellenemedi:", err);
+    }
+  };
+
+  const handleToggleTopic = async (topicKey: string, currentStatus: boolean) => {
+    if (!studentReport || !token) return;
+    const newStatus = !currentStatus;
+    try {
+      const res = await fetch(`/api/ogrenci/${studentReport.student.id}/konu-takip`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({ konu_key: topicKey, tamamlandi: newStatus })
+      });
+      if (res.ok) {
+        setStudentReport(prev => {
+          if (!prev) return null;
+          const existingList = prev.konu_takip || [];
+          const exists = existingList.some(kt => kt.konu_key === topicKey);
+          let newList;
+          if (exists) {
+            newList = existingList.map(kt => kt.konu_key === topicKey ? { ...kt, tamamlandi: newStatus, tarih: new Date().toISOString() } : kt);
+          } else {
+            newList = [...existingList, { id: Date.now(), ogrenci_id: prev.student.id, konu_key: topicKey, tamamlandi: newStatus, tarih: new Date().toISOString() }];
+          }
+          return {
+            ...prev,
+            konu_takip: newList
+          };
+        });
+      }
+    } catch (err) {
+      console.error("Konu tamamlanma durumu değiştirilemedi:", err);
+    }
+  };
+
+  const handleSaveTimerSession = async (courseName: string, durationSeconds: number) => {
+    if (!studentReport || !token || durationSeconds <= 0) return;
+    try {
+      const res = await fetch(`/api/ogrenci/${studentReport.student.id}/calisma-seanslari`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({ ders_adi: courseName, sure: durationSeconds })
+      });
+      if (res.ok) {
+        const savedSession = await res.json();
+        setStudentReport(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            calisma_seanslari: [savedSession, ...(prev.calisma_seanslari || [])]
+          };
+        });
+        setTimerSeconds(timerMode === 'pomodoro' ? 25 * 60 : 0);
+        setTimerIsRunning(false);
+      }
+    } catch (err) {
+      console.error("Çalışma seansı kaydedilemedi:", err);
+    }
+  };
+
+  const handleCreateWeeklyTask = async () => {
+    if (!studentReport || !token || !newTaskText.trim()) return;
+    try {
+      const res = await fetch(`/api/ogrenci/${studentReport.student.id}/haftalik-gorevler`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          gorev_metni: newTaskText.trim(),
+          ders_adi: newTaskSubject,
+          gun: newTaskDay
+        })
+      });
+      if (res.ok) {
+        const savedTask = await res.json();
+        setStudentReport(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            haftalik_gorevler: [...(prev.haftalik_gorevler || []), savedTask]
+          };
+        });
+        setNewTaskText('');
+      }
+    } catch (err) {
+      console.error("Haftalık görev oluşturulamadı:", err);
+    }
+  };
+
+  const handleToggleWeeklyTask = async (taskId: number, currentCompleted: boolean) => {
+    if (!studentReport || !token) return;
+    const newStatus = !currentCompleted;
+    try {
+      const res = await fetch(`/api/ogrenci/${studentReport.student.id}/haftalik-gorevler/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({ tamamlandi: newStatus })
+      });
+      if (res.ok) {
+        setStudentReport(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            haftalik_gorevler: (prev.haftalik_gorevler || []).map(t => t.id === taskId ? { ...t, tamamlandi: newStatus } : t)
+          };
+        });
+      }
+    } catch (err) {
+      console.error("Görev tamamlanma durumu değiştirilemedi:", err);
+    }
+  };
+
+  const handleDeleteWeeklyTask = async (taskId: number) => {
+    if (!studentReport || !token) return;
+    try {
+      const res = await fetch(`/api/ogrenci/${studentReport.student.id}/haftalik-gorevler/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': token
+        }
+      });
+      if (res.ok) {
+        setStudentReport(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            haftalik_gorevler: (prev.haftalik_gorevler || []).filter(t => t.id !== taskId)
+          };
+        });
+      }
+    } catch (err) {
+      console.error("Görev silinemedi:", err);
     }
   };
 
@@ -3468,6 +3645,380 @@ export default function App() {
                           );
                         })}
                       </div>
+                    </div>
+
+                    {/* ENHANCED STUDENT ENGAGEMENT TOOLS (FEATURES 1, 2, 4) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
+                      
+                      {/* FEATURE 4: HAFTALIK GÖREVLERİM */}
+                      <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-md flex flex-col justify-between">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                              <CheckSquare size={16} className="text-emerald-400" />
+                              <span>Haftalık Çalışma Görevlerim</span>
+                            </h4>
+                            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 font-extrabold px-2 py-0.5 rounded border border-emerald-500/20">
+                              {(() => {
+                                const list = studentReport.haftalik_gorevler || [];
+                                const completed = list.filter((t: any) => t.tamamlandi).length;
+                                return list.length > 0 ? `%${Math.round((completed / list.length) * 100)}` : '%0';
+                              })()}
+                            </span>
+                          </div>
+
+                          {/* Progress bar */}
+                          <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden">
+                            <div 
+                              className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: (() => {
+                                  const list = studentReport.haftalik_gorevler || [];
+                                  const completed = list.filter((t: any) => t.tamamlandi).length;
+                                  return list.length > 0 ? `${(completed / list.length) * 100}%` : '0%';
+                                })()
+                              }}
+                            />
+                          </div>
+
+                          {/* Task List */}
+                          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                            {!(studentReport.haftalik_gorevler && studentReport.haftalik_gorevler.length > 0) ? (
+                              <div className="text-center py-8 text-slate-500 text-xs italic">
+                                Bu hafta için atanmış görevin yok. Kendine bir görev ekleyerek başla!
+                              </div>
+                            ) : (
+                              (studentReport.haftalik_gorevler || []).map((task: any) => (
+                                <div 
+                                  key={task.id} 
+                                  className={`flex items-start justify-between gap-2 p-2.5 rounded-xl border transition ${
+                                    task.tamamlandi 
+                                      ? 'bg-slate-950/20 border-slate-850 opacity-60' 
+                                      : 'bg-slate-950/60 border-slate-850 hover:border-slate-800'
+                                  }`}
+                                >
+                                  <div className="flex items-start gap-2.5 flex-1">
+                                    <button 
+                                      onClick={() => handleToggleWeeklyTask(task.id, task.tamamlandi)}
+                                      className={`mt-0.5 text-slate-400 hover:text-emerald-400 transition cursor-pointer`}
+                                    >
+                                      {task.tamamlandi ? (
+                                        <CheckCircle size={15} className="text-emerald-400" />
+                                      ) : (
+                                        <div className="w-3.5 h-3.5 rounded border-2 border-slate-600 hover:border-emerald-500 transition" />
+                                      )}
+                                    </button>
+                                    <div className="flex-1">
+                                      <p className={`text-xs font-semibold leading-snug ${task.tamamlandi ? 'line-through text-slate-500' : 'text-slate-200'}`}>
+                                        {task.gorev_metni}
+                                      </p>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-[9px] font-bold text-blue-400 bg-blue-500/10 px-1.5 py-0.2 rounded uppercase">
+                                          {task.ders_adi}
+                                        </span>
+                                        <span className="text-[9px] font-medium text-slate-500">
+                                          📅 {task.gun}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <button 
+                                    onClick={() => handleDeleteWeeklyTask(task.id)}
+                                    className="text-slate-600 hover:text-red-400 p-1 rounded transition cursor-pointer"
+                                    title="Sil"
+                                  >
+                                    <Trash2 size={11} />
+                                  </button>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Add Task Form */}
+                        <div className="border-t border-slate-800/80 pt-4 mt-4 space-y-2">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Hızlı Görev Ekle</span>
+                          <div className="flex gap-1.5">
+                            <input
+                              type="text"
+                              placeholder="örn: Limit konusu test çözümü..."
+                              value={newTaskText}
+                              onChange={e => setNewTaskText(e.target.value)}
+                              className="flex-1 bg-slate-950 border border-slate-850 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                            />
+                            <button
+                              onClick={handleCreateWeeklyTask}
+                              className="bg-emerald-600 hover:bg-emerald-500 text-white p-2 rounded-lg text-xs font-bold transition flex items-center justify-center cursor-pointer"
+                              title="Görev Ekle"
+                            >
+                              <Plus size={14} />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <select
+                              value={newTaskSubject}
+                              onChange={e => setNewTaskSubject(e.target.value)}
+                              className="bg-slate-950 border border-slate-850 text-slate-300 text-[10px] rounded px-2 py-1 focus:outline-none focus:border-emerald-500 font-medium cursor-pointer"
+                            >
+                              <option value="Matematik">Matematik</option>
+                              <option value="Türkçe">Türkçe</option>
+                              <option value="Fizik">Fizik</option>
+                              <option value="Kimya">Kimya</option>
+                              <option value="Biyoloji">Biyoloji</option>
+                              <option value="Coğrafya">Coğrafya</option>
+                              <option value="Tarih">Tarih</option>
+                              <option value="Felsefe">Felsefe</option>
+                            </select>
+                            <select
+                              value={newTaskDay}
+                              onChange={e => setNewTaskDay(e.target.value)}
+                              className="bg-slate-950 border border-slate-850 text-slate-300 text-[10px] rounded px-2 py-1 focus:outline-none focus:border-emerald-500 font-medium cursor-pointer"
+                            >
+                              {["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"].map(day => (
+                                <option key={day} value={day}>{day}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* FEATURE 2: ÇALIŞMA SEANSI VE KRONOMETRE */}
+                      <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-md flex flex-col justify-between">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                              <Clock size={16} className="text-indigo-400" />
+                              <span>Çalışma Seansı & Kronometre</span>
+                            </h4>
+                            <span className="text-[10px] bg-indigo-500/10 text-indigo-400 font-extrabold px-2 py-0.5 rounded border border-indigo-500/20 uppercase font-bold tracking-wider">
+                              Odak Modu
+                            </span>
+                          </div>
+
+                          {/* Mode tabs */}
+                          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-850">
+                            <button
+                              onClick={() => {
+                                setTimerIsRunning(false);
+                                setTimerMode('pomodoro');
+                                setTimerSeconds(25 * 60);
+                              }}
+                              className={`flex-1 text-[10px] font-extrabold py-1.5 rounded-lg transition-all ${
+                                timerMode === 'pomodoro'
+                                  ? 'bg-indigo-600 text-white shadow'
+                                  : 'text-slate-400 hover:text-slate-200'
+                              }`}
+                            >
+                              ⏲️ Pomodoro (25 Dk)
+                            </button>
+                            <button
+                              onClick={() => {
+                                setTimerIsRunning(false);
+                                setTimerMode('stopwatch');
+                                setTimerSeconds(0);
+                              }}
+                              className={`flex-1 text-[10px] font-extrabold py-1.5 rounded-lg transition-all ${
+                                timerMode === 'stopwatch'
+                                  ? 'bg-indigo-600 text-white shadow'
+                                  : 'text-slate-400 hover:text-slate-200'
+                              }`}
+                            >
+                              ⏱️ Kronometre (Sayaç)
+                            </button>
+                          </div>
+
+                          {/* Timer Clock Circle Face */}
+                          <div className="flex flex-col items-center justify-center py-4 bg-slate-950/40 border border-slate-850 rounded-2xl relative overflow-hidden group">
+                            {timerIsRunning && (
+                              <div className="absolute inset-0 bg-indigo-500/5 animate-pulse" />
+                            )}
+                            <div className="text-3xl font-black text-slate-100 font-mono tracking-widest drop-shadow-md">
+                              {(() => {
+                                const m = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
+                                const s = (timerSeconds % 60).toString().padStart(2, '0');
+                                return `${m}:${s}`;
+                              })()}
+                            </div>
+                            <span className="text-[9px] font-bold text-slate-500 mt-1 uppercase tracking-widest">
+                              {timerSubject} Çalışılıyor
+                            </span>
+                          </div>
+
+                          {/* Settings and controls */}
+                          <div className="flex gap-2 items-center">
+                            <select
+                              value={timerSubject}
+                              onChange={e => setTimerSubject(e.target.value)}
+                              disabled={timerIsRunning}
+                              className="bg-slate-950 border border-slate-850 text-slate-300 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500 font-medium flex-1 cursor-pointer disabled:opacity-50"
+                            >
+                              <option value="Matematik">📐 Matematik</option>
+                              <option value="Türkçe">📚 Türkçe</option>
+                              <option value="Fizik">⚡ Fizik</option>
+                              <option value="Kimya">🧪 Kimya</option>
+                              <option value="Biyoloji">🧬 Biyoloji</option>
+                              <option value="Coğrafya">🌍 Coğrafya</option>
+                              <option value="Tarih">⏳ Tarih</option>
+                              <option value="Sözel">✍️ Diğer Konular</option>
+                            </select>
+
+                            {/* Clock Controls */}
+                            <div className="flex gap-1.5">
+                              <button
+                                onClick={() => setTimerIsRunning(!timerIsRunning)}
+                                className={`p-2 rounded-lg text-white font-bold transition flex items-center justify-center cursor-pointer ${
+                                  timerIsRunning 
+                                    ? 'bg-amber-600 hover:bg-amber-500' 
+                                    : 'bg-indigo-600 hover:bg-indigo-500'
+                                }`}
+                                title={timerIsRunning ? 'Duraklat' : 'Başlat'}
+                              >
+                                {timerIsRunning ? <Pause size={13} /> : <Play size={13} />}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setTimerIsRunning(false);
+                                  setTimerSeconds(timerMode === 'pomodoro' ? 25 * 60 : 0);
+                                }}
+                                className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg text-xs transition flex items-center justify-center cursor-pointer"
+                                title="Sıfırla"
+                              >
+                                <RotateCcw size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Save Session Action */}
+                        <div className="border-t border-slate-800/80 pt-4 mt-4 space-y-2">
+                          <button
+                            onClick={() => {
+                              const calculatedSecs = timerMode === 'pomodoro' ? (25 * 60 - timerSeconds) : timerSeconds;
+                              const mins = Math.max(1, Math.round(calculatedSecs / 60));
+                              handleSaveTimerSession(timerSubject, mins);
+                            }}
+                            disabled={timerSeconds === (timerMode === 'pomodoro' ? 25 * 60 : 0)}
+                            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-bold py-1.5 rounded-lg text-xs flex items-center justify-center gap-1 transition cursor-pointer"
+                          >
+                            <Zap size={11} /> Seansı Kaydet ({timerMode === 'pomodoro' ? `${Math.max(1, Math.round((25 * 60 - timerSeconds) / 60))} dk` : `${Math.round(timerSeconds / 60)} dk`})
+                          </button>
+
+                          {/* Today's total work history */}
+                          <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold px-1 uppercase">
+                            <span>Bugün Toplam:</span>
+                            <span className="text-indigo-400 font-extrabold font-mono text-xs">
+                              {(() => {
+                                const list = studentReport.calisma_seanslari || [];
+                                const total = list.reduce((sum: number, x: any) => sum + (x.sure || 0), 0);
+                                return `${total} Dakika`;
+                              })()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* FEATURE 1: KONU TAKİBİ (SUBJECT & TOPIC CHECKLIST) */}
+                      <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-md flex flex-col justify-between">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                              <BookOpen size={16} className="text-blue-400" />
+                              <span>Konu Takip Çizelgesi</span>
+                            </h4>
+                            <span className="text-[10px] bg-blue-500/10 text-blue-400 font-extrabold px-2 py-0.5 rounded border border-blue-500/20 uppercase font-mono">
+                              {(() => {
+                                const totalTopicsCount = 15;
+                                const checkedCount = (studentReport.konu_takip || []).filter((kt: any) => kt.tamamlandi).length;
+                                return `${checkedCount} / ${totalTopicsCount} Konu`;
+                              })()}
+                            </span>
+                          </div>
+
+                          {/* Subject expanders */}
+                          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                            {(() => {
+                              const isLgs = studentReport.student.alan === 'LGS' || studentReport.student.sinif_adi?.toLowerCase().includes('lgs');
+                              const subjMap = isLgs ? LGS_SUBJECT_TOPICS : TYT_SUBJECT_TOPICS;
+                              
+                              return Object.entries(subjMap).map(([subjKey, topics]: [string, any]) => {
+                                const displayNames: Record<string, string> = {
+                                  turkce: 'Türkçe Bölümü',
+                                  matematik: 'Matematik & Geometri',
+                                  sosyal: 'Sosyal Bilimler',
+                                  fen: 'Fen Bilimleri'
+                                };
+
+                                const isExpanded = expandedChecklistSubject === subjKey;
+                                const studentDoneKeys = (studentReport.konu_takip || [])
+                                  .filter((kt: any) => kt.tamamlandi)
+                                  .map((kt: any) => kt.konu_key);
+                                
+                                const subjTopicsDoneCount = topics.filter((t: any) => studentDoneKeys.includes(`${subjKey}_${t.ad}`)).length;
+                                const completionRatio = Math.round((subjTopicsDoneCount / topics.length) * 100) || 0;
+
+                                return (
+                                  <div key={subjKey} className="bg-slate-950/60 border border-slate-850 rounded-xl overflow-hidden transition">
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedChecklistSubject(isExpanded ? null : subjKey)}
+                                      className="w-full flex items-center justify-between p-3 hover:bg-slate-950/90 transition text-left cursor-pointer"
+                                    >
+                                      <div>
+                                        <h5 className="text-xs font-black text-slate-200">{displayNames[subjKey] || subjKey}</h5>
+                                        <span className="text-[9px] text-slate-400 font-bold block mt-0.5">
+                                          {subjTopicsDoneCount} / {topics.length} Konu (%{completionRatio})
+                                        </span>
+                                      </div>
+                                      <ChevronRight size={14} className={`text-slate-400 transform transition ${isExpanded ? 'rotate-90' : ''}`} />
+                                    </button>
+
+                                    {isExpanded && (
+                                      <div className="p-2 bg-slate-950/30 border-t border-slate-900 space-y-1.5">
+                                        {topics.slice(0, 8).map((topic: any) => {
+                                          const uniqueKey = `${subjKey}_${topic.ad}`;
+                                          const isDone = studentDoneKeys.includes(uniqueKey);
+                                          return (
+                                            <div 
+                                              key={topic.ad} 
+                                              className="flex items-center justify-between gap-2 p-2 bg-slate-900/40 border border-slate-850/60 rounded-lg hover:border-slate-800 transition"
+                                            >
+                                              <span className={`text-[11px] font-semibold leading-normal flex-1 ${isDone ? 'text-slate-500 line-through' : 'text-slate-300'}`}>
+                                                {topic.ad}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleToggleTopic(uniqueKey, isDone)}
+                                                className={`text-slate-400 hover:text-blue-400 transition cursor-pointer`}
+                                              >
+                                                {isDone ? (
+                                                  <CheckSquare size={13} className="text-blue-400" />
+                                                ) : (
+                                                  <div className="w-3.5 h-3.5 rounded border border-slate-600 hover:border-blue-500 transition" />
+                                                )}
+                                              </button>
+                                            </div>
+                                          );
+                                        })}
+                                        {topics.length > 8 && (
+                                          <p className="text-[9px] text-slate-500 text-center font-bold pt-1">
+                                            + {topics.length - 8} Konu daha var
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </div>
+
+                        <div className="border-t border-slate-800/80 pt-3 mt-4 flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                          <span>Müfredat Uyumu:</span>
+                          <span className="text-emerald-400 font-black font-mono">MEB Güncel</span>
+                        </div>
+                      </div>
+
                     </div>
 
                     {/* SVG Progress chart & focus areas */}

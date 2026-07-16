@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Ogrenci, Sinif, SinavSonuc, RehberlikNotu } from '../types';
-import { Search, Plus, Edit, Trash2, FileText, Download, ToggleLeft, ToggleRight, ArrowLeft, Send, AlertCircle, Sparkles, Calendar, Clock, Award, Layers, Target } from 'lucide-react';
-import { getTopicAnalysisForStudent } from './Dashboard';
+import { Search, Plus, Edit, Trash2, FileText, Download, ToggleLeft, ToggleRight, ArrowLeft, Send, AlertCircle, Sparkles, Calendar, Clock, Award, Layers, Target, CheckSquare, BookOpen, Timer, PlusCircle, Activity } from 'lucide-react';
+import { getTopicAnalysisForStudent, TYT_SUBJECT_TOPICS, LGS_SUBJECT_TOPICS } from './Dashboard';
 
 // Helper function to calculate expected net projection for the next practice exam
 const getProjectedNet = (sonuclar: any[]): number => {
@@ -77,7 +77,22 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
     ders_programi?: any[];
     tavsiyeler?: any[];
     veli_notlari?: any[];
+    konu_takip?: any[];
+    calisma_seanslari?: any[];
+    haftalik_gorevler?: any[];
   } | null>(null);
+
+  // New Engagement Tools states for Teachers/Coaches
+  const [expandedChecklistSubject, setExpandedChecklistSubject] = useState<string | null>(null);
+  
+  // Weekly Tasks form state
+  const [newTaskText, setNewTaskText] = useState('');
+  const [newTaskSubject, setNewTaskSubject] = useState('Matematik');
+  const [newTaskDay, setNewTaskDay] = useState('Pazartesi');
+
+  // Manual study session form state
+  const [manualSessionSubject, setManualSessionSubject] = useState('Matematik');
+  const [manualSessionDuration, setManualSessionDuration] = useState(30); // in minutes
 
   // Teacher advice form state
   const [newTavsiyeCourse, setNewTavsiyeCourse] = useState('Matematik');
@@ -126,6 +141,154 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
       }
     } catch (err) {
       console.error("Error updating target net:", err);
+    }
+  };
+
+  // Toggle Topic Completion on behalf of Student
+  const handleToggleTopic = async (topicKey: string, currentStatus: boolean) => {
+    if (!detailData || !token) return;
+    const newStatus = !currentStatus;
+    try {
+      const res = await fetch(`/api/ogrenci/${detailData.student.id}/konu-takip`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({ konu_key: topicKey, tamamlandi: newStatus })
+      });
+      if (res.ok) {
+        setDetailData(prev => {
+          if (!prev) return null;
+          const existingList = prev.konu_takip || [];
+          const exists = existingList.some(kt => kt.konu_key === topicKey);
+          let newList;
+          if (exists) {
+            newList = existingList.map(kt => kt.konu_key === topicKey ? { ...kt, tamamlandi: newStatus, tarih: new Date().toISOString() } : kt);
+          } else {
+            newList = [...existingList, { id: Date.now(), ogrenci_id: prev.student.id, konu_key: topicKey, tamamlandi: newStatus, tarih: new Date().toISOString() }];
+          }
+          return {
+            ...prev,
+            konu_takip: newList
+          };
+        });
+      }
+    } catch (err) {
+      console.error("Konu tamamlanma durumu değiştirilemedi:", err);
+    }
+  };
+
+  // Create Weekly Task on behalf of Student (As Coach/Teacher!)
+  const handleCreateWeeklyTask = async () => {
+    if (!detailData || !token || !newTaskText.trim()) return;
+    try {
+      const res = await fetch(`/api/ogrenci/${detailData.student.id}/haftalik-gorevler`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          gorev_metni: newTaskText.trim(),
+          ders_adi: newTaskSubject,
+          gun: newTaskDay
+        })
+      });
+      if (res.ok) {
+        const savedTask = await res.json();
+        setDetailData(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            haftalik_gorevler: [...(prev.haftalik_gorevler || []), savedTask]
+          };
+        });
+        setNewTaskText('');
+      }
+    } catch (err) {
+      console.error("Haftalık görev oluşturulamadı:", err);
+    }
+  };
+
+  // Toggle Weekly Task
+  const handleToggleWeeklyTask = async (taskId: number, currentCompleted: boolean) => {
+    if (!detailData || !token) return;
+    const newStatus = !currentCompleted;
+    try {
+      const res = await fetch(`/api/ogrenci/${detailData.student.id}/haftalik-gorevler/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({ tamamlandi: newStatus })
+      });
+      if (res.ok) {
+        setDetailData(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            haftalik_gorevler: (prev.haftalik_gorevler || []).map(t => t.id === taskId ? { ...t, tamamlandi: newStatus } : t)
+          };
+        });
+      }
+    } catch (err) {
+      console.error("Görev tamamlanma durumu değiştirilemedi:", err);
+    }
+  };
+
+  // Delete Weekly Task
+  const handleDeleteWeeklyTask = async (taskId: number) => {
+    if (!detailData || !token) return;
+    try {
+      const res = await fetch(`/api/ogrenci/${detailData.student.id}/haftalik-gorevler/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': token
+        }
+      });
+      if (res.ok) {
+        setDetailData(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            haftalik_gorevler: (prev.haftalik_gorevler || []).filter(t => t.id !== taskId)
+          };
+        });
+      }
+    } catch (err) {
+      console.error("Görev silinemedi:", err);
+    }
+  };
+
+  // Create Manual Study Session
+  const handleCreateStudySession = async () => {
+    if (!detailData || !token || manualSessionDuration <= 0) return;
+    try {
+      const res = await fetch(`/api/ogrenci/${detailData.student.id}/calisma-seanslari`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          ders_adi: manualSessionSubject,
+          sure: manualSessionDuration * 60 // convert to seconds
+        })
+      });
+      if (res.ok) {
+        const savedSession = await res.json();
+        setDetailData(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            calisma_seanslari: [savedSession, ...(prev.calisma_seanslari || [])]
+          };
+        });
+      }
+    } catch (err) {
+      console.error("Çalışma seansı eklenemedi:", err);
     }
   };
 
@@ -1482,6 +1645,362 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                   </table>
                 </div>
               )}
+            </div>
+
+            {/* COACH/TEACHER STUDENT ENGAGEMENT TRACKING (FEATURES 1, 2, 4) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* Feature 4: Haftalık Çalışma Görevleri & Ödev Takip */}
+              <div className="lg:col-span-6 bg-slate-900/50 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Calendar size={14} className="text-indigo-400" />
+                    <span>Haftalık Çalışma Görevleri & Ödev Takip</span>
+                  </h4>
+                  <span className="text-[9px] font-black bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/20 uppercase tracking-wide">
+                    Koçluk Paneli
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                {(() => {
+                  const tasks = detailData.haftalik_gorevler || [];
+                  const completedCount = tasks.filter((t: any) => t.tamamlandi).length;
+                  const pct = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+                  return (
+                    <div className="space-y-1.5 bg-slate-950/40 border border-slate-850 p-3 rounded-xl">
+                      <div className="flex justify-between text-[11px] font-bold">
+                        <span className="text-slate-400">Genel Görev Tamamlama Oranı</span>
+                        <span className="text-indigo-400 font-mono">{completedCount}/{tasks.length} (%{pct})</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-850">
+                        <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500" style={{ width: `${pct}%` }}></div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Task Assigner Form (Coach assigns tasks) */}
+                <div className="bg-slate-950/30 border border-slate-850 p-4 rounded-xl space-y-3">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Yeni Ödev / Görev Atama</span>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      placeholder="Görev/ödev detayını yazın... (Örn: 150 Soru Paragraf)"
+                      value={newTaskText}
+                      onChange={e => setNewTaskText(e.target.value)}
+                      className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 placeholder-slate-600"
+                    />
+                    <div className="flex gap-2">
+                      <select
+                        value={newTaskSubject}
+                        onChange={e => setNewTaskSubject(e.target.value)}
+                        className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-2.5 py-2 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+                      >
+                        <option value="Matematik">Matematik</option>
+                        <option value="Türkçe">Türkçe</option>
+                        <option value="Fizik">Fizik</option>
+                        <option value="Kimya">Kimya</option>
+                        <option value="Biyoloji">Biyoloji</option>
+                        <option value="Tarih">Tarih</option>
+                        <option value="Coğrafya">Coğrafya</option>
+                        <option value="Felsefe">Felsefe</option>
+                        <option value="Genel Rehberlik">Rehberlik</option>
+                      </select>
+                      <select
+                        value={newTaskDay}
+                        onChange={e => setNewTaskDay(e.target.value)}
+                        className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-2.5 py-2 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+                      >
+                        <option value="Pazartesi">Pzt</option>
+                        <option value="Salı">Salı</option>
+                        <option value="Çarşamba">Çarş</option>
+                        <option value="Perşembe">Perş</option>
+                        <option value="Cuma">Cuma</option>
+                        <option value="Cumartesi">Cmt</option>
+                        <option value="Pazar">Paz</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleCreateWeeklyTask}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1 shrink-0"
+                      >
+                        <Plus size={13} /> Ata
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Assigned Tasks list */}
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  {!(detailData.haftalik_gorevler && detailData.haftalik_gorevler.length > 0) ? (
+                    <p className="text-xs text-slate-500 text-center py-6 italic">Öğrenciye atanmış haftalık çalışma görevi bulunmuyor.</p>
+                  ) : (
+                    (detailData.haftalik_gorevler || []).map((task: any) => (
+                      <div key={task.id} className="bg-slate-950/50 p-3 border border-slate-850 rounded-xl flex items-center justify-between gap-3 hover:border-slate-800 transition">
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleWeeklyTask(task.id, task.tamamlandi)}
+                            className={`mt-0.5 rounded border transition flex items-center justify-center shrink-0 w-4 h-4 cursor-pointer ${
+                              task.tamamlandi 
+                                ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400' 
+                                : 'border-slate-700 hover:border-slate-500 text-transparent'
+                            }`}
+                          >
+                            <svg className="w-2.5 h-2.5 stroke-2 stroke-current" fill="none" viewBox="0 0 24 24">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          </button>
+                          <div className="min-w-0">
+                            <p className={`text-xs font-bold leading-tight ${task.tamamlandi ? 'line-through text-slate-500' : 'text-slate-200'}`}>
+                              {task.gorev_metni}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-500 font-bold">
+                              <span className="bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 text-slate-400">{task.ders_adi}</span>
+                              <span>•</span>
+                              <span>{task.gun} günü için</span>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteWeeklyTask(task.id)}
+                          className="text-slate-600 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition shrink-0"
+                          title="Görevi Sil"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Feature 2: Çalışma Seansları & Odak Takip */}
+              <div className="lg:col-span-6 bg-slate-900/50 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Clock size={14} className="text-emerald-400" />
+                    <span>Çalışma Seansları & Odak Takip</span>
+                  </h4>
+                  <span className="text-[9px] font-black bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 uppercase tracking-wide">
+                    Süre Analizi
+                  </span>
+                </div>
+
+                {/* Stats */}
+                {(() => {
+                  const sessions = detailData.calisma_seanslari || [];
+                  const totalSeconds = sessions.reduce((sum: number, s: any) => sum + (s.sure || 0), 0);
+                  const totalMinutes = Math.round(totalSeconds / 60);
+                  const hours = Math.floor(totalMinutes / 60);
+                  const remainingMins = totalMinutes % 60;
+                  return (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-slate-950/40 border border-slate-850 p-3 rounded-xl text-center">
+                        <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">Toplam Çalışma Süresi</span>
+                        <span className="text-lg font-black text-emerald-400 font-mono block mt-1">
+                          {hours > 0 ? `${hours} sa ${remainingMins} dk` : `${remainingMins} dakika`}
+                        </span>
+                      </div>
+                      <div className="bg-slate-950/40 border border-slate-850 p-3 rounded-xl text-center">
+                        <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">Kayıtlı Seans Adedi</span>
+                        <span className="text-lg font-black text-indigo-400 font-mono block mt-1">
+                          {sessions.length} Seans
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Manual Log Adder */}
+                <div className="bg-slate-950/30 border border-slate-850 p-4 rounded-xl space-y-3">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Manuel Çalışma Süresi Girişi (Koç Ekler)</span>
+                  <div className="flex gap-2">
+                    <select
+                      value={manualSessionSubject}
+                      onChange={e => setManualSessionSubject(e.target.value)}
+                      className="flex-1 bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500 font-medium cursor-pointer"
+                    >
+                      <option value="Matematik">Matematik</option>
+                      <option value="Türkçe">Türkçe</option>
+                      <option value="Fizik">Fizik</option>
+                      <option value="Kimya">Kimya</option>
+                      <option value="Biyoloji">Biyoloji</option>
+                      <option value="Tarih">Tarih</option>
+                      <option value="Coğrafya">Coğrafya</option>
+                      <option value="Felsefe">Felsefe</option>
+                    </select>
+                    <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-xl px-2">
+                      <input
+                        type="number"
+                        min="5"
+                        max="300"
+                        value={manualSessionDuration}
+                        onChange={e => setManualSessionDuration(Number(e.target.value))}
+                        className="w-12 bg-transparent border-none text-xs text-slate-100 font-bold font-mono focus:outline-none text-center"
+                      />
+                      <span className="text-[10px] text-slate-500 font-bold">dakika</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCreateStudySession}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1 shrink-0"
+                    >
+                      <Plus size={13} /> Kaydet
+                    </button>
+                  </div>
+                </div>
+
+                {/* Session Logs list */}
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {!(detailData.calisma_seanslari && detailData.calisma_seanslari.length > 0) ? (
+                    <p className="text-xs text-slate-500 text-center py-6 italic font-medium">Öğrenciye ait kayıtlı odak seansı bulunmuyor.</p>
+                  ) : (
+                    (detailData.calisma_seanslari || []).map((session: any) => (
+                      <div key={session.id} className="bg-slate-950/40 border border-slate-850 px-3 py-2.5 rounded-xl flex items-center justify-between hover:border-slate-800 transition">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded bg-emerald-500/10 text-emerald-400">
+                            <Activity size={12} />
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-slate-200">{session.ders_adi} Çalışması</span>
+                            <span className="text-[10px] text-slate-500 block font-semibold mt-0.5">
+                              {session.tarih ? new Date(session.tarih).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : 'Belirsiz Tarih'}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-xs font-black text-emerald-400 font-mono bg-emerald-950/20 px-2 py-0.5 rounded border border-emerald-900/30">
+                          +{Math.round(session.sure / 60)} dk
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Feature 1: Konu Takip Çizelgesi (Tüm Müfredat) */}
+              <div className="lg:col-span-12 bg-slate-900/50 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Layers size={14} className="text-cyan-400" />
+                    <span>Konu Takip Çizelgesi & Müfredat İlerleme Durumu</span>
+                  </h4>
+                  <span className="text-[9px] font-black bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full border border-cyan-500/20 uppercase tracking-wide">
+                    Müfredat Takibi
+                  </span>
+                </div>
+
+                {/* Progress Grid summary */}
+                {(() => {
+                  const isLgs = detailData.student.alan === 'LGS' || detailData.student.sinif_adi?.toLowerCase().includes('lgs');
+                  const subjMap = isLgs ? LGS_SUBJECT_TOPICS : TYT_SUBJECT_TOPICS;
+                  const studentDoneKeys = (detailData.konu_takip || [])
+                    .filter((kt: any) => kt.tamamlandi)
+                    .map((kt: any) => kt.konu_key);
+
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-slate-950/30 p-4 border border-slate-850 rounded-xl">
+                      {Object.keys(subjMap).map((subjKey) => {
+                        const topics = (subjMap as any)[subjKey] || [];
+                        const completedInSubj = topics.filter((t: any) => {
+                          const uniqueKey = `${subjKey}_${t.ad}`.toLowerCase();
+                          return studentDoneKeys.includes(uniqueKey);
+                        }).length;
+                        const pct = topics.length > 0 ? Math.round((completedInSubj / topics.length) * 100) : 0;
+                        const label = subjKey.toUpperCase();
+                        
+                        return (
+                          <div key={subjKey} className="space-y-1">
+                            <div className="flex justify-between text-[10px] font-bold">
+                              <span className="text-slate-400">{label}</span>
+                              <span className="text-cyan-400 font-mono">{completedInSubj}/{topics.length} (%{pct})</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-900">
+                              <div className="h-full bg-cyan-500 rounded-full transition-all duration-300" style={{ width: `${pct}%` }}></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+
+                {/* Subject Accordions */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(() => {
+                    const isLgs = detailData.student.alan === 'LGS' || detailData.student.sinif_adi?.toLowerCase().includes('lgs');
+                    const subjMap = isLgs ? LGS_SUBJECT_TOPICS : TYT_SUBJECT_TOPICS;
+                    const studentDoneKeys = (detailData.konu_takip || [])
+                      .filter((kt: any) => kt.tamamlandi)
+                      .map((kt: any) => kt.konu_key);
+
+                    return Object.keys(subjMap).map((subjKey) => {
+                      const topics = (subjMap as any)[subjKey] || [];
+                      const completedCount = topics.filter((t: any) => {
+                        const uniqueKey = `${subjKey}_${t.ad}`.toLowerCase();
+                        return studentDoneKeys.includes(uniqueKey);
+                      }).length;
+                      const isOpen = expandedChecklistSubject === subjKey;
+
+                      return (
+                        <div key={subjKey} className="bg-slate-950/60 border border-slate-850 rounded-xl overflow-hidden transition">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedChecklistSubject(isOpen ? null : subjKey)}
+                            className="w-full flex items-center justify-between p-3.5 hover:bg-slate-950/90 transition text-left cursor-pointer"
+                          >
+                            <div>
+                              <span className="text-xs font-black text-slate-200 tracking-wide uppercase">{subjKey === 'turkce' ? 'TÜRKÇE' : subjKey === 'matematik' ? 'MATEMATİK' : subjKey === 'sosyal' ? 'SOSYAL BİLGİLER' : 'FEN BİLİMLERİ'}</span>
+                              <span className="text-[10px] text-slate-500 font-extrabold block mt-0.5">Toplam {topics.length} ana başlık</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs font-black text-cyan-400 font-mono bg-cyan-950/40 border border-cyan-900/30 px-2 py-0.5 rounded-lg">
+                                {completedCount} / {topics.length} Bitti
+                              </span>
+                              <span className={`text-slate-500 transition-transform duration-250 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+                            </div>
+                          </button>
+
+                          {isOpen && (
+                            <div className="p-3 bg-slate-950/30 border-t border-slate-900/80 space-y-1.5 max-h-80 overflow-y-auto">
+                              {topics.map((topic: any, idx: number) => {
+                                const uniqueKey = `${subjKey}_${topic.ad}`.toLowerCase();
+                                const isDone = studentDoneKeys.includes(uniqueKey);
+                                return (
+                                  <div
+                                    key={idx}
+                                    onClick={() => handleToggleTopic(uniqueKey, isDone)}
+                                    className={`flex items-center justify-between p-2.5 rounded-lg border text-xs font-semibold cursor-pointer transition select-none ${
+                                      isDone 
+                                        ? 'bg-cyan-950/15 border-cyan-900/40 text-cyan-200 hover:bg-cyan-950/25' 
+                                        : 'bg-slate-900/20 border-slate-850/80 text-slate-400 hover:bg-slate-900/40 hover:border-slate-800'
+                                    }`}
+                                  >
+                                    <span className="truncate pr-2">{topic.ad}</span>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <span className="text-[9px] text-slate-500 font-mono font-bold">Önem: {topic.soru} Soru</span>
+                                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                                        isDone ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'border-slate-700 text-transparent'
+                                      }`}>
+                                        <svg className="w-2.5 h-2.5 stroke-2 stroke-current" fill="none" viewBox="0 0 24 24">
+                                          <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
             </div>
 
             {/* School-Parent-Teacher Communication Hub */}

@@ -1382,6 +1382,9 @@ app.get('/api/ogrenci/:id', (req, res) => {
   const schedule = db.getDersProgramlari().filter(dp => dp.ogrenci_id === student.id);
   const tavsiyeler = db.getOgretmenTavsiyeleri().filter(t => t.ogrenci_id === studentId);
   const veliNotlari = db.getVeliNotlari().filter(n => n.ogrenci_id === studentId);
+  const konuTakip = db.getKonuTakip().filter(kt => kt.ogrenci_id === studentId);
+  const calismaSeanslari = db.getCalismaSeanslari().filter(cs => cs.ogrenci_id === studentId);
+  const haftalikGorevler = db.getHaftalikGorevler().filter(hg => hg.ogrenci_id === studentId);
 
   res.json({
     student: {
@@ -1395,7 +1398,10 @@ app.get('/api/ogrenci/:id', (req, res) => {
     notlar: joinedNotes,
     ders_programi: schedule,
     tavsiyeler: tavsiyeler.sort((a, b) => b.tarih.localeCompare(a.tarih)),
-    veli_notlari: veliNotlari.sort((a, b) => b.tarih.localeCompare(a.tarih))
+    veli_notlari: veliNotlari.sort((a, b) => b.tarih.localeCompare(a.tarih)),
+    konu_takip: konuTakip,
+    calisma_seanslari: calismaSeanslari,
+    haftalik_gorevler: haftalikGorevler
   });
 });
 
@@ -1483,6 +1489,114 @@ app.delete('/api/ogrenci/:id/not/:noteId', (req, res) => {
     res.json({ success: true });
   } else {
     res.status(404).json({ error: 'Rehberlik notu bulunamadı.' });
+  }
+});
+
+// --- STUDENT EXPANDED PANEL FEATURES (FEATURES 1, 2, 4) ---
+
+// Feature 1: Konu Takip (Subject checklist)
+app.get('/api/ogrenci/:id/konu-takip', (req, res) => {
+  const studentId = Number(req.params.id);
+  const data = db.getKonuTakip().filter(kt => kt.ogrenci_id === studentId);
+  res.json(data);
+});
+
+app.post('/api/ogrenci/:id/konu-takip', (req, res) => {
+  const studentId = Number(req.params.id);
+  const { konu_key, tamamlandi } = req.body;
+  if (!konu_key) {
+    return res.status(400).json({ error: 'konu_key gereklidir.' });
+  }
+  
+  // Check if already exists
+  const existing = db.getKonuTakip().find(kt => kt.ogrenci_id === studentId && kt.konu_key === konu_key);
+  if (existing) {
+    db.update('konu_takip', existing.id, {
+      tamamlandi: Boolean(tamamlandi),
+      tarih: new Date().toISOString()
+    });
+    res.json({ success: true, updated: true });
+  } else {
+    db.insert('konu_takip', {
+      ogrenci_id: studentId,
+      konu_key,
+      tamamlandi: Boolean(tamamlandi),
+      tarih: new Date().toISOString()
+    });
+    res.json({ success: true, inserted: true });
+  }
+});
+
+// Feature 2: Çalışma Seansları (Timer / Focus stopwatch sessions)
+app.get('/api/ogrenci/:id/calisma-seanslari', (req, res) => {
+  const studentId = Number(req.params.id);
+  const data = db.getCalismaSeanslari().filter(cs => cs.ogrenci_id === studentId);
+  res.json(data);
+});
+
+app.post('/api/ogrenci/:id/calisma-seanslari', (req, res) => {
+  const studentId = Number(req.params.id);
+  const { ders_adi, sure } = req.body;
+  if (!ders_adi || typeof sure !== 'number') {
+    return res.status(400).json({ error: 'ders_adi ve sayısal sure gereklidir.' });
+  }
+  const session = db.insert('calisma_seanslari', {
+    ogrenci_id: studentId,
+    ders_adi,
+    sure,
+    tarih: new Date().toISOString()
+  });
+  res.json(session);
+});
+
+// Feature 4: Haftalık Görevler (Weekly Study Tasks assigned by Coach/Teacher or self)
+app.get('/api/ogrenci/:id/haftalik-gorevler', (req, res) => {
+  const studentId = Number(req.params.id);
+  const data = db.getHaftalikGorevler().filter(hg => hg.ogrenci_id === studentId);
+  res.json(data);
+});
+
+app.post('/api/ogrenci/:id/haftalik-gorevler', (req, res) => {
+  const studentId = Number(req.params.id);
+  const { gorev_metni, ders_adi, gun } = req.body;
+  if (!gorev_metni || !ders_adi || !gun) {
+    return res.status(400).json({ error: 'gorev_metni, ders_adi ve gun alanları gereklidir.' });
+  }
+  const task = db.insert('haftalik_gorevler', {
+    ogrenci_id: studentId,
+    gorev_metni,
+    ders_adi,
+    gun,
+    tamamlandi: false,
+    tarih: new Date().toISOString()
+  });
+  res.json(task);
+});
+
+app.put('/api/ogrenci/:id/haftalik-gorevler/:gorevId', (req, res) => {
+  const gorevId = Number(req.params.gorevId);
+  const { tamamlandi, gorev_metni, ders_adi, gun } = req.body;
+  const updates: any = {};
+  if (tamamlandi !== undefined) updates.tamamlandi = Boolean(tamamlandi);
+  if (gorev_metni !== undefined) updates.gorev_metni = gorev_metni;
+  if (ders_adi !== undefined) updates.ders_adi = ders_adi;
+  if (gun !== undefined) updates.gun = gun;
+
+  const success = db.update('haftalik_gorevler', gorevId, updates);
+  if (success) {
+    res.json({ success: true });
+  } else {
+    res.status(404).json({ error: 'Görev bulunamadı.' });
+  }
+});
+
+app.delete('/api/ogrenci/:id/haftalik-gorevler/:gorevId', (req, res) => {
+  const gorevId = Number(req.params.gorevId);
+  const success = db.delete('haftalik_gorevler', gorevId);
+  if (success) {
+    res.json({ success: true });
+  } else {
+    res.status(404).json({ error: 'Görev bulunamadı.' });
   }
 });
 

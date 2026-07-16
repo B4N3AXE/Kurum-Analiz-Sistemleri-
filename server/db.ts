@@ -122,6 +122,32 @@ export interface Coupon {
   active: boolean;
 }
 
+export interface KonuTakip {
+  id: number;
+  ogrenci_id: number;
+  konu_key: string;
+  tamamlandi: boolean;
+  tarih?: string;
+}
+
+export interface CalismaSeansi {
+  id: number;
+  ogrenci_id: number;
+  ders_adi: string;
+  sure: number; // in seconds
+  tarih: string;
+}
+
+export interface HaftalikGorev {
+  id: number;
+  ogrenci_id: number;
+  gorev_metni: string;
+  ders_adi: string;
+  gun: string;
+  tamamlandi: boolean;
+  tarih?: string;
+}
+
 export interface DatabaseSchema {
   kullanicilar: Kullanici[];
   kurumlar: Kurum[];
@@ -137,6 +163,9 @@ export interface DatabaseSchema {
   ogretmen_tavsiyeleri?: OgretmenTavsiyesi[];
   veli_notlari?: VeliNotu[];
   coupons?: Coupon[];
+  konu_takip?: KonuTakip[];
+  calisma_seanslari?: CalismaSeansi[];
+  haftalik_gorevler?: HaftalikGorev[];
 }
 
 export interface DersProgrami {
@@ -176,7 +205,10 @@ const initialData: DatabaseSchema = {
   veli_notlari: [],
   coupons: [
     { id: 1, code: "YENISEZON10", discount_type: "percentage", discount_value: 10, applies_to: "once", active: true }
-  ]
+  ],
+  konu_takip: [],
+  calisma_seanslari: [],
+  haftalik_gorevler: []
 };
 
 export class Database {
@@ -248,7 +280,10 @@ export class Database {
           risk_thresholds: parsed.risk_thresholds,
           ogretmen_tavsiyeleri: parsed.ogretmen_tavsiyeleri || [],
           veli_notlari: parsed.veli_notlari || [],
-          coupons: parsed.coupons || initialData.coupons
+          coupons: parsed.coupons || initialData.coupons,
+          konu_takip: parsed.konu_takip || [],
+          calisma_seanslari: parsed.calisma_seanslari || [],
+          haftalik_gorevler: parsed.haftalik_gorevler || []
         };
 
         // Always save back to keep db.json perfectly seeded and up to date
@@ -284,6 +319,9 @@ export class Database {
   public getRiskThresholds() { return this.data.risk_thresholds || []; }
   public getOgretmenTavsiyeleri() { return this.data.ogretmen_tavsiyeleri || []; }
   public getVeliNotlari() { return this.data.veli_notlari || []; }
+  public getKonuTakip() { return this.data.konu_takip || []; }
+  public getCalismaSeanslari() { return this.data.calisma_seanslari || []; }
+  public getHaftalikGorevler() { return this.data.haftalik_gorevler || []; }
 
   // Mutation helper wrapper to auto-save after calls
   public insert<K extends keyof DatabaseSchema>(table: K, item: any): any {
