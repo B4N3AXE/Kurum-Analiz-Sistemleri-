@@ -113,6 +113,15 @@ export interface VeliNotu {
   tarih: string;
 }
 
+export interface Coupon {
+  id: number;
+  code: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  applies_to: 'once' | 'forever' | 'repeating';
+  active: boolean;
+}
+
 export interface DatabaseSchema {
   kullanicilar: Kullanici[];
   kurumlar: Kurum[];
@@ -127,6 +136,7 @@ export interface DatabaseSchema {
   risk_thresholds: RiskThreshold[];
   ogretmen_tavsiyeleri?: OgretmenTavsiyesi[];
   veli_notlari?: VeliNotu[];
+  coupons?: Coupon[];
 }
 
 export interface DersProgrami {
@@ -222,7 +232,10 @@ const initialData: DatabaseSchema = {
     { id: 3, tur: 'LGS', turkce_net: 14, sosyal_net: 18, matematik_net: 10, fen_net: 12, toplam_net: 55 }
   ],
   ogretmen_tavsiyeleri: [],
-  veli_notlari: []
+  veli_notlari: [],
+  coupons: [
+    { id: 1, code: "YENISEZON10", discount_type: "percentage", discount_value: 10, applies_to: "once", active: true }
+  ]
 };
 
 export class Database {
@@ -252,6 +265,13 @@ export class Database {
           if (!hasLgs) {
             parsed.risk_thresholds.push({ id: 3, tur: 'LGS', turkce_net: 14, sosyal_net: 18, matematik_net: 10, fen_net: 12, toplam_net: 55 });
           }
+        }
+
+        // Seed coupons if not exists or empty
+        if (!parsed.coupons || parsed.coupons.length === 0) {
+          parsed.coupons = [
+            { id: 1, code: "YENISEZON10", discount_type: "percentage", discount_value: 10, applies_to: "once", active: true }
+          ];
         }
 
         // Ensure critical seed users exist in the loaded database (such as dibiadam81@gmail.com)
@@ -286,7 +306,8 @@ export class Database {
           ders_programlari: currentSchedules,
           risk_thresholds: parsed.risk_thresholds,
           ogretmen_tavsiyeleri: parsed.ogretmen_tavsiyeleri || [],
-          veli_notlari: parsed.veli_notlari || []
+          veli_notlari: parsed.veli_notlari || [],
+          coupons: parsed.coupons || initialData.coupons
         };
 
         // Always save back to keep db.json perfectly seeded and up to date
@@ -308,6 +329,7 @@ export class Database {
   }
 
   // Generic Query Helpers
+  public getCoupons() { return this.data.coupons || []; }
   public getKullanicilar() { return this.data.kullanicilar || []; }
   public getKurumlar() { return this.data.kurumlar || []; }
   public getSiniflar() { return this.data.siniflar || []; }

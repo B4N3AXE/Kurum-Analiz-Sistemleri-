@@ -24,16 +24,18 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
   const [paytrLoading, setPaytrLoading] = useState<boolean>(false);
   const [paytrError, setPaytrError] = useState<string>('');
 
-  const handlePaytrTokenFetch = async (plan: { id: string; title: string; price: string; isAnnual: boolean } | null) => {
-    if (!plan) return;
+  // Coupon and Pricing States
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState('');
+  const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState('');
+
+  const handlePaytrTokenFetch = async (planIsAnnual: boolean, code: string) => {
     setPaytrLoading(true);
     setPaytrError('');
     setPaytrToken('');
     
     try {
-      // Gerçek Fiyatlar: Aylık 950 TL, Yıllık ise peşin 9000 TL (aylık 750 TL'ye gelir)
-      const totalAmount = plan.isAnnual ? 9000 : 950;
-
       // Kullanıcının gerçek IP adresini tespit edelim (PayTR IP eşleşmesi için kritik)
       let clientIp = '';
       try {
@@ -53,8 +55,8 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
           'Authorization': token
         },
         body: JSON.stringify({
-          amount: totalAmount,
-          isAnnualBilling: plan.isAnnual,
+          isAnnualBilling: planIsAnnual,
+          couponCode: code,
           userEmail: user?.email || 'dibiadam81@gmail.com',
           userName: user?.ad_soyad || 'K.A.S Kullanıcısı',
           userPhone: user?.telefon || '05555555555',
@@ -81,11 +83,85 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
     }
   };
 
+  const handleApplyCoupon = async (code: string, isAnnual: boolean) => {
+    if (!code.trim()) {
+      setAppliedCoupon('');
+      setCouponError('');
+      setCouponSuccess('');
+      handlePaytrTokenFetch(isAnnual, '');
+      return;
+    }
+
+    const codeClean = code.trim().toUpperCase();
+    if (codeClean === 'YENISEZON10' && !isAnnual) {
+      setAppliedCoupon('');
+      setCouponSuccess('');
+      setCouponError('Bu kod sadece yıllık üyeliklerde geçerlidir.');
+      handlePaytrTokenFetch(isAnnual, '');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/paytr/validate-coupon', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          couponCode: codeClean,
+          isAnnualBilling: isAnnual
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.valid) {
+          setAppliedCoupon(codeClean);
+          setCouponError('');
+          setCouponSuccess(`${codeClean} (%${data.discountValue} İndirim) uygulandı.`);
+          handlePaytrTokenFetch(isAnnual, codeClean);
+        } else {
+          setAppliedCoupon('');
+          setCouponSuccess('');
+          setCouponError(data.error || 'Geçersiz kupon kodu.');
+          handlePaytrTokenFetch(isAnnual, '');
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setAppliedCoupon('');
+        setCouponSuccess('');
+        setCouponError(errData.error || 'Kupon doğrulama hatası.');
+        handlePaytrTokenFetch(isAnnual, '');
+      }
+    } catch (e) {
+      setAppliedCoupon('');
+      setCouponSuccess('');
+      setCouponError('Kupon doğrulama bağlantı hatası.');
+      handlePaytrTokenFetch(isAnnual, '');
+    }
+  };
+
   React.useEffect(() => {
     if (selectedPlan) {
-      handlePaytrTokenFetch(selectedPlan);
+      if (selectedPlan.isAnnual) {
+        setCouponInput('YENISEZON10');
+        handleApplyCoupon('YENISEZON10', true);
+      } else {
+        setCouponInput('');
+        setAppliedCoupon('');
+        setCouponSuccess('');
+        setCouponError('');
+        handlePaytrTokenFetch(false, '');
+      }
     }
-  }, [selectedPlan]);
+  }, [selectedPlan?.isAnnual]);
+
+  React.useEffect(() => {
+    if (selectedPlan) {
+      handlePaytrTokenFetch(selectedPlan.isAnnual, appliedCoupon);
+    }
+  }, [selectedPlan?.id]);
 
   // Institution's Own Payment Gateway Settings
   const [merchantType, setMerchantType] = useState<'bank' | 'iyzico' | 'paytr' | 'stripe'>(
@@ -197,7 +273,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                           </div>
                           <button
                             type="button"
-                            onClick={() => handlePaytrTokenFetch(selectedPlan)}
+                            onClick={() => handlePaytrTokenFetch(selectedPlan?.isAnnual ?? false, appliedCoupon)}
                             className="px-4 py-2 bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-800 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 mx-auto"
                           >
                             <RefreshCw size={12} /> Tekrar Dene
@@ -230,18 +306,86 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                   <div className="lg:col-span-4 flex flex-col justify-between space-y-6 border-t lg:border-t-0 lg:border-l border-slate-800/80 pt-6 lg:pt-0 lg:pl-8">
                     <div className="bg-slate-950 p-5 border border-slate-850 rounded-2xl space-y-4">
                       <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">SİPARİŞ ÖZETİ</span>
-                      <div className="space-y-2 text-xs text-slate-300 font-semibold">
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">{selectedPlan.title} ({selectedPlan.isAnnual ? 'Yıllık' : 'Aylık'})</span>
-                          <span>{selectedPlan.price}</span>
+                      
+                      {/* Interactive Plan Selectors inside Checkout */}
+                      <div className="space-y-1.5 pb-2 border-b border-slate-900/60">
+                        <span className="text-[10px] font-bold text-slate-400 block">Plan Süresi Seçin:</span>
+                        <div className="grid grid-cols-2 gap-2 bg-slate-900 border border-slate-850 p-1 rounded-xl">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPlan(prev => prev ? { ...prev, isAnnual: false, price: "₺3.250" } : null);
+                            }}
+                            className={`py-1.5 text-[10px] font-extrabold rounded-lg transition ${!selectedPlan.isAnnual ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"}`}
+                          >
+                            Aylık Ödeme
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPlan(prev => prev ? { ...prev, isAnnual: true, price: "₺39.000" } : null);
+                            }}
+                            className={`py-1.5 text-[10px] font-extrabold rounded-lg transition ${selectedPlan.isAnnual ? "bg-blue-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"}`}
+                          >
+                            Yıllık Ödeme
+                          </button>
                         </div>
+                      </div>
+
+                      {/* Coupon input field */}
+                      <div className="space-y-1.5 pb-2 border-b border-slate-900/60">
+                        <span className="text-[10px] font-bold text-slate-400 block">Kupon Kodu:</span>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Kupon Kodu Girin"
+                            value={couponInput}
+                            onChange={(e) => setCouponInput(e.target.value)}
+                            className="bg-slate-900 border border-slate-850 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 flex-1 uppercase font-black"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleApplyCoupon(couponInput, selectedPlan.isAnnual)}
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition shrink-0"
+                          >
+                            Uygula
+                          </button>
+                        </div>
+                        {couponError && (
+                          <span className="text-[10px] text-red-400 font-extrabold block leading-tight mt-1">
+                            ⚠️ {couponError}
+                          </span>
+                        )}
+                        {couponSuccess && (
+                          <span className="text-[10px] text-emerald-400 font-extrabold block leading-tight mt-1">
+                            ✓ {couponSuccess}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-2.5 text-xs text-slate-300 font-semibold pt-1">
                         <div className="flex justify-between">
+                          <span className="text-slate-400">Normal Fiyat</span>
+                          <span>{selectedPlan.isAnnual ? "₺39.000" : "₺3.250"}</span>
+                        </div>
+
+                        {selectedPlan.isAnnual && appliedCoupon === 'YENISEZON10' && (
+                          <div className="flex justify-between text-emerald-400 font-extrabold bg-emerald-500/5 border border-emerald-500/10 p-2 rounded-lg text-[11px]">
+                            <span>Uygulanan Kupon</span>
+                            <span>YENISEZON10 (%10 İndirim)</span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between text-[11px]">
                           <span className="text-slate-400">%18 KDV</span>
                           <span>Dahil</span>
                         </div>
+
                         <div className="border-t border-slate-800/80 pt-3 flex justify-between font-black text-slate-100 text-sm">
-                          <span>Toplam Tutar</span>
-                          <span className="text-blue-400">{selectedPlan.price}</span>
+                          <span>Ödenecek Tutar</span>
+                          <span className="text-blue-400">
+                            {selectedPlan.isAnnual && appliedCoupon === 'YENISEZON10' ? "₺35.100" : (selectedPlan.isAnnual ? "₺39.000" : "₺3.250")}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -279,7 +423,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                   onClick={() => setIsAnnualBilling(true)}
                   className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition flex items-center gap-1 ${isAnnualBilling ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-slate-200"}`}
                 >
-                  Yıllık Ödeme <span className="bg-emerald-500 text-slate-950 font-black text-[8px] px-1 rounded-md">%20 İndirim</span>
+                  Yıllık Ödeme <span className="bg-emerald-500 text-slate-950 font-black text-[8px] px-1 rounded-md">%10 İndirim</span>
                 </button>
               </div>
             </div>
@@ -299,12 +443,17 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                 <div className="text-left sm:text-right">
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-black text-slate-50 tracking-tight">
-                      {isAnnualBilling ? "₺750" : "₺950"}
+                      {isAnnualBilling ? "₺2.925" : "₺3.250"}
                     </span>
                     <span className="text-[10px] font-bold text-slate-500">/aylık</span>
                   </div>
                   <span className="text-[9px] text-slate-500 block font-bold">
-                    {isAnnualBilling ? "*Yıllık peşin (₺9.000) faturalandırılır." : "*Aylık (₺950) faturalandırılır."}
+                    {isAnnualBilling ? (
+                      <>
+                        <span className="line-through text-slate-600">₺39.000 yerine</span>{" "}
+                        <span className="text-emerald-400 font-extrabold">₺35.100</span> faturalandırılır (%10 İndirim).
+                      </>
+                    ) : "*Aylık (₺3.250) faturalandırılır."}
                   </span>
                 </div>
               </div>
@@ -334,7 +483,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                   setSelectedPlan({
                     id: "premium",
                     title: "K.A.S Sınırsız Premium",
-                    price: isAnnualBilling ? "₺9.000" : "₺950",
+                    price: isAnnualBilling ? "₺35.100" : "₺3.250",
                     isAnnual: isAnnualBilling
                   });
                   setTimeout(() => {

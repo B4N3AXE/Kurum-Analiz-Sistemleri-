@@ -710,7 +710,7 @@ export default function App() {
                 <div className="hidden lg:flex items-center gap-6 text-xs font-bold text-slate-400">
                   <a href="#nasil-calisir" className="hover:text-blue-400 transition">Nasıl Çalışır?</a>
                   <a href="#ozellikler" className="hover:text-blue-400 transition">Özellikler</a>
-                  <a href="#fiyatlandirma" className="hover:text-blue-400 transition">Fiyatlar</a>
+                  <a href="#fiyatlandirma" className="hover:text-blue-400 transition">Abonelik & Deneme</a>
                 </div>
                 
                 <button
@@ -1331,32 +1331,15 @@ export default function App() {
 
             {/* Pricing Section */}
             <div id="fiyatlandirma" className="space-y-6 scroll-mt-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="space-y-1">
-                  <span className="text-xs font-extrabold text-blue-500 uppercase tracking-wider font-sans">ŞEFFAF VE TEK FİYAT</span>
-                  <h3 className="text-2xl font-extrabold text-slate-100 font-sans tracking-tight">Kurum Analiz Sistemi Sınırsız Portal Lisansı</h3>
-                </div>
-
-                {/* Billing Toggle Switcher */}
-                <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1 rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => setIsAnnualBilling(false)}
-                    className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition ${!isAnnualBilling ? "bg-slate-800 text-white shadow" : "text-slate-400 hover:text-slate-200"}`}
-                  >
-                    Aylık Ödeme
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsAnnualBilling(true)}
-                    className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition flex items-center gap-1 ${isAnnualBilling ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-slate-200"}`}
-                  >
-                    Yıllık Ödeme <span className="bg-emerald-500 text-slate-950 font-black text-[8px] px-1 rounded-md">%20 İndirim</span>
-                  </button>
-                </div>
+              <div className="text-center max-w-2xl mx-auto space-y-2">
+                <span className="text-xs font-extrabold text-blue-500 uppercase tracking-wider font-sans">KOLAY ENTEGRASYON & PRESTİJLİ HİZMET</span>
+                <h3 className="text-2xl font-extrabold text-slate-100 font-sans tracking-tight">Kurum Analiz Sistemi Üyelik ve Deneme Süreci</h3>
+                <p className="text-xs text-slate-400 font-semibold leading-relaxed">
+                  Hiçbir ek maliyet veya taahhüt altına girmeden platformumuzu hemen test edin. Kurumunuzun büyüklüğüne ve ihtiyaçlarına göre en esnek üyelik çözümleri sisteme giriş yaptıktan sonra sunulmaktadır.
+                </p>
               </div>
 
-              {/* Pricing Grid (2 Cards layout) */}
+              {/* Pricing Grid (2 Cards layout without price tags) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                 
                 {/* Free Trial Card */}
@@ -1364,18 +1347,18 @@ export default function App() {
                   <div className="space-y-4">
                     <div>
                       <span className="bg-slate-800/80 text-slate-300 text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider">
-                        KART GEREKMEZ
+                        KART GEREKMEZ • ANINDA ERİŞİM
                       </span>
                       <h4 className="text-base font-black text-slate-100 mt-2">14 Günlük Ücretsiz Deneme</h4>
-                      <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Sistemi risksiz test edin</span>
+                      <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Sistemi risksiz ve sınırsız test edin</span>
                     </div>
                     
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-slate-50 tracking-tight">₺0</span>
-                      <span className="text-[10px] font-bold text-slate-500">/ 14 gün</span>
+                    <div className="bg-slate-950/60 border border-slate-900/80 px-4 py-3 rounded-2xl flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-400">Deneme Süresi:</span>
+                      <span className="text-xs font-black text-emerald-400 uppercase tracking-wider">14 Gün Tam Sürüm</span>
                     </div>
                     <span className="text-[10px] text-slate-500 block font-bold">
-                      *Hiçbir taahhüt veya kredi kartı bilgisi gerekmez.
+                      *Kredi kartı veya ödeme bilgisi girmeden anında profil oluşturun.
                     </span>
 
                     <div className="border-t border-slate-900/60 pt-4 space-y-2">
@@ -1414,23 +1397,21 @@ export default function App() {
                 {/* Sınırsız Premium Card */}
                 <div className="border border-blue-500/30 bg-blue-500/5 shadow-lg shadow-blue-500/5 rounded-3xl p-6 space-y-6 flex flex-col justify-between relative hover:border-blue-500/50 transition-all duration-300">
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-full tracking-wider border border-blue-400">
-                    EN POPÜLER • TEK LİSANS
+                    EN POPÜLER • SINIRSIZ SEÇENEK
                   </span>
                   
                   <div className="space-y-4">
                     <div>
                       <h4 className="text-base font-black text-slate-100 mt-2">Kurum Analiz Sınırsız Premium</h4>
-                      <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Sınırsız Öğrenci, Veli ve Şube</span>
+                      <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Sınırsız Öğrenci, Veli, Şube & Altyapı</span>
                     </div>
                     
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-slate-50 tracking-tight">
-                        {isAnnualBilling ? "₺750" : "₺950"}
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-500">/aylık</span>
+                    <div className="bg-blue-600/10 border border-blue-500/20 px-4 py-3 rounded-2xl flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-400">Üyelik Tipi:</span>
+                      <span className="text-xs font-black text-blue-400 uppercase tracking-wider">Kurumsal Lisans</span>
                     </div>
-                    <span className="text-[10px] text-slate-500 block font-bold">
-                      {isAnnualBilling ? "*Yıllık peşin (₺9.000) faturalandırılır." : "*Aylık (₺950) faturalandırılır."}
+                    <span className="text-[10px] text-slate-400 block font-bold leading-relaxed">
+                      *Kurumunuzun büyüklüğüne ve öğrenci sayınıza göre esnek lisanslama ve indirim avantajları giriş panelinizde tanımlanır.
                     </span>
 
                     <div className="border-t border-slate-900/60 pt-4 space-y-2">
@@ -1463,7 +1444,7 @@ export default function App() {
                     }}
                     className="w-full py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/15"
                   >
-                    Deneme Başlat & Premium'a Geç 💎
+                    Sisteme Kaydol & Planları Gör 💎
                   </button>
                 </div>
 
@@ -1471,9 +1452,9 @@ export default function App() {
 
               {/* Informational Guidance Warning Banner for payments */}
               <div className="max-w-4xl mx-auto bg-slate-950/80 border border-slate-850 p-4 rounded-2xl space-y-2 text-center">
-                <span className="font-extrabold uppercase text-[10px] text-blue-400 tracking-wider block">💳 ÖDEME SİSTEMİ HAKKINDA BİLGİLENDİRME</span>
+                <span className="font-extrabold uppercase text-[10px] text-blue-400 tracking-wider block">💳 LİSANSLAMA VE ABONELİK SİSTEMİ</span>
                 <p className="text-[10px] text-slate-400 font-semibold leading-relaxed max-w-2xl mx-auto">
-                  Güvenlik ve kurum-hesap eşleştirmesi nedeniyle kredi kartı ile lisans satın alma/yükseltme işlemleri <strong>yalnızca kayıt olup sisteme giriş yaptıktan sonra Kurum Paneli içerisindeki "Abonelik" sekmesinden</strong> yapılmaktadır. Kayıt esnasında sizden kredi kartı bilgisi kesinlikle istenmez.
+                  Kurum Analiz Sistemi'nde ödemeler ve lisans yükseltmeleri, kayıt olup sisteme giriş yaptıktan sonra <strong>Kurum Paneli'ndeki "Abonelik" sekmesinden</strong> şeffaf bir şekilde yönetilir. Önceden kart bilgisi girmeden ücretsiz denemenizi dilediğiniz an başlatabilirsiniz.
                 </p>
               </div>
             </div>

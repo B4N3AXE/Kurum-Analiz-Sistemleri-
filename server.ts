@@ -2108,13 +2108,104 @@ app.post('/api/pdf/save', (req, res) => {
 // PAYTR GÜVENLİ SANAL POS ENTEGRASYONU
 // ==========================================
 
-// 1. PayTR iFrame Token Oluşturma (POST /api/paytr/token)
+// 1. Kupon Doğrulama Servisi (POST /api/paytr/validate-coupon)
+app.post('/api/paytr/validate-coupon', (req, res) => {
+  try {
+    const { isAnnualBilling, couponCode } = req.body;
+    const basePrice = isAnnualBilling ? 39000 : 3250;
+
+    if (!couponCode || typeof couponCode !== 'string' || !couponCode.trim()) {
+      return res.json({
+        success: true,
+        valid: false,
+        basePrice,
+        finalPrice: basePrice,
+        message: ''
+      });
+    }
+
+    const codeClean = couponCode.trim().toUpperCase();
+    const dbCoupons = db.getCoupons();
+    const coupon = dbCoupons.find(c => c.code.toUpperCase() === codeClean && c.active);
+
+    if (!coupon) {
+      return res.json({
+        success: true,
+        valid: false,
+        basePrice,
+        finalPrice: basePrice,
+        error: 'Geçersiz veya süresi dolmuş kupon kodu.'
+      });
+    }
+
+    if (coupon.code === 'YENISEZON10' && !isAnnualBilling) {
+      return res.json({
+        success: true,
+        valid: false,
+        basePrice,
+        finalPrice: basePrice,
+        error: 'Bu kod sadece yıllık üyeliklerde geçerlidir.'
+      });
+    }
+
+    let finalPrice = basePrice;
+    let discountAmount = 0;
+    if (coupon.discount_type === 'percentage') {
+      discountAmount = (basePrice * coupon.discount_value) / 100;
+      finalPrice = basePrice - discountAmount;
+    } else {
+      discountAmount = coupon.discount_value;
+      finalPrice = Math.max(0, basePrice - discountAmount);
+    }
+
+    return res.json({
+      success: true,
+      valid: true,
+      basePrice,
+      discountAmount,
+      discountValue: coupon.discount_value,
+      discountType: coupon.discount_type,
+      finalPrice,
+      message: `${coupon.code} (%${coupon.discount_value} İndirim) uygulandı.`
+    });
+  } catch (err: any) {
+    console.error('Validate coupon error:', err);
+    return res.status(500).json({ error: 'Kupon doğrulama sırasında bir hata oluştu.' });
+  }
+});
+
+// 2. PayTR iFrame Token Oluşturma (POST /api/paytr/token)
 app.post('/api/paytr/token', async (req, res) => {
   try {
-    const { amount, isAnnualBilling, userEmail, userName, userPhone, userId, clientIp } = req.body;
+    const { isAnnualBilling, couponCode, userEmail, userName, userPhone, userId, clientIp } = req.body;
 
-    if (!amount) {
-      return res.status(400).json({ error: 'Ödeme tutarı gereklidir.' });
+    // Fiyatı kesinlikle sadece backend üzerinde hesaplıyoruz ve doğruluyoruz.
+    // İstemciden gelen tutarı doğrudan kabul etmiyoruz.
+    const baseAmount = isAnnualBilling ? 39000 : 3250;
+    let final_amount = baseAmount;
+
+    if (couponCode && typeof couponCode === 'string' && couponCode.trim()) {
+      const codeClean = couponCode.trim().toUpperCase();
+      const dbCoupons = db.getCoupons();
+      const coupon = dbCoupons.find(c => c.code.toUpperCase() === codeClean && c.active);
+
+      if (coupon) {
+        if (coupon.code === 'YENISEZON10' && !isAnnualBilling) {
+          return res.status(400).json({ error: 'Bu kod sadece yıllık üyeliklerde geçerlidir.' });
+        }
+
+        if (isAnnualBilling) {
+          if (coupon.discount_type === 'percentage') {
+            final_amount = baseAmount * (1 - coupon.discount_value / 100);
+          } else if (coupon.discount_type === 'fixed') {
+            final_amount = Math.max(0, baseAmount - coupon.discount_value);
+          }
+        } else {
+          return res.status(400).json({ error: 'Bu kod sadece yıllık üyeliklerde geçerlidir.' });
+        }
+      } else {
+        return res.status(400).json({ error: 'Geçersiz veya süresi dolmuş kupon kodu.' });
+      }
     }
 
     // PayTR API Kimlik Bilgileri (Çevre değişkenlerinden alınır)
@@ -2132,6 +2223,7 @@ app.post('/api/paytr/token', async (req, res) => {
         success: true,
         token: mockToken,
         isSimulation: true,
+        amount: final_amount,
         message: 'PayTR bilgileri tanımlanmadığı için test simülasyonu başlatıldı.'
       });
     }
@@ -2141,9 +2233,7 @@ app.post('/api/paytr/token', async (req, res) => {
       ? userEmail.trim() 
       : 'test@kurumanaliz.com'; // Boş veya geçersizse geçerli bir varsayılan mail
 
-    // Ürün fiyatı dinamik olarak ödeme tutarından alınır (Canlı modda para hatalarını önlemek için)
-    const final_amount = Number(amount) || 10;
-    const payment_amount = Math.round(final_amount * 100); // Kuruş cinsinden (örn: 10 TL -> 1000 kuruş, 299 TL -> 29900 kuruş)
+    const payment_amount = Math.round(final_amount * 100); // Kuruş cinsinden (örn: 3250 TL -> 325000 kuruş)
     
     // Alfanumerik benzersiz sipariş numarası (PayTR tire - veya özel karakter kabul etmez)
     const merchant_oid = `KAS${userId || '0'}X${Date.now()}`; 
