@@ -41,6 +41,15 @@ export interface Ogrenci {
   danisman_id?: number | null;
   danisman_adi?: string;
   sifre?: string;
+  bugun_calisma_suresi?: number;
+  aktif_seans?: {
+    ders_adi: string;
+    mod: 'pomodoro' | 'stopwatch';
+    kalan_sure: number;
+    toplam_sure: number;
+    calisiyor: boolean;
+    son_guncelleme: string;
+  } | null;
 }
 
 export interface SinavTanim {

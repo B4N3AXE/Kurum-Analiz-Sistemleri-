@@ -23,6 +23,44 @@ const loginAttempts: Record<string, { count: number; lockUntil?: number }> = {};
 // Memory-based password reset codes
 const resetCodes: Record<string, { code: string; expires: number }> = {};
 
+// Memory-based active study sessions tracker (transient)
+// key: studentId (number), value: { ders_adi: string, mod: 'pomodoro' | 'stopwatch', kalan_sure: number, toplam_sure: number, calisiyor: boolean, son_guncelleme: string }
+const activeSessions: Record<number, {
+  ders_adi: string;
+  mod: 'pomodoro' | 'stopwatch';
+  kalan_sure: number;
+  toplam_sure: number;
+  calisiyor: boolean;
+  son_guncelleme: string;
+}> = {};
+
+// Helper to determine if a date corresponds to today in the local server timezone
+const isDateToday = (dateIsoStr?: string) => {
+  if (!dateIsoStr) return false;
+  try {
+    const d = new Date(dateIsoStr);
+    const today = new Date();
+    return d.getDate() === today.getDate() &&
+           d.getMonth() === today.getMonth() &&
+           d.getFullYear() === today.getFullYear();
+  } catch {
+    return false;
+  }
+};
+
+// Helper to get active session with 30-second stale timeout
+const getStudentActiveSession = (studentId: number) => {
+  const session = activeSessions[studentId];
+  if (!session) return null;
+  
+  const lastUpdate = new Date(session.son_guncelleme).getTime();
+  const now = new Date().getTime();
+  if (now - lastUpdate > 30000) { // 30 seconds threshold
+    session.calisiyor = false;
+  }
+  return session;
+};
+
 // Multer upload config for parsing deneme results
 const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
@@ -654,6 +692,28 @@ app.get('/api/dashboard/stats', (req, res) => {
     };
   });
 
+  // Get active studying students list (Features 1, 2, 4)
+  const activeStudyingStudents: any[] = [];
+  Object.entries(activeSessions).forEach(([idStr, session]) => {
+    const sId = Number(idStr);
+    const sessionWithClean = getStudentActiveSession(sId);
+    if (sessionWithClean && sessionWithClean.calisiyor) {
+      const student = db.getOgrenciler().find(s => s.id === sId);
+      if (student && (assignedClassIds.length === 0 || assignedClassIds.includes(student.sinif_id))) {
+        const studentClass = db.getSiniflar().find(c => c.id === student.sinif_id);
+        activeStudyingStudents.push({
+          id: student.id,
+          ad_soyad: student.ad_soyad,
+          sinif_adi: studentClass?.ad || 'Sınıf Yok',
+          ders_adi: sessionWithClean.ders_adi,
+          mod: sessionWithClean.mod,
+          kalan_sure: sessionWithClean.kalan_sure,
+          toplam_sure: sessionWithClean.toplam_sure
+        });
+      }
+    }
+  });
+
   res.json({
     totalStudents: totalStudentsCount,
     activeStudents: activeStudents.length,
@@ -670,7 +730,9 @@ app.get('/api/dashboard/stats', (req, res) => {
       LGS: lgsThreshold.toplam_net
     },
     classAnalysis,
-    teacherAnalysis
+    teacherAnalysis,
+    activeStudyingCount: activeStudyingStudents.length,
+    activeStudyingStudents
   });
 });
 
@@ -1278,13 +1340,24 @@ app.get('/api/ogrenci', (req, res) => {
     const cls = classes.find(c => c.id === s.sinif_id);
     const parent = parents.find(p => p.id === s.veli_id);
     const danisman = counselorsAndTeachers.find(u => u.id === s.danisman_id);
+    
+    // Sum study sessions for today (Features 1, 2, 4)
+    const studentSessions = db.getCalismaSeanslari().filter(cs => cs.ogrenci_id === s.id);
+    const todaySessions = studentSessions.filter(cs => isDateToday(cs.tarih));
+    const bugun_calisma_suresi = Math.round(todaySessions.reduce((sum, cs) => sum + (cs.sure || 0), 0) / 60);
+
+    // Get current active transient timer status if any
+    const aktif_seans = getStudentActiveSession(s.id);
+
     return {
       ...s,
       sinif_adi: cls ? cls.ad : 'Sınıfsız',
       seviye: cls ? cls.seviye : null,
       veli_adi: parent ? parent.ad_soyad : 'Veli Atanmamış',
       veli_telefon: parent ? parent.telefon : '',
-      danisman_adi: danisman ? danisman.ad_soyad : 'Atanmamış'
+      danisman_adi: danisman ? danisman.ad_soyad : 'Atanmamış',
+      bugun_calisma_suresi,
+      aktif_seans
     };
   });
 
@@ -1386,13 +1459,22 @@ app.get('/api/ogrenci/:id', (req, res) => {
   const calismaSeanslari = db.getCalismaSeanslari().filter(cs => cs.ogrenci_id === studentId);
   const haftalikGorevler = db.getHaftalikGorevler().filter(hg => hg.ogrenci_id === studentId);
 
+  // Calculate bugun_calisma_suresi for this student (Features 1, 2, 4)
+  const todaySessions = calismaSeanslari.filter(cs => isDateToday(cs.tarih));
+  const bugun_calisma_suresi = Math.round(todaySessions.reduce((sum, cs) => sum + (cs.sure || 0), 0) / 60);
+
+  // Get current active transient timer status if any
+  const aktif_seans = getStudentActiveSession(studentId);
+
   res.json({
     student: {
       ...student,
       sinif_adi: studentClass ? studentClass.ad : 'Sınıfsız',
       veli_adi: parent ? parent.ad_soyad : 'Veli Atanmamış',
       veli_telefon: parent ? parent.telefon : '',
-      danisman_adi: danisman ? danisman.ad_soyad : 'Atanmamış'
+      danisman_adi: danisman ? danisman.ad_soyad : 'Atanmamış',
+      bugun_calisma_suresi,
+      aktif_seans
     },
     sonuclar: joinedResults,
     notlar: joinedNotes,
@@ -1401,7 +1483,9 @@ app.get('/api/ogrenci/:id', (req, res) => {
     veli_notlari: veliNotlari.sort((a, b) => b.tarih.localeCompare(a.tarih)),
     konu_takip: konuTakip,
     calisma_seanslari: calismaSeanslari,
-    haftalik_gorevler: haftalikGorevler
+    haftalik_gorevler: haftalikGorevler,
+    bugun_calisma_suresi,
+    aktif_seans
   });
 });
 
@@ -1546,7 +1630,30 @@ app.post('/api/ogrenci/:id/calisma-seanslari', (req, res) => {
     sure,
     tarih: new Date().toISOString()
   });
+  
+  // When a study session is saved, reset their transient active session state as well!
+  if (activeSessions[studentId]) {
+    delete activeSessions[studentId];
+  }
+
   res.json(session);
+});
+
+// Endpoint to update student's live transient active studying session status (Features 1, 2, 4)
+app.post('/api/ogrenci/:id/aktif-seans', (req, res) => {
+  const studentId = Number(req.params.id);
+  const { ders_adi, mod, kalan_sure, toplam_sure, calisiyor } = req.body;
+  
+  activeSessions[studentId] = {
+    ders_adi: ders_adi || 'Genel Çalışma',
+    mod: mod || 'pomodoro',
+    kalan_sure: typeof kalan_sure === 'number' ? kalan_sure : 0,
+    toplam_sure: typeof toplam_sure === 'number' ? toplam_sure : 1500, // default 25 min
+    calisiyor: Boolean(calisiyor),
+    son_guncelleme: new Date().toISOString()
+  };
+  
+  res.json({ success: true, activeSession: activeSessions[studentId] });
 });
 
 // Feature 4: Haftalık Görevler (Weekly Study Tasks assigned by Coach/Teacher or self)

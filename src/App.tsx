@@ -125,6 +125,7 @@ export default function App() {
 
   // Expanded Student Panel states (Features 1, 2, 4)
   const [timerMode, setTimerMode] = useState<'pomodoro' | 'stopwatch'>('pomodoro');
+  const [pomodoroMinutes, setPomodoroMinutes] = useState<number>(25);
   const [timerSeconds, setTimerSeconds] = useState<number>(25 * 60);
   const [timerIsRunning, setTimerIsRunning] = useState<boolean>(false);
   const [timerSubject, setTimerSubject] = useState<string>('Matematik');
@@ -195,6 +196,47 @@ export default function App() {
       if (interval) clearInterval(interval);
     };
   }, [timerIsRunning, timerMode]);
+
+  // Synchronize student active study timer state with server (Features 1, 2, 4)
+  useEffect(() => {
+    if (!user || user.rol !== 'ogrenci' || !token) return;
+
+    const reportActiveSession = async () => {
+      try {
+        await fetch(`/api/ogrenci/${user.id}/aktif-seans`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+          },
+          body: JSON.stringify({
+            ders_adi: timerSubject,
+            mod: timerMode,
+            kalan_sure: timerSeconds,
+            toplam_sure: timerMode === 'pomodoro' ? pomodoroMinutes * 60 : 0,
+            calisiyor: timerIsRunning
+          })
+        });
+      } catch (err) {
+        // Fail silently in development/sandbox if server isn't ready
+      }
+    };
+
+    // Report immediately on change
+    reportActiveSession();
+
+    // Report periodically (every 10 seconds) if timer is running
+    let heartbeatInterval: any = null;
+    if (timerIsRunning) {
+      heartbeatInterval = setInterval(() => {
+        reportActiveSession();
+      }, 10000);
+    }
+
+    return () => {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+    };
+  }, [user, token, timerIsRunning, timerSeconds, timerSubject, timerMode, pomodoroMinutes]);
 
   useEffect(() => {
     // Check if there is a custom simulated trial days left
@@ -392,7 +434,7 @@ export default function App() {
             calisma_seanslari: [savedSession, ...(prev.calisma_seanslari || [])]
           };
         });
-        setTimerSeconds(timerMode === 'pomodoro' ? 25 * 60 : 0);
+        setTimerSeconds(timerMode === 'pomodoro' ? pomodoroMinutes * 60 : 0);
         setTimerIsRunning(false);
       }
     } catch (err) {
@@ -3801,7 +3843,7 @@ export default function App() {
                               onClick={() => {
                                 setTimerIsRunning(false);
                                 setTimerMode('pomodoro');
-                                setTimerSeconds(25 * 60);
+                                setTimerSeconds(pomodoroMinutes * 60);
                               }}
                               className={`flex-1 text-[10px] font-extrabold py-1.5 rounded-lg transition-all ${
                                 timerMode === 'pomodoro'
@@ -3809,7 +3851,7 @@ export default function App() {
                                   : 'text-slate-400 hover:text-slate-200'
                               }`}
                             >
-                              ⏲️ Pomodoro (25 Dk)
+                              ⏲️ Pomodoro ({pomodoroMinutes} Dk)
                             </button>
                             <button
                               onClick={() => {
@@ -3826,6 +3868,55 @@ export default function App() {
                               ⏱️ Kronometre (Sayaç)
                             </button>
                           </div>
+
+                          {/* Pomodoro custom minutes adjuster */}
+                          {timerMode === 'pomodoro' && (
+                            <div className="flex items-center justify-between bg-slate-950/40 border border-slate-850 p-2.5 rounded-xl">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Süre Ayarı:</span>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  disabled={timerIsRunning || pomodoroMinutes <= 5}
+                                  onClick={() => {
+                                    const next = Math.max(5, pomodoroMinutes - 5);
+                                    setPomodoroMinutes(next);
+                                    setTimerSeconds(next * 60);
+                                  }}
+                                  className="text-xs bg-slate-900 border border-slate-800 text-slate-300 font-black rounded w-6 h-6 flex items-center justify-center hover:bg-slate-800 disabled:opacity-30 select-none cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="180"
+                                  disabled={timerIsRunning}
+                                  value={pomodoroMinutes}
+                                  onChange={e => {
+                                    const mins = Math.max(1, Math.min(180, Number(e.target.value)));
+                                    setPomodoroMinutes(mins);
+                                    if (!timerIsRunning) {
+                                      setTimerSeconds(mins * 60);
+                                    }
+                                  }}
+                                  className="w-12 bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-xs text-center font-bold font-mono text-indigo-400 disabled:opacity-50"
+                                />
+                                <span className="text-[10px] text-slate-500 font-bold">dk</span>
+                                <button
+                                  type="button"
+                                  disabled={timerIsRunning || pomodoroMinutes >= 180}
+                                  onClick={() => {
+                                    const next = Math.min(180, pomodoroMinutes + 5);
+                                    setPomodoroMinutes(next);
+                                    setTimerSeconds(next * 60);
+                                  }}
+                                  className="text-xs bg-slate-900 border border-slate-800 text-slate-300 font-black rounded w-6 h-6 flex items-center justify-center hover:bg-slate-800 disabled:opacity-30 select-none cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Timer Clock Circle Face */}
                           <div className="flex flex-col items-center justify-center py-4 bg-slate-950/40 border border-slate-850 rounded-2xl relative overflow-hidden group">
@@ -3878,7 +3969,7 @@ export default function App() {
                               <button
                                 onClick={() => {
                                   setTimerIsRunning(false);
-                                  setTimerSeconds(timerMode === 'pomodoro' ? 25 * 60 : 0);
+                                  setTimerSeconds(timerMode === 'pomodoro' ? pomodoroMinutes * 60 : 0);
                                 }}
                                 className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg text-xs transition flex items-center justify-center cursor-pointer"
                                 title="Sıfırla"
@@ -3893,14 +3984,14 @@ export default function App() {
                         <div className="border-t border-slate-800/80 pt-4 mt-4 space-y-2">
                           <button
                             onClick={() => {
-                              const calculatedSecs = timerMode === 'pomodoro' ? (25 * 60 - timerSeconds) : timerSeconds;
+                              const calculatedSecs = timerMode === 'pomodoro' ? (pomodoroMinutes * 60 - timerSeconds) : timerSeconds;
                               const mins = Math.max(1, Math.round(calculatedSecs / 60));
                               handleSaveTimerSession(timerSubject, mins);
                             }}
-                            disabled={timerSeconds === (timerMode === 'pomodoro' ? 25 * 60 : 0)}
+                            disabled={timerSeconds === (timerMode === 'pomodoro' ? pomodoroMinutes * 60 : 0)}
                             className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-bold py-1.5 rounded-lg text-xs flex items-center justify-center gap-1 transition cursor-pointer"
                           >
-                            <Zap size={11} /> Seansı Kaydet ({timerMode === 'pomodoro' ? `${Math.max(1, Math.round((25 * 60 - timerSeconds) / 60))} dk` : `${Math.round(timerSeconds / 60)} dk`})
+                            <Zap size={11} /> Seansı Kaydet ({timerMode === 'pomodoro' ? `${Math.max(1, Math.round((pomodoroMinutes * 60 - timerSeconds) / 60))} dk` : `${Math.round(timerSeconds / 60)} dk`})
                           </button>
 
                           {/* Today's total work history */}

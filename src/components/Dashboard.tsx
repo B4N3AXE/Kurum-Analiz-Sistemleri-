@@ -326,8 +326,9 @@ export default function Dashboard({ user, token }: DashboardProps) {
   }, [countdownType]);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchStats = async (silent = false) => {
       try {
+        if (!silent) setLoading(true);
         const res = await fetch(`/api/dashboard/stats?kurum_id=${user.kurum_id}&rol=${user.rol}&user_id=${user.id}`, {
           headers: { 'Authorization': token }
         });
@@ -338,10 +339,18 @@ export default function Dashboard({ user, token }: DashboardProps) {
       } catch (err) {
         console.error("Stats fetching error:", err);
       } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
     };
-    fetchStats();
+    
+    fetchStats(false);
+    
+    // Live background polling for real-time dashboard updates (Features 1, 2, 4)
+    const interval = setInterval(() => {
+      fetchStats(true);
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, [user.kurum_id, user.rol, user.id, token]);
 
   const renderCalendar = () => {
@@ -647,6 +656,71 @@ export default function Dashboard({ user, token }: DashboardProps) {
           </div>
           <p className="text-2xl font-bold text-red-400 mt-2">{stats.riskCount}</p>
         </div>
+      </div>
+
+      {/* Real-time Study Tracker Widget (Features 1, 2, 4) */}
+      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
+        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <h3 className="text-sm font-extrabold text-slate-100 flex items-center gap-1.5">
+              Canlı Çalışma Kronometreleri (Öğretmen & Rehberlik Takip)
+            </h3>
+          </div>
+          <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/10 px-2.5 py-0.5 rounded-full font-bold uppercase animate-pulse">
+            Anlık Canlı ({stats.activeStudyingCount || 0})
+          </span>
+        </div>
+
+        {stats.activeStudyingStudents && stats.activeStudyingStudents.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+            {stats.activeStudyingStudents.map((stud: any) => (
+              <div 
+                key={stud.id} 
+                className="bg-slate-950/60 border border-slate-850 p-3 rounded-xl flex flex-col justify-between hover:border-emerald-500/30 transition-all group"
+              >
+                <div className="flex justify-between items-start gap-1.5 min-w-0">
+                  <div className="min-w-0">
+                    <span className="text-xs font-black text-slate-200 block truncate group-hover:text-emerald-400 transition-colors">
+                      {stud.ad_soyad}
+                    </span>
+                    <span className="text-[9px] text-slate-500 font-bold block">
+                      {stud.sinif_adi}
+                    </span>
+                  </div>
+                  <span className="text-[8px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/10 px-1.5 py-0.5 rounded font-black uppercase flex-shrink-0 tracking-wider">
+                    {stud.mod === 'pomodoro' ? 'Pomodoro' : 'Serbest'}
+                  </span>
+                </div>
+
+                <div className="mt-2.5 pt-2 border-t border-slate-900 flex justify-between items-center">
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[8px] text-slate-500 font-bold uppercase">Çalışılan Ders</span>
+                    <span className="text-[10px] font-bold text-slate-300 truncate max-w-[120px]" title={stud.ders_adi}>
+                      {stud.ders_adi}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[8px] text-slate-500 font-bold uppercase block">Kalan/Geçen</span>
+                    <span className="text-xs font-mono font-black text-emerald-400">
+                      {stud.mod === 'pomodoro' 
+                        ? `${Math.floor(stud.kalan_sure / 60)}:${(stud.kalan_sure % 60).toString().padStart(2, '0')}`
+                        : `${Math.floor(stud.kalan_sure / 60)} dk`
+                      }
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-6 text-slate-500 text-xs italic bg-slate-950/20 rounded-xl border border-slate-850/60 border-dashed">
+            Şu an ders çalışan canlı öğrenci bulunmamaktadır. Öğrenciler ders kronometresini/pomodorosunu başlattığında burada anlık görebilirsiniz.
+          </div>
+        )}
       </div>
 
       {/* Analytics, Calendar & Risk Columns */}
@@ -1041,9 +1115,17 @@ export default function Dashboard({ user, token }: DashboardProps) {
                               : 'bg-slate-950/40 border-slate-850 hover:bg-slate-900/80 text-slate-400 hover:text-slate-200'
                           }`}
                         >
-                          <div className="min-w-0">
-                            <span className="text-[10px] font-bold block truncate leading-tight">{s.ad_soyad}</span>
-                            <span className="text-[8px] text-slate-500 font-semibold">{s.sinif_adi} • {s.alan}</span>
+                          <div className="min-w-0 flex items-center gap-2">
+                            {s.aktif_seans && s.aktif_seans.calisiyor && (
+                              <span className="relative flex h-2 w-2 flex-shrink-0" title="Şu an canlı ders çalışıyor">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                              </span>
+                            )}
+                            <div className="min-w-0">
+                              <span className="text-[10px] font-bold block truncate leading-tight">{s.ad_soyad}</span>
+                              <span className="text-[8px] text-slate-500 font-semibold">{s.sinif_adi} • {s.alan}</span>
+                            </div>
                           </div>
                           <div className="text-right flex-shrink-0">
                             <span className="text-[9px] font-black text-slate-300 block">{s.hedef_net || 80} Net</span>

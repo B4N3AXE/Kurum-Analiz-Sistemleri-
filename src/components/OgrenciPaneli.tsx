@@ -293,8 +293,8 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
   };
 
   // Fetch student records & lookup tables
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       // Build API query string
       let query = `/api/ogrenci?kurum_id=${user.kurum_id}`;
@@ -323,7 +323,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
     } catch (err) {
       console.error("Error loading students data:", err);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
@@ -331,25 +331,45 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
     loadData();
   }, [view, search, selectedClass, selectedAlan, selectedStatus]);
 
+  // Live background polling for live student timers and session status (Features 1, 2, 4)
+  useEffect(() => {
+    if (view !== 'list') return;
+    const interval = setInterval(() => {
+      loadData(true); // background silent load
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [view, search, selectedClass, selectedAlan, selectedStatus]);
+
   // Load particular student detail
-  const loadStudentDetail = async (id: number) => {
-    setLoading(true);
+  const loadStudentDetail = async (id: number, isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const res = await fetch(`/api/ogrenci/${id}`, { headers: { 'Authorization': token } });
       if (res.ok) {
         const data = await res.json();
         setDetailData(data);
-        setTargetNetInput(data.student.hedef_net ? String(data.student.hedef_net) : '95');
-        setSelectedStudentId(id);
-        setSelectedKarneExamId(null);
-        setView('detail');
+        if (!isBackground) {
+          setTargetNetInput(data.student.hedef_net ? String(data.student.hedef_net) : '95');
+          setSelectedStudentId(id);
+          setSelectedKarneExamId(null);
+          setView('detail');
+        }
       }
     } catch (err) {
       console.error("Error loading student detail:", err);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
+
+  // Live background polling for active student detail view (Features 1, 2, 4)
+  useEffect(() => {
+    if (view !== 'detail' || !selectedStudentId) return;
+    const interval = setInterval(() => {
+      loadStudentDetail(selectedStudentId, true); // background silent update
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [view, selectedStudentId]);
 
   // Export visible list to Excel compatible CSV
   const exportToCSV = () => {
@@ -763,6 +783,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                       <th className="p-3.5">Alan</th>
                       <th className="p-3.5">İrtibat / Veli</th>
                       <th className="p-3.5">Son Sınav Neti</th>
+                      <th className="p-3.5">Bugün Çalışma / Canlı</th>
                       <th className="p-3.5 text-center">Durum</th>
                       <th className="p-3.5 text-right pr-4">İşlemler</th>
                     </tr>
@@ -803,6 +824,36 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                           ) : (
                             <span className="text-slate-600">-</span>
                           )}
+                        </td>
+                        <td className="p-3.5">
+                          <div className="flex flex-col gap-1 justify-center">
+                            {/* Today's total work minutes */}
+                            <div className="flex items-center gap-1">
+                              <Clock size={11} className="text-slate-400" />
+                              <span className="text-[11px] text-slate-300 font-bold">
+                                {s.bugun_calisma_suresi || 0} dk
+                              </span>
+                            </div>
+                            
+                            {/* Live study session status */}
+                            {s.aktif_seans && s.aktif_seans.calisiyor ? (
+                              <div className="flex items-center gap-1 text-[9px] text-emerald-400 font-extrabold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 w-fit">
+                                <span className="relative flex h-1.5 w-1.5">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                </span>
+                                <span className="truncate max-w-[100px]">{s.aktif_seans.ders_adi}</span>
+                                <span className="text-[9px] text-emerald-300 font-mono">
+                                  {s.aktif_seans.mod === 'pomodoro' 
+                                    ? `${Math.floor(s.aktif_seans.kalan_sure / 60)}:${(s.aktif_seans.kalan_sure % 60).toString().padStart(2, '0')}`
+                                    : `${Math.floor(s.aktif_seans.kalan_sure / 60)} dk`
+                                  }
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-500 font-medium">Pasif</span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-3.5 text-center">
                           <button
@@ -1028,11 +1079,27 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
               <div>
                 <span className="bg-blue-500/10 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">{detailData.student.alan} Alana Sahip</span>
-                <h3 className="text-2xl font-bold text-slate-100 mt-1">{detailData.student.ad_soyad}</h3>
+                <h3 className="text-2xl font-bold text-slate-100 mt-1 flex items-center gap-2">
+                  {detailData.student.ad_soyad}
+                  {detailData.student.aktif_seans && detailData.student.aktif_seans.calisiyor ? (
+                    <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-extrabold bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full animate-pulse select-none">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                      </span>
+                      <span>Canlı: {detailData.student.aktif_seans.ders_adi} ({detailData.student.aktif_seans.mod === 'pomodoro' ? `${Math.floor(detailData.student.aktif_seans.kalan_sure / 60)}:${(detailData.student.aktif_seans.kalan_sure % 60).toString().padStart(2, '0')}` : `${Math.floor(detailData.student.aktif_seans.kalan_sure / 60)} dk`})</span>
+                    </span>
+                  ) : (
+                    <span className="text-[9px] text-slate-500 font-bold bg-slate-950/55 border border-slate-800 px-2 py-0.5 rounded-full select-none">
+                      Çevrimdışı / Pasif
+                    </span>
+                  )}
+                </h3>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400 mt-2 font-medium">
                   <span><strong>Sınıf:</strong> {detailData.student.sinif_adi}</span>
                   <span><strong>T.C. No:</strong> {detailData.student.tc_no}</span>
                   <span><strong>Veli:</strong> {detailData.student.veli_adi} • {detailData.student.veli_telefon}</span>
+                  <span><strong>Bugün Toplam:</strong> {detailData.student.bugun_calisma_suresi || 0} dk çalışma</span>
                 </div>
               </div>
               <div className="flex gap-4 border-l border-slate-800 pl-4 md:pl-8 py-1">
