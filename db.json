@@ -3,7 +3,9 @@
     {
       "id": 1,
       "ad": "Gelecek Koleji",
-      "tur": "Özel Anadolu Lisesi"
+      "tur": "Özel Anadolu Lisesi",
+      "abonelik_turu": "premium",
+      "deneme_bitis": "2029-12-31T23:59:59.000Z"
     }
   ],
   "kullanicilar": [
@@ -24,131 +26,13 @@
       "rol": "admin",
       "kurum_id": 1,
       "telefon": "0555 222 3344"
-    },
-    {
-      "id": 3,
-      "ad_soyad": "Zeynep Kaya",
-      "email": "ogretmen@kas.com",
-      "sifre": "ogretmen123",
-      "rol": "ogretmen",
-      "kurum_id": 1,
-      "telefon": "0555 333 4455"
-    },
-    {
-      "id": 4,
-      "ad_soyad": "Murat Can",
-      "email": "rehber@kas.com",
-      "sifre": "rehber123",
-      "rol": "rehber",
-      "kurum_id": 1,
-      "telefon": "0555 444 5566"
-    },
-    {
-      "id": 5,
-      "ad_soyad": "Mehmet Öztürk",
-      "email": "veli@kas.com",
-      "sifre": "veli123",
-      "rol": "veli",
-      "kurum_id": 1,
-      "telefon": "0555 555 6677"
     }
   ],
-  "siniflar": [
-    {
-      "id": 1,
-      "ad": "12-A Sayısal",
-      "seviye": 12,
-      "kurum_id": 1
-    },
-    {
-      "id": 2,
-      "ad": "12-B Eşit Ağırlık",
-      "seviye": 12,
-      "kurum_id": 1
-    },
-    {
-      "id": 3,
-      "ad": "11-A Sayısal",
-      "seviye": 11,
-      "kurum_id": 1
-    },
-    {
-      "id": 4,
-      "ad": "8-A LGS",
-      "seviye": 8,
-      "kurum_id": 1
-    }
-  ],
+  "siniflar": [],
   "ogrenciler": [],
-  "sinav_tanimlari": [
-    {
-      "id": 1,
-      "ad": "3D Türkiye Geneli TYT-1",
-      "tur": "TYT",
-      "tarih": "2026-05-15",
-      "kurum_id": 1
-    },
-    {
-      "id": 2,
-      "ad": "Özdebir Türkiye Geneli TYT-2",
-      "tur": "TYT",
-      "tarih": "2026-06-02",
-      "kurum_id": 1
-    },
-    {
-      "id": 3,
-      "ad": "Bilgi Sarmal TYT-3",
-      "tur": "TYT",
-      "tarih": "2026-06-20",
-      "kurum_id": 1
-    },
-    {
-      "id": 4,
-      "ad": "Özdebir AYT-1",
-      "tur": "AYT",
-      "tarih": "2026-05-20",
-      "kurum_id": 1
-    },
-    {
-      "id": 5,
-      "ad": "Bilgi Sarmal AYT-2",
-      "tur": "AYT",
-      "tarih": "2026-06-10",
-      "kurum_id": 1
-    },
-    {
-      "id": 6,
-      "ad": "Nitelik LGS-1",
-      "tur": "LGS",
-      "tarih": "2026-05-18",
-      "kurum_id": 1
-    },
-    {
-      "id": 7,
-      "ad": "Sadık Uygun LGS-2",
-      "tur": "LGS",
-      "tarih": "2026-06-15",
-      "kurum_id": 1
-    }
-  ],
+  "sinav_tanimlari": [],
   "sinav_sonuclari": [],
-  "ogretmen_sinif": [
-    {
-      "id": 1,
-      "ogretmen_id": 3,
-      "sinif_id": 1
-    },
-    {
-      "id": 2,
-      "ogretmen_id": 3,
-      "sinif_id": 2
-    },
-    {
-      "id": 3,
-      "ogretmen_id": 3,
-      "sinif_id": 3
-    }
-  ],
+  "ogretmen_sinif": [],
   "rehberlik_notlari": [],
   "mesajlar": [],
   "ders_programlari": [],
@@ -182,5 +66,15 @@
     }
   ],
   "ogretmen_tavsiyeleri": [],
-  "veli_notlari": []
+  "veli_notlari": [],
+  "coupons": [
+    {
+      "id": 1,
+      "code": "YENISEZON10",
+      "discount_type": "percentage",
+      "discount_value": 10,
+      "applies_to": "once",
+      "active": true
+    }
+  ]
 }
