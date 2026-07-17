@@ -2163,9 +2163,9 @@ app.post('/api/ai/chat', async (req, res) => {
     return res.json({ text: reply });
   }
 
-  const userRole = user?.rol || 'ogrenci';
-  const userId = Number(user?.id || 0);
-  const userName = user?.ad_soyad || 'Kullanıcı';
+  const userRole = user ? (user.rol || 'ogrenci') : 'ziyaretci';
+  const userId = user ? Number(user.id || 0) : 0;
+  const userName = user ? (user.ad_soyad || 'Kullanıcı') : 'Ziyaretçi';
 
   // Customize System Instruction based on user role
   let systemInstruction = `Sen KAS.ai'sin. Kurum Analiz Sistemi (K.A.S)'nin akıllı, profesyonel, yardımsever ve son derece şık yapay zeka asistanısın.
@@ -2181,6 +2181,7 @@ Rol bazlı kurallar:
 2. Rolün 'ogretmen' veya 'rehber' (Öğretmen) ise: "değerli öğretmenim" şeklinde hitap et. Sınıflarını ve öğrencilerini analiz edebilirsin.
 3. Rolün 'ogrenci' (Öğrenci) ise: "selam öğrenci dostum!" veya "öğrenci arkadaşım" şeklinde sıcak ve samimi konuş. Sadece kendi bilgilerini (ID'si ${userId - 10000} olan öğrenci) sorgulayabilir, başka öğrencilerin bilgilerini göremez.
 4. Rolün 'veli' (Veli) ise: "değerli velimiz" şeklinde saygılı konuş. Sadece velisi olduğu çocuğun bilgilerini sorgulayabilir.
+5. Rolün 'ziyaretci' (Ziyaretçi/Misafir) ise: Kurum Analiz Sistemi (K.A.S) hakkında genel tanıtım yapabilirsin. Çok sıcak ve profesyonel bir üslupla konuş. Öğrenci verilerini sorgulamak isterlerse öncelikle sisteme giriş yapmaları gerektiğini nazikçe hatırlat.
 
 Sana sorulan öğrenci netlerini, devamsızlık durumunu ve ödevleri/görevleri bulmak için 'searchStudents' ve 'getStudentDetail' araçlarını kullanmalısın.
 Eğer kullanıcı doğrudan bir öğrencinin durumunu sorarsa ve elinde o öğrencinin ID'si yoksa önce 'searchStudents' ile öğrenciyi ara. ID'sini bulduktan sonra 'getStudentDetail' aracını çağırarak detaylı akademik ve devamsızlık verilerini getir.
@@ -2221,6 +2222,9 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
 
   // Implement the actual local DB functions
   const searchStudentsLocal = (searchTerm: string) => {
+    if (userRole === 'ziyaretci') {
+      return { error: "Sistemdeki öğrencileri aramak ve detaylarını görmek için lütfen kurum girişinizi yapın." };
+    }
     const allStudents = db.getOgrenciler();
     const classes = db.getSiniflar();
     
@@ -2245,6 +2249,9 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
   };
 
   const getStudentDetailLocal = (studentId: number) => {
+    if (userRole === 'ziyaretci') {
+      return { error: "Öğrenci deneme netlerini ve ödevlerini görmek için lütfen kurum girişinizi yapın." };
+    }
     const allStudents = db.getOgrenciler();
     const classes = db.getSiniflar();
     const exams = db.getSinavSonuclari();
@@ -2333,57 +2340,63 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
       parts: [{ text: message }]
     });
 
-    let response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: contents,
-      config: {
-        systemInstruction: systemInstruction,
-        tools: [{ functionDeclarations: [searchStudentsDeclaration, getStudentDetailDeclaration] }]
-      }
-    });
+    let loopCount = 0;
+    const maxLoops = 5;
+    const callHistory = [...contents];
+    let finalResponseText = '';
 
-    const functionCalls = response.functionCalls;
-    if (functionCalls && functionCalls.length > 0) {
-      const call = functionCalls[0];
-      let toolResult;
-      
-      if (call.name === 'searchStudents') {
-        const searchTerm = call.args.searchTerm as string;
-        toolResult = searchStudentsLocal(searchTerm);
-      } else if (call.name === 'getStudentDetail') {
-        const sId = Number(call.args.studentId);
-        toolResult = getStudentDetailLocal(sId);
-      }
-
-      // Format role model and tool outputs to send back to Gemini
-      const modelTurn = {
-        role: "model",
-        parts: [{ functionCall: { name: call.name, args: call.args, id: call.id } }]
-      };
-      
-      const toolTurn = {
-        role: "tool",
-        parts: [{
-          functionResponse: {
-            name: call.name,
-            response: { result: toolResult },
-            id: call.id
-          }
-        }]
-      };
-
-      // Call Gemini again with the tool output
-      response = await ai.models.generateContent({
+    while (loopCount < maxLoops) {
+      let response = await ai.models.generateContent({
         model: 'gemini-3.5-flash',
-        contents: [...contents, modelTurn, toolTurn],
+        contents: callHistory,
         config: {
           systemInstruction: systemInstruction,
           tools: [{ functionDeclarations: [searchStudentsDeclaration, getStudentDetailDeclaration] }]
         }
       });
+
+      const functionCalls = response.functionCalls;
+      if (functionCalls && functionCalls.length > 0) {
+        const toolResponses = [];
+        for (const call of functionCalls) {
+          const cleanCallName = call.name.includes(':') ? call.name.split(':').pop() : call.name;
+          let toolResult;
+          if (cleanCallName === 'searchStudents') {
+            const searchTerm = call.args.searchTerm as string;
+            toolResult = searchStudentsLocal(searchTerm);
+          } else if (cleanCallName === 'getStudentDetail') {
+            const sId = Number(call.args.studentId);
+            toolResult = getStudentDetailLocal(sId);
+          }
+          toolResponses.push({
+            functionResponse: {
+              name: call.name,
+              response: { result: toolResult },
+              id: call.id
+            }
+          });
+        }
+
+        const candidateContent = response.candidates?.[0]?.content;
+        const modelTurn = {
+          role: "model",
+          parts: candidateContent?.parts || functionCalls.map(call => ({ functionCall: { name: call.name, args: call.args, id: call.id } }))
+        };
+        
+        const toolTurn = {
+          role: "user",
+          parts: toolResponses
+        };
+
+        callHistory.push(modelTurn, toolTurn);
+        loopCount++;
+      } else {
+        finalResponseText = response.text || '';
+        break;
+      }
     }
 
-    res.json({ text: response.text || 'Üzgünüm, şu anda yanıt oluşturamıyorum.' });
+    res.json({ text: finalResponseText || 'Üzgünüm, şu anda yanıt oluşturamıyorum.' });
   } catch (error: any) {
     console.error("KAS.ai Chatbot Error:", error);
     res.status(500).json({ error: error.message || 'Yapay zeka asistanı şu anda yanıt veremiyor.' });

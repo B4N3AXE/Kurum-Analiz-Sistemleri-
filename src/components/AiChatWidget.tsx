@@ -24,8 +24,8 @@ export default function AiChatWidget({ isOpen, onClose, user, token }: AiChatWid
 
   const [systemStudents, setSystemStudents] = useState<any[]>([]);
 
-  const userRole = user?.rol || 'ogrenci';
-  const userName = user?.ad_soyad || 'Değerli Kullanıcı';
+  const userRole = user?.rol || 'guest';
+  const userName = user?.ad_soyad || 'Ziyaretçi';
 
   // Fetch real students to use in suggestions
   useEffect(() => {
@@ -56,8 +56,10 @@ export default function AiChatWidget({ isOpen, onClose, user, token }: AiChatWid
       return `Merhaba değerli öğretmenim **${userName}**! KAS.ai Asistanı'na hoş geldiniz. 🍎 Öğrencilerinizin deneme sınavı gelişimlerini, ödev durumlarını veya devamsızlık karnelerini sorgulamak isterseniz buradayım. Size nasıl destek olabilirim?`;
     } else if (userRole === 'veli') {
       return `Merhaba değerli velimiz **${userName}**! KAS.ai Asistanı'na hoş geldiniz. ✨ Öğrencinizin güncel deneme sınav netlerini, haftalık ödevlerini veya devamsızlık durumunu benimle sorgulayabilirsiniz. Size bugün hangi konuda bilgi vermemi istersiniz?`;
-    } else {
+    } else if (userRole === 'ogrenci') {
       return `Selam öğrenci dostum **${userName}**! KAS.ai Yapay Zeka Asistanı'na hoş geldin! 🚀 Son deneme sınavı netlerini analiz etmek, güncel haftalık ödevlerini görmek veya ders çalışma sürelerini raporlamak için buradayım. Bugün hangi dersi çalışıyoruz?`;
+    } else {
+      return `Merhaba! KAS.ai Yapay Zeka Kurum Asistanı'na hoş geldiniz. 👋 Kurum Analiz Sistemi (K.A.S) hakkında bilgi edinmek, öğretmen-veli panellerini keşfetmek veya yapay zeka özelliklerimizi öğrenmek için dilediğinizi sorabilirsiniz. Size nasıl yardımcı olabilirim?`;
     }
   };
 
@@ -82,19 +84,26 @@ export default function AiChatWidget({ isOpen, onClose, user, token }: AiChatWid
         'Öğrencinin ödevleri/haftalık görevleri',
         'Öğrencinin devamsızlık durumu'
       ];
-    } else {
+    } else if (userRole === 'ogrenci') {
       return [
         'Son deneme sınavı netlerimi analiz et',
         'Bu haftaki ödevlerimi göster',
         'Çalışma seanslarımı raporla',
         'Netlerimi yükseltmek için tavsiye ver'
       ];
+    } else {
+      return [
+        'K.A.S sistemi nedir ve ne işe yarar?',
+        'Öğretmen ve Veli panellerinde hangi özellikler var?',
+        'Yapay zeka asistanı sınav analizi yapabilir mi?',
+        'Sisteme nasıl kayıt olabilirim?'
+      ];
     }
   };
 
   // Initialize messages with warm welcome greeting once
   useEffect(() => {
-    if (messages.length === 0 && user) {
+    if (messages.length === 0) {
       setMessages([
         {
           id: 'welcome',
@@ -104,7 +113,7 @@ export default function AiChatWidget({ isOpen, onClose, user, token }: AiChatWid
         }
       ]);
     }
-  }, [user]);
+  }, [userRole]);
 
   // Auto scroll to latest message
   useEffect(() => {

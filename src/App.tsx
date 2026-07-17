@@ -4831,6 +4831,48 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Floating KAS.ai Assistant Trigger for Landing Page */}
+      {!isLoggedIn && !isAiChatOpen && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 pointer-events-none">
+          {/* Greeting Speech Bubble */}
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 1.5, duration: 0.5 }}
+            onClick={() => setIsAiChatOpen(true)}
+            className="bg-slate-900/95 text-slate-100 px-4 py-3 rounded-2xl border border-indigo-500/30 shadow-2xl shadow-indigo-500/10 text-xs font-semibold max-w-[240px] leading-relaxed relative pointer-events-auto cursor-pointer select-none group hover:border-indigo-400 transition-all"
+          >
+            {/* Pulsing indicator */}
+            <span className="flex h-2 w-2 absolute top-2 right-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+            </span>
+            <div className="pr-2">
+              <span className="text-indigo-400 font-extrabold block text-[10px] uppercase tracking-wider mb-0.5">KAS.ai Yapay Zeka:</span>
+              <span className="text-slate-200">Merhaba! Size nasıl yardımcı olabilirim?</span>
+            </div>
+            {/* Arrow */}
+            <div className="absolute right-5 -bottom-1.5 w-3 h-3 bg-slate-900 border-r border-b border-indigo-500/30 rotate-45"></div>
+          </motion.div>
+
+          {/* Floating Action Button */}
+          <motion.button
+            initial={{ scale: 0, rotate: -45 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.5 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setIsAiChatOpen(true)}
+            className="pointer-events-auto flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-tr from-indigo-600 via-blue-600 to-indigo-500 text-white shadow-xl shadow-indigo-600/35 border border-indigo-400/30 cursor-pointer relative overflow-hidden group focus:outline-none"
+          >
+            {/* Pulsing Background Wave */}
+            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="absolute -inset-x-20 top-0 h-[2px] bg-gradient-to-r from-transparent via-white to-transparent opacity-50 group-hover:animate-pulse"></div>
+            <Sparkles size={24} className="group-hover:rotate-12 transition-transform duration-300 animate-pulse text-white" />
+          </motion.button>
+        </div>
+      )}
+
       <AiChatWidget
         isOpen={isAiChatOpen}
         onClose={() => setIsAiChatOpen(false)}
