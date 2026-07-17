@@ -963,7 +963,7 @@ app.post('/api/exams/upload', upload.single('file'), async (req, res) => {
 
       try {
         const response = await ai.models.generateContent({
-          model: 'gemini-3.5-flash',
+          model: 'gemini-2.5-flash',
           contents: [
             {
               inlineData: {
@@ -2154,13 +2154,15 @@ app.post('/api/ai/chat', async (req, res) => {
 
   const ai = getGeminiClient();
   if (!ai) {
-    // If no API key, return a highly realistic mocked response so the app NEVER breaks!
-    const mockReplies: Record<string, string> = {
-      'merhaba': 'Merhaba! Ben KAS.ai. Sisteminizde GEMINI_API_KEY tanımlı olmadığı için demo modunda çalışıyorum. Size nasıl yardımcı olabilirim?',
-      'default': 'Merhaba! Ben KAS.ai. Sisteminizde GEMINI_API_KEY tanımlı olmadığı için demo modunda çalışıyorum. Öğrenci netlerini ve çalışma ödevlerini listelemek için lütfen sunucuya geçerli bir API anahtarı ekleyin.'
-    };
-    const reply = mockReplies[message.toLowerCase().trim()] || mockReplies['default'];
-    return res.json({ text: reply });
+    // If no API key, return a highly realistic mocked response so the app NEVER breaks, and guide on how to configure it!
+    const msgLower = message.toLowerCase().trim();
+    if (msgLower === 'merhaba') {
+      return res.json({ text: 'Merhaba! Ben KAS.ai. Sisteminizde **GEMINI_API_KEY** tanımlı olmadığı için demo modunda çalışıyorum. Size nasıl yardımcı olabilirim? 😊' });
+    }
+    
+    return res.json({ 
+      text: `⚠️ **KAS.ai Yapay Zeka Kurulum Kılavuzu**\n\nKendi web sitenizde veya sunucunuzda **GEMINI_API_KEY** ortam değişkeni (Environment Variable) tanımlı değil.\n\n**Nasıl Aktif Edilir?**\n1. Google AI Studio'dan (https://aistudio.google.com/) ücretsiz bir API anahtarı alın.\n2. Projenizin kurulu olduğu sunucuda (veya kendi bilgisayarınızda \`.env\` dosyasında) **GEMINI_API_KEY** değerini tanımlayın:\n   \`\`\`env\n   GEMINI_API_KEY=AIzaSy...\n   \`\`\`\n3. Değişikliklerin geçerli olması için sunucunuzu yeniden başlatın.\n\n*Not: Şu anda yapay zeka entegrasyonu olmadan demo modundasınız.*` 
+    });
   }
 
   const userRole = user ? (user.rol || 'ogrenci') : 'ziyaretci';
@@ -2182,6 +2184,12 @@ Rol bazlı kurallar:
 3. Rolün 'ogrenci' (Öğrenci) ise: "selam öğrenci dostum!" veya "öğrenci arkadaşım" şeklinde sıcak ve samimi konuş. Sadece kendi bilgilerini (ID'si ${userId - 10000} olan öğrenci) sorgulayabilir, başka öğrencilerin bilgilerini göremez.
 4. Rolün 'veli' (Veli) ise: "değerli velimiz" şeklinde saygılı konuş. Sadece velisi olduğu çocuğun bilgilerini sorgulayabilir.
 5. Rolün 'ziyaretci' (Ziyaretçi/Misafir) ise: Kurum Analiz Sistemi (K.A.S) hakkında genel tanıtım yapabilirsin. Çok sıcak ve profesyonel bir üslupla konuş. Öğrenci verilerini sorgulamak isterlerse öncelikle sisteme giriş yapmaları gerektiğini nazikçe hatırlat.
+
+ÖNEMLİ EĞİTSEL VE REHBERLİK KURALLARI:
+- EĞER KULLANICI BİR SINAV SONUÇ BELGESİ VEYA ÖĞRENCİ AKADEMİK TABLOSU SORGULAMIYORSA; NORMAL BİR ÖĞRENCİ GİBİ GENEL VEYA DERS BAZLI SORULAR SORUYORSA (örn: ders sorusu, konu anlatımı, ders çalışma yöntemleri, genel kültür, motivasyon, rehberlik, geçmiş konular vb.):
+  * Kesinlikle özel bir JSON veya veritabanı şeması zorunlu tutma! Herhangi bir araç çağrısı yapmana gerek yoktur.
+  * Bir öğretmen edasıyla, son derece cana yakın, şefkatli, motive edici ve açıklayıcı bir Türkçe ile öğrencinin sorduğu HER TÜRLÜ soruyu eksiksiz, bilimsel olarak doğru ve detaylı bir şekilde cevapla.
+  * Öğrenci arkadaşına her konuda yardımcı ol, örnekler ver, konuyu sevdirecek bir dille anlat ki başka hiçbir yapay zeka asistanına gitmeye ihtiyaç duymasın. Ona her zaman en iyi öğretmen ve arkadaş ol!
 
 Sana sorulan öğrenci netlerini, devamsızlık durumunu ve ödevleri/görevleri bulmak için 'searchStudents' ve 'getStudentDetail' araçlarını kullanmalısın.
 Eğer kullanıcı doğrudan bir öğrencinin durumunu sorarsa ve elinde o öğrencinin ID'si yoksa önce 'searchStudents' ile öğrenciyi ara. ID'sini bulduktan sonra 'getStudentDetail' aracını çağırarak detaylı akademik ve devamsızlık verilerini getir.
@@ -2347,7 +2355,7 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
 
     while (loopCount < maxLoops) {
       let response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: callHistory,
         config: {
           systemInstruction: systemInstruction,
@@ -2398,8 +2406,33 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
 
     res.json({ text: finalResponseText || 'Üzgünüm, şu anda yanıt oluşturamıyorum.' });
   } catch (error: any) {
-    console.error("KAS.ai Chatbot Error:", error);
-    res.status(500).json({ error: error.message || 'Yapay zeka asistanı şu anda yanıt veremiyor.' });
+    const errStr = String(error?.message || error || '').toLowerCase();
+    
+    // 1. Quota Exceeded / Rate Limit Error (429 - RESOURCE_EXHAUSTED)
+    if (errStr.includes('quota') || errStr.includes('limit') || errStr.includes('429') || errStr.includes('resource_exhausted') || errStr.includes('exceeded')) {
+      return res.json({
+        text: `😅 **Biraz yoruldum...**\n\nŞu anda çok fazla soru alıyorum ve biraz dinlenmem gerekiyor. Lütfen 1-2 dakika bekleyip sorunu tekrar sorar mısın? Anlayışın için teşekkür ederim! 🤖💙`
+      });
+    }
+
+    // 2. Service Unavailable / High Demand Error (503 - UNAVAILABLE)
+    if (errStr.includes('503') || errStr.includes('unavailable') || errStr.includes('demand') || errStr.includes('spike') || errStr.includes('temporary')) {
+      return res.json({
+        text: `⏳ **Çok Yoğunum...**\n\nŞu anda inanılmaz bir yoğunluk var ve sana hemen cevap veremiyorum. Lütfen birkaç saniye bekleyip tekrar dener misin? 🙏`
+      });
+    }
+
+    // 3. API Key Issues (403, 401, Invalid Key, etc.)
+    if (errStr.includes('api_key_invalid') || errStr.includes('api key') || errStr.includes('auth') || errStr.includes('unauthorized') || errStr.includes('key') || errStr.includes('forbidden') || errStr.includes('403') || errStr.includes('400')) {
+      return res.json({ 
+        text: `⚠️ **Bağlantı Sorunu**\n\nŞu anda sistemle bağlantı kuramıyorum. Lütfen sistem yöneticinizle iletişime geçin. 🛠️` 
+      });
+    }
+    
+    // 4. Fallback friendly message instead of a generic crash
+    return res.json({
+      text: `⚠️ **Geçici Bir Sorun Oluştu**\n\nSana cevap verirken ufak bir sorunla karşılaştım. Lütfen sayfayı yenileyip tekrar dener misin? 🔄`
+    });
   }
 });
 
@@ -2445,7 +2478,7 @@ app.post('/api/pdf/upload', async (req, res) => {
 
       try {
         const response = await ai.models.generateContent({
-          model: 'gemini-3.5-flash',
+          model: 'gemini-2.5-flash',
           contents: [
             {
               inlineData: {

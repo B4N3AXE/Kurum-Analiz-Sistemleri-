@@ -175,7 +175,7 @@ export default function AiChatWidget({ isOpen, onClose, user, token }: AiChatWid
         {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          text: 'Bağlantı hatası oluştu. Lütfen daha sonra tekrar deneyin veya sistem yöneticinize GEMINI_API_KEY kontrolü için başvurun.',
+          text: 'Şu anda bağlantı kuramıyorum. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);

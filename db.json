@@ -76,5 +76,8 @@
       "applies_to": "once",
       "active": true
     }
-  ]
+  ],
+  "konu_takip": [],
+  "calisma_seanslari": [],
+  "haftalik_gorevler": []
 }
