@@ -17,6 +17,11 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
 
+// Health Check Endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // Memory-based brute force protection count
 const loginAttempts: Record<string, { count: number; lockUntil?: number }> = {};
 
@@ -477,263 +482,268 @@ app.post('/api/auth/register', (req, res) => {
 
 // App Dashboard Stats Route
 app.get('/api/dashboard/stats', (req, res) => {
-  const rol = req.query.rol as string;
-  const userId = Number(req.query.user_id);
+  try {
+    const rol = req.query.rol as string;
+    const userId = Number(req.query.user_id);
 
-  let students = db.getOgrenciler();
-  const exams = db.getSinavTanimlari();
-  const results = db.getSinavSonuclari();
-  let classes = db.getSiniflar();
-  const guidanceNotes = db.getRehberlikNotlari();
+    let students = db.getOgrenciler();
+    const exams = db.getSinavTanimlari();
+    const results = db.getSinavSonuclari();
+    let classes = db.getSiniflar();
+    const guidanceNotes = db.getRehberlikNotlari();
 
-  let assignedClassIds: number[] = [];
-  if (rol === 'ogretmen' && userId) {
-    assignedClassIds = db.getOgretmenSinif()
-      .filter(os => os.ogretmen_id === userId)
-      .map(os => os.sinif_id);
-    
-    if (assignedClassIds.length > 0) {
-      students = students.filter(s => assignedClassIds.includes(s.sinif_id));
-      classes = classes.filter(c => assignedClassIds.includes(c.id));
+    let assignedClassIds: number[] = [];
+    if (rol === 'ogretmen' && userId) {
+      assignedClassIds = db.getOgretmenSinif()
+        .filter(os => os.ogretmen_id === userId)
+        .map(os => os.sinif_id);
+      
+      if (assignedClassIds.length > 0) {
+        students = students.filter(s => assignedClassIds.includes(s.sinif_id));
+        classes = classes.filter(c => assignedClassIds.includes(c.id));
+      }
     }
-  }
 
-  // Active student count
-  const activeStudents = students.filter(s => s.aktif);
-  const totalStudentsCount = students.length;
+    // Active student count
+    const activeStudents = students.filter(s => s.aktif);
+    const totalStudentsCount = students.length;
 
-  // Average TYT Nets Calculation
-  const tytExams = exams.filter(e => e.tur === 'TYT');
-  const tytExamIds = tytExams.map(e => e.id);
-  const tytResults = results.filter(r => tytExamIds.includes(r.sinav_id));
-  
-  let averageTytNet = 0;
-  if (tytResults.length > 0) {
-    const totalNet = tytResults.reduce((sum, r) => sum + (r.toplam_net || 0), 0);
-    averageTytNet = Number((totalNet / tytResults.length).toFixed(2));
-  }
+    // Average TYT Nets Calculation
+    const tytExams = exams.filter(e => e.tur === 'TYT');
+    const tytExamIds = tytExams.map(e => e.id);
+    const tytResults = results.filter(r => tytExamIds.includes(r.sinav_id));
+    
+    let averageTytNet = 0;
+    if (tytResults.length > 0) {
+      const totalNet = tytResults.reduce((sum, r) => sum + (r.toplam_net || 0), 0);
+      averageTytNet = Number((totalNet / tytResults.length).toFixed(2));
+    }
 
-  // Dynamic Risk Analysis based on custom thresholds
-  const thresholds = db.getRiskThresholds();
-  const tytThreshold = thresholds.find(t => t.tur === 'TYT') || { turkce_net: 25, sosyal_net: 12, matematik_net: 20, fen_net: 12, toplam_net: 60 };
-  const aytThreshold = thresholds.find(t => t.tur === 'AYT') || { turkce_net: 15, sosyal_net: 15, matematik_net: 15, fen_net: 15, toplam_net: 45 };
-  const lgsThreshold = thresholds.find(t => t.tur === 'LGS') || { turkce_net: 14, sosyal_net: 18, matematik_net: 10, fen_net: 12, toplam_net: 55 };
+    // Dynamic Risk Analysis based on custom thresholds
+    const thresholds = db.getRiskThresholds();
+    const tytThreshold = thresholds.find(t => t.tur === 'TYT') || { turkce_net: 25, sosyal_net: 12, matematik_net: 20, fen_net: 12, toplam_net: 60 };
+    const aytThreshold = thresholds.find(t => t.tur === 'AYT') || { turkce_net: 15, sosyal_net: 15, matematik_net: 15, fen_net: 15, toplam_net: 45 };
+    const lgsThreshold = thresholds.find(t => t.tur === 'LGS') || { turkce_net: 14, sosyal_net: 18, matematik_net: 10, fen_net: 12, toplam_net: 55 };
 
-  const riskStudents: any[] = [];
-  students.forEach(student => {
-    const studentResults = results
-      .filter(r => r.ogrenci_id === student.id)
-      .map(r => {
-        const exam = exams.find(e => e.id === r.sinav_id);
+    const riskStudents: any[] = [];
+    students.forEach(student => {
+      const studentResults = results
+        .filter(r => r.ogrenci_id === student.id)
+        .map(r => {
+          const exam = exams.find(e => e.id === r.sinav_id);
+          return {
+            ...r,
+            examName: exam?.ad || 'Sınav',
+            examType: exam?.tur || 'TYT',
+            date: exam?.tarih || '2026-01-01'
+          };
+        })
+        .sort((a, b) => (b.date || '').localeCompare(a.date || '')); // newest first
+
+      if (studentResults.length > 0) {
+        const latest = studentResults[0];
+        const isTyt = latest.examType === 'TYT';
+        const isAyt = latest.examType === 'AYT';
+        const th = isTyt ? tytThreshold : (isAyt ? aytThreshold : lgsThreshold);
+
+        const reasons: string[] = [];
+        const trLabel = isTyt ? 'Türkçe' : (isAyt ? 'Edebiyat' : 'Türkçe');
+        const sosLabel = latest.examType === 'LGS' ? 'İnkılap/Din/İng' : 'Sosyal';
+
+        if (latest.turkce_net < th.turkce_net) {
+          reasons.push(`${trLabel} (${latest.turkce_net} < ${th.turkce_net})`);
+        }
+        if (latest.sosyal_net < th.sosyal_net) {
+          reasons.push(`${sosLabel} (${latest.sosyal_net} < ${th.sosyal_net})`);
+        }
+        if (latest.matematik_net < th.matematik_net) {
+          reasons.push(`Matematik (${latest.matematik_net} < ${th.matematik_net})`);
+        }
+        if (latest.fen_net < th.fen_net) {
+          reasons.push(`Fen (${latest.fen_net} < ${th.fen_net})`);
+        }
+        if (latest.toplam_net < th.toplam_net) {
+          reasons.push(`Toplam (${latest.toplam_net} < ${th.toplam_net})`);
+        }
+
+        if (reasons.length > 0) {
+          const note = guidanceNotes.find(n => n.ogrenci_id === student.id);
+          const studentClass = classes.find(c => c.id === student.sinif_id);
+          riskStudents.push({
+            id: student.id,
+            ad_soyad: student.ad_soyad,
+            sinif: studentClass?.ad || 'Sınıf Yok',
+            sinif_adi: studentClass?.ad || 'Sınıf Yok',
+            alan: student.alan,
+            son_net: latest.toplam_net,
+            son_sinav: latest.examName,
+            sinav_turu: latest.examType,
+            durum: reasons.join(', '),
+            counseling_note: note ? note.not_metni : 'Not girilmemiş.'
+          });
+        }
+      }
+    });
+
+    // Calculate trends for chart
+    const trends = exams
+      .map(e => {
+        const examResults = results.filter(r => r.sinav_id === e.id);
+        if (examResults.length === 0) return null;
+        
+        const totalNet = examResults.reduce((sum, r) => sum + (r.toplam_net || 0), 0);
+        const ortalama_net = Number((totalNet / examResults.length).toFixed(2));
+        const en_yuksek_net = Math.max(...examResults.map(r => r.toplam_net || 0));
         return {
-          ...r,
-          examName: exam?.ad || 'Sınav',
-          examType: exam?.tur || 'TYT',
-          date: exam?.tarih || '2026-01-01'
+          sinav_adi: e.ad,
+          tarih: e.tarih,
+          ortalama_net,
+          en_yuksek_net,
+          tur: e.tur
         };
       })
-      .sort((a, b) => b.date.localeCompare(a.date)); // newest first
+      .filter((t): t is any => t !== null)
+      .sort((a: any, b: any) => (a.tarih || '').localeCompare(b.tarih || '')); // chronological order
 
-    if (studentResults.length > 0) {
-      const latest = studentResults[0];
-      const isTyt = latest.examType === 'TYT';
-      const isAyt = latest.examType === 'AYT';
-      const th = isTyt ? tytThreshold : (isAyt ? aytThreshold : lgsThreshold);
+    // Applied exams recap list
+    const recentExams = exams
+      .map(e => {
+        const examResults = results.filter(r => r.sinav_id === e.id);
+        const totalNet = examResults.reduce((sum, r) => sum + (r.toplam_net || 0), 0);
+        const ortalama_net = examResults.length > 0 ? Number((totalNet / examResults.length).toFixed(2)) : 0;
+        return {
+          id: e.id,
+          ad: e.ad,
+          tur: e.tur,
+          tarih: e.tarih,
+          ortalama_net,
+          katilimci_sayisi: examResults.length
+        };
+      })
+      .sort((a, b) => (b.tarih || '').localeCompare(a.tarih || '')); // newest first
 
-      const reasons: string[] = [];
-      const trLabel = isTyt ? 'Türkçe' : (isAyt ? 'Edebiyat' : 'Türkçe');
-      const sosLabel = latest.examType === 'LGS' ? 'İnkılap/Din/İng' : 'Sosyal';
-
-      if (latest.turkce_net < th.turkce_net) {
-        reasons.push(`${trLabel} (${latest.turkce_net} < ${th.turkce_net})`);
-      }
-      if (latest.sosyal_net < th.sosyal_net) {
-        reasons.push(`${sosLabel} (${latest.sosyal_net} < ${th.sosyal_net})`);
-      }
-      if (latest.matematik_net < th.matematik_net) {
-        reasons.push(`Matematik (${latest.matematik_net} < ${th.matematik_net})`);
-      }
-      if (latest.fen_net < th.fen_net) {
-        reasons.push(`Fen (${latest.fen_net} < ${th.fen_net})`);
-      }
-      if (latest.toplam_net < th.toplam_net) {
-        reasons.push(`Toplam (${latest.toplam_net} < ${th.toplam_net})`);
-      }
-
-      if (reasons.length > 0) {
-        const note = guidanceNotes.find(n => n.ogrenci_id === student.id);
-        const studentClass = classes.find(c => c.id === student.sinif_id);
-        riskStudents.push({
-          id: student.id,
-          ad_soyad: student.ad_soyad,
-          sinif: studentClass?.ad || 'Sınıf Yok',
-          sinif_adi: studentClass?.ad || 'Sınıf Yok',
-          alan: student.alan,
-          son_net: latest.toplam_net,
-          son_sinav: latest.examName,
-          sinav_turu: latest.examType,
-          durum: reasons.join(', '),
-          counseling_note: note ? note.not_metni : 'Not girilmemiş.'
-        });
-      }
-    }
-  });
-
-  // Calculate trends for chart
-  const trends = exams
-    .map(e => {
-      const examResults = results.filter(r => r.sinav_id === e.id);
-      if (examResults.length === 0) return null;
+    // Calculate class-based subject averages (Konu/Ders Analizleri)
+    const classAnalysis = classes.map((c, idx) => {
+      const classStudents = students.filter(s => s.sinif_id === c.id);
+      const classStudentIds = classStudents.map(s => s.id);
+      const classResults = results.filter(r => classStudentIds.includes(r.ogrenci_id));
       
-      const totalNet = examResults.reduce((sum, r) => sum + (r.toplam_net || 0), 0);
-      const ortalama_net = Number((totalNet / examResults.length).toFixed(2));
-      const en_yuksek_net = Math.max(...examResults.map(r => r.toplam_net || 0));
-      return {
-        sinav_adi: e.ad,
-        tarih: e.tarih,
-        ortalama_net,
-        en_yuksek_net,
-        tur: e.tur
-      };
-    })
-    .filter((t): t is any => t !== null)
-    .sort((a: any, b: any) => a.tarih.localeCompare(b.tarih)); // chronological order
-
-  // Applied exams recap list
-  const recentExams = exams
-    .map(e => {
-      const examResults = results.filter(r => r.sinav_id === e.id);
-      const totalNet = examResults.reduce((sum, r) => sum + (r.toplam_net || 0), 0);
-      const ortalama_net = examResults.length > 0 ? Number((totalNet / examResults.length).toFixed(2)) : 0;
-      return {
-        id: e.id,
-        ad: e.ad,
-        tur: e.tur,
-        tarih: e.tarih,
-        ortalama_net,
-        katilimci_sayisi: examResults.length
-      };
-    })
-    .sort((a, b) => b.tarih.localeCompare(a.tarih)); // newest first
-
-  // Calculate class-based subject averages (Konu/Ders Analizleri)
-  const classAnalysis = classes.map((c, idx) => {
-    const classStudents = students.filter(s => s.sinif_id === c.id);
-    const classStudentIds = classStudents.map(s => s.id);
-    const classResults = results.filter(r => classStudentIds.includes(r.ogrenci_id));
-    
-    let turkce = 0, matematik = 0, sosyal = 0, fen = 0;
-    if (classResults.length > 0) {
-      turkce = Number((classResults.reduce((sum, r) => sum + (r.turkce_net || 0), 0) / classResults.length).toFixed(1));
-      matematik = Number((classResults.reduce((sum, r) => sum + (r.matematik_net || 0), 0) / classResults.length).toFixed(1));
-      sosyal = Number((classResults.reduce((sum, r) => sum + (r.sosyal_net || 0), 0) / classResults.length).toFixed(1));
-      fen = Number((classResults.reduce((sum, r) => sum + (r.fen_net || 0), 0) / classResults.length).toFixed(1));
-    } else {
-      // Realistic pre-populated metrics for demo if there's no data yet
-      const seeds = [
-        { t: 28.5, m: 24.2, s: 16.4, f: 14.1 },
-        { t: 22.1, m: 18.5, s: 12.3, f: 9.8 },
-        { t: 25.8, m: 21.0, s: 15.0, f: 11.2 }
-      ];
-      const s = seeds[idx % seeds.length];
-      turkce = s.t;
-      matematik = s.m;
-      sosyal = s.s;
-      fen = s.f;
-    }
-    
-    return {
-      sinif_adi: c.ad,
-      turkce,
-      matematik,
-      sosyal,
-      fen
-    };
-  });
-
-  // Calculate teacher success rate (Öğretmen Başarı Analizleri)
-  const teachersFromDb = db.getKullanicilar().filter(u => u.rol === 'ogretmen');
-  const teachersFromLessons = Array.from(new Set(db.getDersProgramlari().map(dp => dp.ogretmen_adi))).filter(Boolean);
-  
-  // Merge both to get all distinct teacher names
-  const allTeacherNames = new Set<string>();
-  teachersFromDb.forEach(t => allTeacherNames.add(t.ad_soyad));
-  teachersFromLessons.forEach(t => allTeacherNames.add(t));
-  
-  const distinctTeachers = Array.from(allTeacherNames);
-  
-  const teacherAnalysis = distinctTeachers.map((teacher) => {
-    const teacherLessons = db.getDersProgramlari().filter(l => l.ogretmen_adi === teacher);
-    const uniqueStudents = new Set(teacherLessons.map(l => l.ogrenci_id));
-    const ogrenci_sayisi = uniqueStudents.size;
-    const etut_sayisi = teacherLessons.length;
-    
-    // Calculate a real success rate if they have exams
-    let basari_orani = 100;
-    if (ogrenci_sayisi > 0) {
-      const studentIds = Array.from(uniqueStudents);
-      const studentResults = results.filter(r => studentIds.includes(r.ogrenci_id));
-      if (studentResults.length > 0) {
-        const avgNet = studentResults.reduce((sum, r) => sum + (r.toplam_net || 0), 0) / studentResults.length;
-        // Map average net (out of 120) to a reasonable success rate percentage
-        basari_orani = Math.min(100, Math.max(50, Math.round(50 + (avgNet / 120) * 50)));
+      let turkce = 0, matematik = 0, sosyal = 0, fen = 0;
+      if (classResults.length > 0) {
+        turkce = Number((classResults.reduce((sum, r) => sum + (r.turkce_net || 0), 0) / classResults.length).toFixed(1));
+        matematik = Number((classResults.reduce((sum, r) => sum + (r.matematik_net || 0), 0) / classResults.length).toFixed(1));
+        sosyal = Number((classResults.reduce((sum, r) => sum + (r.sosyal_net || 0), 0) / classResults.length).toFixed(1));
+        fen = Number((classResults.reduce((sum, r) => sum + (r.fen_net || 0), 0) / classResults.length).toFixed(1));
       } else {
-        basari_orani = 85; // Default if they have students but no exams yet
+        // Realistic pre-populated metrics for demo if there's no data yet
+        const seeds = [
+          { t: 28.5, m: 24.2, s: 16.4, f: 14.1 },
+          { t: 22.1, m: 18.5, s: 12.3, f: 9.8 },
+          { t: 25.8, m: 21.0, s: 15.0, f: 11.2 }
+        ];
+        const s = seeds[idx % seeds.length];
+        turkce = s.t;
+        matematik = s.m;
+        sosyal = s.s;
+        fen = s.f;
       }
-    } else {
-      basari_orani = 0; // 0% if they have no students/lessons scheduled yet
-    }
+      
+      return {
+        sinif_adi: c.ad,
+        turkce,
+        matematik,
+        sosyal,
+        fen
+      };
+    });
+
+    // Calculate teacher success rate (Öğretmen Başarı Analizleri)
+    const teachersFromDb = db.getKullanicilar().filter(u => u.rol === 'ogretmen');
+    const teachersFromLessons = Array.from(new Set(db.getDersProgramlari().map(dp => dp.ogretmen_adi))).filter(Boolean);
     
-    return {
-      ogretmen: teacher,
-      basari_orani,
-      ogrenci_sayisi,
-      etut_sayisi
-    };
-  });
-
-  // Get active studying students list (Features 1, 2, 4)
-  const activeStudyingStudents: any[] = [];
-  Object.entries(activeSessions).forEach(([idStr, session]) => {
-    const sId = Number(idStr);
-    const sessionWithClean = getStudentActiveSession(sId);
-    if (sessionWithClean && sessionWithClean.calisiyor) {
-      const student = db.getOgrenciler().find(s => s.id === sId);
-      if (student && (assignedClassIds.length === 0 || assignedClassIds.includes(student.sinif_id))) {
-        const studentClass = db.getSiniflar().find(c => c.id === student.sinif_id);
-        activeStudyingStudents.push({
-          id: student.id,
-          ad_soyad: student.ad_soyad,
-          sinif_adi: studentClass?.ad || 'Sınıf Yok',
-          ders_adi: sessionWithClean.ders_adi,
-          mod: sessionWithClean.mod,
-          kalan_sure: sessionWithClean.kalan_sure,
-          toplam_sure: sessionWithClean.toplam_sure
-        });
+    // Merge both to get all distinct teacher names
+    const allTeacherNames = new Set<string>();
+    teachersFromDb.forEach(t => allTeacherNames.add(t.ad_soyad));
+    teachersFromLessons.forEach(t => allTeacherNames.add(t));
+    
+    const distinctTeachers = Array.from(allTeacherNames);
+    
+    const teacherAnalysis = distinctTeachers.map((teacher) => {
+      const teacherLessons = db.getDersProgramlari().filter(l => l.ogretmen_adi === teacher);
+      const uniqueStudents = new Set(teacherLessons.map(l => l.ogrenci_id));
+      const ogrenci_sayisi = uniqueStudents.size;
+      const etut_sayisi = teacherLessons.length;
+      
+      // Calculate a real success rate if they have exams
+      let basari_orani = 100;
+      if (ogrenci_sayisi > 0) {
+        const studentIds = Array.from(uniqueStudents);
+        const studentResults = results.filter(r => studentIds.includes(r.ogrenci_id));
+        if (studentResults.length > 0) {
+          const avgNet = studentResults.reduce((sum, r) => sum + (r.toplam_net || 0), 0) / studentResults.length;
+          // Map average net (out of 120) to a reasonable success rate percentage
+          basari_orani = Math.min(100, Math.max(50, Math.round(50 + (avgNet / 120) * 50)));
+        } else {
+          basari_orani = 85; // Default if they have students but no exams yet
+        }
+      } else {
+        basari_orani = 0; // 0% if they have no students/lessons scheduled yet
       }
-    }
-  });
+      
+      return {
+        ogretmen: teacher,
+        basari_orani,
+        ogrenci_sayisi,
+        etut_sayisi
+      };
+    });
 
-  res.json({
-    totalStudents: totalStudentsCount,
-    activeStudents: activeStudents.length,
-    averageTytNet,
-    riskCount: riskStudents.length,
-    riskStudents,
-    trends,
-    recentExams,
-    totalClasses: classes.length,
-    totalExams: exams.length,
-    thresholds: {
-      TYT: tytThreshold.toplam_net,
-      AYT: aytThreshold.toplam_net,
-      LGS: lgsThreshold.toplam_net
-    },
-    classAnalysis,
-    teacherAnalysis,
-    activeStudyingCount: activeStudyingStudents.length,
-    activeStudyingStudents
-  });
+    // Get active studying students list (Features 1, 2, 4)
+    const activeStudyingStudents: any[] = [];
+    Object.entries(activeSessions).forEach(([idStr, session]) => {
+      const sId = Number(idStr);
+      const sessionWithClean = getStudentActiveSession(sId);
+      if (sessionWithClean && sessionWithClean.calisiyor) {
+        const student = db.getOgrenciler().find(s => s.id === sId);
+        if (student && (assignedClassIds.length === 0 || assignedClassIds.includes(student.sinif_id))) {
+          const studentClass = db.getSiniflar().find(c => c.id === student.sinif_id);
+          activeStudyingStudents.push({
+            id: student.id,
+            ad_soyad: student.ad_soyad,
+            sinif_adi: studentClass?.ad || 'Sınıf Yok',
+            ders_adi: sessionWithClean.ders_adi,
+            mod: sessionWithClean.mod,
+            kalan_sure: sessionWithClean.kalan_sure,
+            toplam_sure: sessionWithClean.toplam_sure
+          });
+        }
+      }
+    });
+
+    res.json({
+      totalStudents: totalStudentsCount,
+      activeStudents: activeStudents.length,
+      averageTytNet,
+      riskCount: riskStudents.length,
+      riskStudents,
+      trends,
+      recentExams,
+      totalClasses: classes.length,
+      totalExams: exams.length,
+      thresholds: {
+        TYT: tytThreshold.toplam_net,
+        AYT: aytThreshold.toplam_net,
+        LGS: lgsThreshold.toplam_net
+      },
+      classAnalysis,
+      teacherAnalysis,
+      activeStudyingCount: activeStudyingStudents.length,
+      activeStudyingStudents
+    });
+  } catch (err: any) {
+    console.error("GET /api/dashboard/stats endpoint error:", err);
+    res.status(500).json({ error: 'Yönetim istatistikleri yüklenirken hata oluştu.', details: err.message });
+  }
 });
 
 // Risk Thresholds API Routes
@@ -1421,72 +1431,80 @@ app.delete('/api/ogrenci/:id', (req, res) => {
 });
 
 app.get('/api/ogrenci/:id', (req, res) => {
-  const studentId = Number(req.params.id);
-  const student = db.getOgrenciler().find(s => s.id === studentId);
-  if (!student) {
-    return res.status(404).json({ error: 'Öğrenci bulunamadı.' });
-  }
-  const studentClass = db.getSiniflar().find(c => c.id === student.sinif_id);
-  const parent = db.getKullanicilar().find(u => u.id === student.veli_id);
-  const danisman = db.getKullanicilar().find(u => u.id === student.danisman_id);
-  
-  const results = db.getSinavSonuclari().filter(r => r.ogrenci_id === studentId);
-  const exams = db.getSinavTanimlari();
-  const joinedResults = results.map(r => {
-    const exam = exams.find(e => e.id === r.sinav_id);
-    return {
-      ...r,
-      sinav_adi: exam ? exam.ad : 'Sınav',
-      tur: exam ? exam.tur : 'TYT',
-      tarih: exam ? exam.tarih : ''
-    };
-  }).sort((a, b) => a.tarih.localeCompare(b.tarih));
+  try {
+    const studentId = Number(req.params.id);
+    if (isNaN(studentId)) {
+      return res.status(400).json({ error: 'Geçersiz öğrenci kimliği.' });
+    }
+    const student = db.getOgrenciler().find(s => s.id === studentId);
+    if (!student) {
+      return res.status(404).json({ error: 'Öğrenci bulunamadı.' });
+    }
+    const studentClass = db.getSiniflar().find(c => c.id === student.sinif_id);
+    const parent = db.getKullanicilar().find(u => u.id === student.veli_id);
+    const danisman = db.getKullanicilar().find(u => u.id === student.danisman_id);
+    
+    const results = db.getSinavSonuclari().filter(r => r.ogrenci_id === studentId);
+    const exams = db.getSinavTanimlari();
+    const joinedResults = results.map(r => {
+      const exam = exams.find(e => e.id === r.sinav_id);
+      return {
+        ...r,
+        sinav_adi: exam ? exam.ad : 'Sınav',
+        tur: exam ? exam.tur : 'TYT',
+        tarih: exam ? exam.tarih : ''
+      };
+    }).sort((a, b) => (a.tarih || '').localeCompare(b.tarih || ''));
 
-  const notes = db.getRehberlikNotlari().filter(n => n.ogrenci_id === studentId);
-  const counselors = db.getKullanicilar().filter(u => u.rol === 'rehber');
-  const joinedNotes = notes.map(n => {
-    const counselor = counselors.find(c => c.id === n.rehber_id);
-    return {
-      ...n,
-      rehber_adi: counselor ? counselor.ad_soyad : 'Rehber Öğretmen'
-    };
-  }).sort((a, b) => b.tarih.localeCompare(a.tarih));
+    const notes = db.getRehberlikNotlari().filter(n => n.ogrenci_id === studentId);
+    const counselors = db.getKullanicilar().filter(u => u.rol === 'rehber');
+    const joinedNotes = notes.map(n => {
+      const counselor = counselors.find(c => c.id === n.rehber_id);
+      return {
+        ...n,
+        rehber_adi: counselor ? counselor.ad_soyad : 'Rehber Öğretmen'
+      };
+    }).sort((a, b) => (b.tarih || '').localeCompare(a.tarih || ''));
 
-  const schedule = db.getDersProgramlari().filter(dp => dp.ogrenci_id === student.id);
-  const tavsiyeler = db.getOgretmenTavsiyeleri().filter(t => t.ogrenci_id === studentId);
-  const veliNotlari = db.getVeliNotlari().filter(n => n.ogrenci_id === studentId);
-  const konuTakip = db.getKonuTakip().filter(kt => kt.ogrenci_id === studentId);
-  const calismaSeanslari = db.getCalismaSeanslari().filter(cs => cs.ogrenci_id === studentId);
-  const haftalikGorevler = db.getHaftalikGorevler().filter(hg => hg.ogrenci_id === studentId);
+    const schedule = db.getDersProgramlari().filter(dp => dp.ogrenci_id === student.id);
+    const tavsiyeler = db.getOgretmenTavsiyeleri().filter(t => t.ogrenci_id === studentId);
+    const veliNotlari = db.getVeliNotlari().filter(n => n.ogrenci_id === studentId);
+    const konuTakip = db.getKonuTakip().filter(kt => kt.ogrenci_id === studentId);
+    const calismaSeanslari = db.getCalismaSeanslari().filter(cs => cs.ogrenci_id === studentId);
+    const haftalikGorevler = db.getHaftalikGorevler().filter(hg => hg.ogrenci_id === studentId);
 
-  // Calculate bugun_calisma_suresi for this student (Features 1, 2, 4)
-  const todaySessions = calismaSeanslari.filter(cs => isDateToday(cs.tarih));
-  const bugun_calisma_suresi = Math.round(todaySessions.reduce((sum, cs) => sum + (cs.sure || 0), 0) / 60);
+    // Calculate bugun_calisma_suresi for this student (Features 1, 2, 4)
+    const todaySessions = calismaSeanslari.filter(cs => isDateToday(cs.tarih));
+    const bugun_calisma_suresi = Math.round(todaySessions.reduce((sum, cs) => sum + (cs.sure || 0), 0) / 60);
 
-  // Get current active transient timer status if any
-  const aktif_seans = getStudentActiveSession(studentId);
+    // Get current active transient timer status if any
+    const aktif_seans = getStudentActiveSession(studentId);
 
-  res.json({
-    student: {
-      ...student,
-      sinif_adi: studentClass ? studentClass.ad : 'Sınıfsız',
-      veli_adi: parent ? parent.ad_soyad : 'Veli Atanmamış',
-      veli_telefon: parent ? parent.telefon : '',
-      danisman_adi: danisman ? danisman.ad_soyad : 'Atanmamış',
+    res.json({
+      student: {
+        ...student,
+        sinif_adi: studentClass ? studentClass.ad : 'Sınıfsız',
+        veli_adi: parent ? parent.ad_soyad : 'Veli Atanmamış',
+        veli_telefon: parent ? parent.telefon : '',
+        danisman_adi: danisman ? danisman.ad_soyad : 'Atanmamış',
+        bugun_calisma_suresi,
+        aktif_seans
+      },
+      sonuclar: joinedResults,
+      notlar: joinedNotes,
+      ders_programi: schedule,
+      tavsiyeler: [...tavsiyeler].sort((a, b) => (b.tarih || '').localeCompare(a.tarih || '')),
+      veli_notlari: [...veliNotlari].sort((a, b) => (b.tarih || '').localeCompare(a.tarih || '')),
+      konu_takip: konuTakip,
+      calisma_seanslari: calismaSeanslari,
+      haftalik_gorevler: haftalikGorevler,
       bugun_calisma_suresi,
       aktif_seans
-    },
-    sonuclar: joinedResults,
-    notlar: joinedNotes,
-    ders_programi: schedule,
-    tavsiyeler: tavsiyeler.sort((a, b) => b.tarih.localeCompare(a.tarih)),
-    veli_notlari: veliNotlari.sort((a, b) => b.tarih.localeCompare(a.tarih)),
-    konu_takip: konuTakip,
-    calisma_seanslari: calismaSeanslari,
-    haftalik_gorevler: haftalikGorevler,
-    bugun_calisma_suresi,
-    aktif_seans
-  });
+    });
+  } catch (err: any) {
+    console.error("GET /api/ogrenci/:id endpoint error:", err);
+    res.status(500).json({ error: 'Öğrenci yüklenirken sunucu hatası oluştu.', details: err.message });
+  }
 });
 
 const veliOzetiCache: Record<number, { date: string, text: string }> = {};

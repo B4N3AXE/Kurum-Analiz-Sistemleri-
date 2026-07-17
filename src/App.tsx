@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Ogrenci } from './types';
-import Dashboard, { getTopicAnalysisForStudent, TYT_SUBJECT_TOPICS, LGS_SUBJECT_TOPICS } from './components/Dashboard';
+import Dashboard, { getTopicAnalysisForStudent, TYT_SUBJECT_TOPICS, LGS_SUBJECT_TOPICS, AYT_SAY_SUBJECT_TOPICS, AYT_EA_SUBJECT_TOPICS, AYT_SOZ_SUBJECT_TOPICS } from './components/Dashboard';
 import OgrenciPaneli from './components/OgrenciPaneli';
 import PdfOkuyucu from './components/PdfOkuyucu';
 import Mesajlar from './components/Mesajlar';
@@ -8,7 +8,7 @@ import Tanimlar from './components/Tanimlar';
 import Abonelik from './components/Abonelik';
 import RiskLimitleri from './components/RiskLimitleri';
 import AiChatWidget from './components/AiChatWidget';
-import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key, Target, Eye, Send, Trash2, Play, Pause, RotateCcw, Plus, Square, CheckSquare } from 'lucide-react';
+import { Home, Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key, Target, Eye, Send, Trash2, Play, Pause, RotateCcw, Plus, Square, CheckSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Helper function to calculate expected net projection for the next practice exam
@@ -134,6 +134,7 @@ export default function App() {
   const [timerIsRunning, setTimerIsRunning] = useState<boolean>(false);
   const [timerSubject, setTimerSubject] = useState<string>('Matematik');
   const [expandedChecklistSubject, setExpandedChecklistSubject] = useState<string | null>(null);
+  const [studentKonuTakipTab, setStudentKonuTakipTab] = useState<'tyt' | 'ayt'>('tyt');
   const [newTaskText, setNewTaskText] = useState<string>('');
   const [newTaskDay, setNewTaskDay] = useState<string>('Pazartesi');
   const [newTaskSubject, setNewTaskSubject] = useState<string>('Matematik');
@@ -3574,34 +3575,40 @@ export default function App() {
                     </div>
 
                     {/* Veli & Öğretmen İletişim ve Tavsiye Portalı */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6">
                       {/* Left: Öğretmen Ders Tavsiyeleri */}
-                      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-                        <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex justify-between items-center">
-                          <span>Öğretmenlerimizin Ders Çalışma Tavsiyeleri</span>
-                          <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            📖 Özel Tavsiyeler
+                      <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-md space-y-5">
+                        <div className="border-b border-slate-800 pb-3 flex justify-between items-center">
+                          <div>
+                            <h4 className="text-sm text-slate-200 font-extrabold uppercase tracking-wider flex items-center gap-2">
+                              <BookOpen size={14} className="text-emerald-400" />
+                              <span>Branş Öğretmenlerimizin Ders Çalışma Tavsiyeleri</span>
+                            </h4>
+                            <p className="text-xs text-slate-500 mt-0.5">Ders öğretmenlerinin konuları pekiştirme, soru ödevi ve kaynak tavsiyeleri.</p>
+                          </div>
+                          <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 flex items-center gap-1">
+                            📖 Branş Bazlı
                           </span>
-                        </h4>
+                        </div>
                         
                         {!(childReport.tavsiyeler && childReport.tavsiyeler.length > 0) ? (
-                          <div className="text-center py-12 text-xs text-slate-500">Ders öğretmenleri tarafından henüz eklenmiş çalışma tavsiyesi bulunmuyor.</div>
+                          <div className="text-center py-10 text-xs text-slate-500 italic font-semibold">Ders öğretmenleri tarafından henüz eklenmiş çalışma tavsiyesi bulunmuyor.</div>
                         ) : (
                           <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
                             {childReport.tavsiyeler.map(t => (
-                              <div key={t.id} className="bg-slate-950/60 p-3 border border-slate-850 rounded-xl space-y-1.5">
-                                <div className="flex justify-between items-center">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-[9px] bg-emerald-500/10 text-emerald-400 font-extrabold px-1.5 py-0.5 rounded uppercase">
+                              <div key={t.id} className="bg-slate-950/60 p-4 border border-slate-850 rounded-xl space-y-2 relative group hover:border-slate-700 transition">
+                                <div className="flex justify-between items-center border-b border-slate-900/60 pb-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] bg-emerald-500/10 text-emerald-400 font-black px-2.5 py-0.5 rounded border border-emerald-500/20 uppercase">
                                       {t.ders_adi}
                                     </span>
-                                    <span className="text-[10px] font-bold text-slate-300 truncate max-w-[120px]">{t.ogretmen_adi}</span>
+                                    <span className="text-xs font-black text-slate-300">{t.ogretmen_adi}</span>
                                   </div>
-                                  <span className="text-[9px] text-slate-500 font-medium">
+                                  <span className="text-[10px] text-slate-500 font-bold">
                                     {t.tarih ? new Date(t.tarih).toLocaleDateString('tr-TR') : ''}
                                   </span>
                                 </div>
-                                <p className="text-xs text-slate-300 font-medium leading-relaxed">{t.tavsiye_metni}</p>
+                                <p className="text-sm text-slate-300 font-medium leading-relaxed">{t.tavsiye_metni}</p>
                               </div>
                             ))}
                           </div>
@@ -3609,48 +3616,50 @@ export default function App() {
                       </div>
 
                       {/* Right: Veli Geri Bildirim & Ev Takip Notu Ekleme */}
-                      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-                        <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex justify-between items-center">
-                          <span>Okul Yönetimi & Öğretmenlere Geri Bildirim</span>
-                          <span className="text-[10px] text-purple-400 font-bold bg-purple-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            🏠 Evden Takip
+                      <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-md space-y-5">
+                        <div className="border-b border-slate-800 pb-3 flex justify-between items-center">
+                          <div>
+                            <h4 className="text-sm text-slate-200 font-extrabold uppercase tracking-wider flex items-center gap-2">
+                              <Home size={14} className="text-purple-400" />
+                              <span>Okul Yönetimi & Öğretmenlerimize Geri Bildirim</span>
+                            </h4>
+                            <p className="text-xs text-slate-500 mt-0.5">Öğrencimizin evdeki çalışma disiplini, ödev düzeni veya gözlemlerini iletebilirsiniz.</p>
+                          </div>
+                          <span className="text-[10px] text-purple-400 font-bold bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20 flex items-center gap-1">
+                            🏠 Ev Geri Bildirim
                           </span>
-                        </h4>
-
-                        <p className="text-[11px] text-slate-400 leading-normal font-semibold">
-                          Öğrencimizin evdeki çalışma disiplini, ödev düzeni veya merak ettiğiniz durumları buraya yazarak öğretmenlerimize ve rehberlik servisine anında iletebilirsiniz.
-                        </p>
+                        </div>
 
                         {/* Interactive Form */}
-                        <form onSubmit={handleAddVeliNote} className="space-y-2">
+                        <form onSubmit={handleAddVeliNote} className="space-y-3">
                           <textarea
-                            placeholder="Evdeki çalışma durumu, motivasyonu ve sorularınızı yazın..."
+                            placeholder="Evdeki çalışma durumu, motivasyonu veya danışmak istediğiniz konuları buraya detaylıca yazın..."
                             value={newVeliNote}
                             onChange={e => setNewVeliNote(e.target.value)}
                             rows={3}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-100 focus:outline-none focus:border-purple-500 placeholder-slate-600 resize-none"
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-100 focus:outline-none focus:border-purple-500 placeholder-slate-600 resize-none shadow-inner"
                           />
                           <div className="flex justify-end">
                             <button
                               type="submit"
-                              className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow shadow-purple-500/10 cursor-pointer"
+                              className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 transition shadow shadow-purple-500/20 cursor-pointer"
                             >
-                              <Send size={12} /> Geri Bildirim Gönder
+                              <Send size={13} /> Geri Bildirim Gönder
                             </button>
                           </div>
                         </form>
 
                         {/* Active Feedback List from this Parent */}
                         {childReport.veli_notlari && childReport.veli_notlari.length > 0 && (
-                          <div className="space-y-2.5 pt-2">
+                          <div className="space-y-3 pt-3 border-t border-slate-800/40">
                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Önceki Gönderimleriniz</span>
-                            <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                               {childReport.veli_notlari.map(n => (
-                                <div key={n.id} className="bg-slate-950/40 p-2.5 border border-slate-850 rounded-xl space-y-1 relative group">
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-bold text-purple-400">Gönderen: Siz</span>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[9px] text-slate-500 font-medium">
+                                <div key={n.id} className="bg-slate-950/60 p-4 border border-slate-850 rounded-xl space-y-2 relative group hover:border-slate-700 transition">
+                                  <div className="flex justify-between items-center border-b border-slate-900/60 pb-1.5">
+                                    <span className="text-xs font-black text-purple-400">Gönderen: Siz</span>
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-[10px] text-slate-500 font-bold">
                                         {n.tarih ? new Date(n.tarih).toLocaleDateString('tr-TR') : ''}
                                       </span>
                                       <button
@@ -3659,11 +3668,11 @@ export default function App() {
                                         className="text-slate-600 hover:text-red-400 transition"
                                         title="Sil"
                                       >
-                                        <Trash2 size={10} />
+                                        <Trash2 size={13} />
                                       </button>
                                     </div>
                                   </div>
-                                  <p className="text-[11px] text-slate-300 font-medium leading-normal">{n.not_metni}</p>
+                                  <p className="text-sm text-slate-300 font-medium leading-relaxed">{n.not_metni}</p>
                                 </div>
                               ))}
                             </div>
@@ -4156,104 +4165,199 @@ export default function App() {
 
                       {/* FEATURE 1: KONU TAKİBİ (SUBJECT & TOPIC CHECKLIST) */}
                       <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-md flex flex-col justify-between">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                              <BookOpen size={16} className="text-blue-400" />
-                              <span>Konu Takip Çizelgesi</span>
-                            </h4>
-                            <span className="text-[10px] bg-blue-500/10 text-blue-400 font-extrabold px-2 py-0.5 rounded border border-blue-500/20 uppercase font-mono">
-                              {(() => {
-                                const totalTopicsCount = 15;
-                                const checkedCount = (studentReport.konu_takip || []).filter((kt: any) => kt.tamamlandi).length;
-                                return `${checkedCount} / ${totalTopicsCount} Konu`;
-                              })()}
-                            </span>
-                          </div>
+                        {(() => {
+                          const isLgs = studentReport.student.alan === 'LGS' || studentReport.student.sinif_adi?.toLowerCase().includes('lgs');
+                          let subjMap: Record<string, any> = isLgs ? LGS_SUBJECT_TOPICS : TYT_SUBJECT_TOPICS;
+                          if (!isLgs) {
+                            if (studentKonuTakipTab === 'ayt') {
+                              if (studentReport.student.alan === 'Sayısal') {
+                                subjMap = AYT_SAY_SUBJECT_TOPICS;
+                              } else if (studentReport.student.alan === 'Sözel') {
+                                subjMap = AYT_SOZ_SUBJECT_TOPICS;
+                              } else if (studentReport.student.alan === 'Eşit Ağırlık') {
+                                subjMap = AYT_EA_SUBJECT_TOPICS;
+                              } else {
+                                subjMap = AYT_SAY_SUBJECT_TOPICS;
+                              }
+                            }
+                          }
 
-                          {/* Subject expanders */}
-                          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                            {(() => {
-                              const isLgs = studentReport.student.alan === 'LGS' || studentReport.student.sinif_adi?.toLowerCase().includes('lgs');
-                              const subjMap = isLgs ? LGS_SUBJECT_TOPICS : TYT_SUBJECT_TOPICS;
-                              
-                              return Object.entries(subjMap).map(([subjKey, topics]: [string, any]) => {
-                                const displayNames: Record<string, string> = {
-                                  turkce: 'Türkçe Bölümü',
-                                  matematik: 'Matematik & Geometri',
-                                  sosyal: 'Sosyal Bilimler',
-                                  fen: 'Fen Bilimleri'
-                                };
+                          const studentDoneKeys = (studentReport.konu_takip || [])
+                            .filter((kt: any) => kt.tamamlandi)
+                            .map((kt: any) => kt.konu_key.toLowerCase());
+                          
+                          let totalTopicsCount = 0;
+                          let checkedCount = 0;
+                          Object.entries(subjMap).forEach(([subjKey, topics]: [string, any]) => {
+                            totalTopicsCount += topics.length;
+                            topics.forEach((t: any) => {
+                              const uniqueKey = `${subjKey}_${t.ad}`.toLowerCase();
+                              if (studentDoneKeys.includes(uniqueKey)) {
+                                checkedCount++;
+                              }
+                            });
+                          });
 
-                                const isExpanded = expandedChecklistSubject === subjKey;
-                                const studentDoneKeys = (studentReport.konu_takip || [])
-                                  .filter((kt: any) => kt.tamamlandi)
-                                  .map((kt: any) => kt.konu_key.toLowerCase());
-                                
-                                const subjTopicsDoneCount = topics.filter((t: any) => studentDoneKeys.includes(`${subjKey}_${t.ad}`.toLowerCase())).length;
-                                const completionRatio = Math.round((subjTopicsDoneCount / topics.length) * 100) || 0;
+                          return (
+                            <>
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                    <BookOpen size={16} className="text-blue-400" />
+                                    <span>Konu Takip Çizelgesi</span>
+                                  </h4>
+                                  <span className="text-[10px] bg-blue-500/10 text-blue-400 font-extrabold px-2 py-0.5 rounded border border-blue-500/20 uppercase font-mono">
+                                    {checkedCount} / {totalTopicsCount} Konu
+                                  </span>
+                                </div>
 
-                                return (
-                                  <div key={subjKey} className="bg-slate-950/60 border border-slate-850 rounded-xl overflow-hidden transition">
+                                {/* TYT / AYT Tab Switcher for Student View */}
+                                {!isLgs && (
+                                  <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-850">
                                     <button
                                       type="button"
-                                      onClick={() => setExpandedChecklistSubject(isExpanded ? null : subjKey)}
-                                      className="w-full flex items-center justify-between p-3 hover:bg-slate-950/90 transition text-left cursor-pointer"
+                                      onClick={() => {
+                                        setStudentKonuTakipTab('tyt');
+                                        setExpandedChecklistSubject(null);
+                                      }}
+                                      className={`flex-1 py-1.5 px-3 text-[10px] font-black rounded-lg transition-all cursor-pointer text-center ${
+                                        studentKonuTakipTab === 'tyt'
+                                          ? 'bg-blue-600 text-white shadow'
+                                          : 'text-slate-400 hover:text-slate-200'
+                                      }`}
                                     >
-                                      <div>
-                                        <h5 className="text-xs font-black text-slate-200">{displayNames[subjKey] || subjKey}</h5>
-                                        <span className="text-[9px] text-slate-400 font-bold block mt-0.5">
-                                          {subjTopicsDoneCount} / {topics.length} Konu (%{completionRatio})
-                                        </span>
-                                      </div>
-                                      <ChevronRight size={14} className={`text-slate-400 transform transition ${isExpanded ? 'rotate-90' : ''}`} />
+                                      TYT
                                     </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setStudentKonuTakipTab('ayt');
+                                        setExpandedChecklistSubject(null);
+                                      }}
+                                      className={`flex-1 py-1.5 px-3 text-[10px] font-black rounded-lg transition-all cursor-pointer text-center ${
+                                        studentKonuTakipTab === 'ayt'
+                                          ? 'bg-blue-600 text-white shadow'
+                                          : 'text-slate-400 hover:text-slate-200'
+                                      }`}
+                                    >
+                                      AYT ({studentReport.student.alan || 'Sayısal'})
+                                    </button>
+                                  </div>
+                                )}
 
-                                    {isExpanded && (
-                                      <div className="p-2 bg-slate-950/30 border-t border-slate-900 space-y-1.5">
-                                        {topics.slice(0, 8).map((topic: any) => {
-                                          const uniqueKey = `${subjKey}_${topic.ad}`.toLowerCase();
-                                          const isDone = studentDoneKeys.includes(uniqueKey);
-                                          return (
-                                            <div 
-                                              key={topic.ad} 
-                                              className="flex items-center justify-between gap-2 p-2 bg-slate-900/40 border border-slate-850/60 rounded-lg hover:border-slate-800 transition"
-                                            >
-                                              <span className={`text-[11px] font-semibold leading-normal flex-1 ${isDone ? 'text-slate-500 line-through' : 'text-slate-300'}`}>
-                                                {topic.ad}
-                                              </span>
-                                              <button
-                                                type="button"
-                                                onClick={() => handleToggleTopic(uniqueKey, isDone)}
-                                                className={`text-slate-400 hover:text-blue-400 transition cursor-pointer`}
-                                              >
-                                                {isDone ? (
-                                                  <CheckSquare size={13} className="text-blue-400" />
-                                                ) : (
-                                                  <div className="w-3.5 h-3.5 rounded border border-slate-600 hover:border-blue-500 transition" />
-                                                )}
-                                              </button>
-                                            </div>
-                                          );
-                                        })}
-                                        {topics.length > 8 && (
-                                          <p className="text-[9px] text-slate-500 text-center font-bold pt-1">
-                                            + {topics.length - 8} Konu daha var
-                                          </p>
+                                {/* Subject expanders */}
+                                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                                  {Object.entries(subjMap).map(([subjKey, topics]: [string, any]) => {
+                                    const displayNames: Record<string, string> = {
+                                      turkce: 'Türkçe Bölümü',
+                                      matematik: 'Matematik & Geometri',
+                                      sosyal: 'Sosyal Bilimler',
+                                      fen: 'Fen Bilimleri',
+                                      ayt_matematik: 'AYT Matematik',
+                                      ayt_fizik: 'AYT Fizik',
+                                      ayt_kimya: 'AYT Kimya',
+                                      ayt_biyoloji: 'AYT Biyoloji',
+                                      ayt_edebiyat: 'AYT Türk Dili ve Ed.',
+                                      ayt_tarih1: 'AYT Tarih-1',
+                                      ayt_cografya1: 'AYT Coğrafya-1',
+                                      ayt_tarih2: 'AYT Tarih-2',
+                                      ayt_cografya2: 'AYT Coğrafya-2',
+                                      ayt_felsefe_grubu: 'AYT Felsefe Grubu',
+                                      ayt_din: 'AYT Din Kültürü'
+                                    };
+
+                                    const isExpanded = expandedChecklistSubject === subjKey;
+                                    const subjTopicsDoneCount = topics.filter((t: any) => studentDoneKeys.includes(`${subjKey}_${t.ad}`.toLowerCase())).length;
+                                    const completionRatio = Math.round((subjTopicsDoneCount / topics.length) * 100) || 0;
+
+                                    return (
+                                      <div key={subjKey} className="bg-slate-950/60 border border-slate-850 rounded-xl overflow-hidden transition animate-fade-in">
+                                        <button
+                                          type="button"
+                                          onClick={() => setExpandedChecklistSubject(isExpanded ? null : subjKey)}
+                                          className="w-full flex items-center justify-between p-3 hover:bg-slate-950/90 transition text-left cursor-pointer"
+                                        >
+                                          <div>
+                                            <h5 className="text-xs font-black text-slate-200">{displayNames[subjKey] || subjKey}</h5>
+                                            <span className="text-[9px] text-slate-400 font-bold block mt-0.5">
+                                              {subjTopicsDoneCount} / {topics.length} Konu (%{completionRatio})
+                                            </span>
+                                          </div>
+                                          <ChevronRight size={14} className={`text-slate-400 transform transition ${isExpanded ? 'rotate-90' : ''}`} />
+                                        </button>
+
+                                        {isExpanded && (
+                                          <div className="p-2 bg-slate-950/30 border-t border-slate-900 space-y-1.5">
+                                            {topics.slice(0, 8).map((topic: any) => {
+                                              const uniqueKey = `${subjKey}_${topic.ad}`.toLowerCase();
+                                              const isDone = studentDoneKeys.includes(uniqueKey);
+                                              return (
+                                                <div 
+                                                  key={topic.ad} 
+                                                  className="flex items-center justify-between gap-2 p-2 bg-slate-900/40 border border-slate-850/60 rounded-lg hover:border-slate-800 transition"
+                                                >
+                                                  <span className={`text-[11px] font-semibold leading-normal flex-1 ${isDone ? 'text-slate-500 line-through' : 'text-slate-300'}`}>
+                                                    {topic.ad}
+                                                  </span>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleToggleTopic(uniqueKey, isDone)}
+                                                    className="relative flex items-center justify-center cursor-pointer focus:outline-none"
+                                                  >
+                                                    <motion.div
+                                                      animate={{
+                                                        scale: isDone ? [1, 1.2, 1] : 1,
+                                                        backgroundColor: isDone ? "rgba(59, 130, 246, 0.2)" : "rgba(15, 23, 42, 0.4)",
+                                                        borderColor: isDone ? "#3b82f6" : "#475569"
+                                                      }}
+                                                      transition={{
+                                                        backgroundColor: { type: "spring", stiffness: 300, damping: 20 },
+                                                        borderColor: { type: "spring", stiffness: 300, damping: 20 },
+                                                        scale: { duration: 0.3, ease: "easeInOut" }
+                                                      }}
+                                                      className="w-5 h-5 rounded-md border flex items-center justify-center shadow-inner"
+                                                    >
+                                                      <AnimatePresence>
+                                                        {isDone && (
+                                                          <motion.svg
+                                                            initial={{ scale: 0, opacity: 0 }}
+                                                            animate={{ scale: 1, opacity: 1 }}
+                                                            exit={{ scale: 0, opacity: 0 }}
+                                                            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                                                            className="w-3.5 h-3.5 text-blue-400 stroke-[3.5]"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                          >
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                                          </motion.svg>
+                                                        )}
+                                                      </AnimatePresence>
+                                                    </motion.div>
+                                                  </button>
+                                                </div>
+                                              );
+                                            })}
+                                            {topics.length > 8 && (
+                                              <p className="text-[9px] text-slate-500 text-center font-bold pt-1">
+                                                + {topics.length - 8} Konu daha var
+                                              </p>
+                                            )}
+                                          </div>
                                         )}
                                       </div>
-                                    )}
-                                  </div>
-                                );
-                              });
-                            })()}
-                          </div>
-                        </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
 
-                        <div className="border-t border-slate-800/80 pt-3 mt-4 flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                          <span>Müfredat Uyumu:</span>
-                          <span className="text-emerald-400 font-black font-mono">MEB Güncel</span>
-                        </div>
+                              <div className="border-t border-slate-800/80 pt-3 mt-4 flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                <span>Müfredat Uyumu:</span>
+                                <span className="text-emerald-400 font-black font-mono">MEB Güncel</span>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
 
                     </div>
@@ -4390,7 +4494,10 @@ export default function App() {
                       {/* Course by course nets */}
                       <div className="lg:col-span-4 bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-md flex flex-col justify-between">
                         <div>
-                          <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-4">Son Sınav Net Analizim</h4>
+                          <h4 className="text-xs text-slate-450 font-black uppercase tracking-widest border-b border-slate-850 pb-3 mb-4 flex items-center gap-2">
+                            <TrendingUp size={14} className="text-blue-400" />
+                            <span>Son Sınav Net Analizim</span>
+                          </h4>
                           {studentReport.sonuclar.length === 0 ? (
                             <div className="h-40 flex items-center justify-center text-slate-500 text-xs">Sınav net verisi yok.</div>
                           ) : (
@@ -4405,15 +4512,21 @@ export default function App() {
                               return (
                                 <div className="space-y-4">
                                   {courses.map((c, i) => {
-                                    const pct = Math.min(100, Math.max(0, (c.net / c.max) * 100));
+                                    const pct = Math.round(Math.min(100, Math.max(0, (c.net / c.max) * 100)));
                                     return (
-                                      <div key={i} className="space-y-1">
-                                        <div className="flex justify-between text-xs font-semibold">
-                                          <span className="text-slate-300">{c.name}</span>
-                                          <span className="text-slate-200">{c.net} <span className="text-slate-500 text-[10px]">/ {c.max}</span></span>
+                                      <div key={i} className="space-y-1.5">
+                                        <div className="flex justify-between items-center text-xs">
+                                          <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                                            <span className={`w-1.5 h-1.5 rounded-full ${c.color}`}></span>
+                                            {c.name}
+                                          </span>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-slate-400 font-medium text-[11px]">{c.net} / {c.max} Net</span>
+                                            <span className="text-[10px] text-slate-500 font-bold bg-slate-950 px-1.5 py-0.5 rounded border border-slate-850">%{pct} Başarı</span>
+                                          </div>
                                         </div>
-                                        <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden">
-                                          <div className={`h-full ${c.color} rounded-full`} style={{ width: `${pct}%` }}></div>
+                                        <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-900/60 shadow-inner">
+                                          <div className={`h-full ${c.color} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }}></div>
                                         </div>
                                       </div>
                                     );
@@ -4426,8 +4539,12 @@ export default function App() {
 
                         {/* Smart recommendation widget */}
                         {studentReport.sonuclar.length > 0 && (
-                          <div className="bg-indigo-500/5 border border-indigo-500/10 p-3 rounded-xl text-[11px] text-indigo-300 mt-4 leading-normal">
-                            <span className="font-extrabold uppercase block text-[9px] text-indigo-400 mb-1">💡 K.A.S Akıllı Öneri:</span>
+                          <div className="bg-indigo-950/20 border border-indigo-900/40 p-4 rounded-xl text-xs text-indigo-300 mt-5 leading-relaxed shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/5 rounded-full blur-xl"></div>
+                            <span className="font-black uppercase block text-[10px] text-indigo-400 mb-1 flex items-center gap-1.5 tracking-wider">
+                              <Sparkles size={11} className="text-indigo-400" />
+                              <span>K.A.S Akıllı Çalışma Önerisi</span>
+                            </span>
                             {(() => {
                               const last = studentReport.sonuclar[studentReport.sonuclar.length - 1];
                               const minCourse = [
@@ -4436,7 +4553,7 @@ export default function App() {
                                 { name: 'Sosyal', ratio: last.sosyal_net / 20, reco: '🌍 Coğrafya harita bilgisi ve tarih kavramları sözlüğü çalışarak hızlıca net artışı sağlayabilirsin.' },
                                 { name: 'Fen', ratio: last.fen_net / 20, reco: '🧪 Fen bilimlerinde TYT Kimya ve Biyoloji soru bankalarından her akşam 2 adet ünite testi çözerek netleri sabitle!' }
                               ].sort((a, b) => a.ratio - b.ratio)[0];
-                              return minCourse.reco;
+                              return <p className="text-slate-300 font-medium text-[11px] mt-1">{minCourse.reco}</p>;
                             })()}
                           </div>
                         )}

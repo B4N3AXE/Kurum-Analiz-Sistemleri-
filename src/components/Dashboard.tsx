@@ -963,6 +963,77 @@ export default function Dashboard({ user, token }: DashboardProps) {
         {/* Calendar and Sidebar elements */}
         <div className="xl:col-span-4 space-y-4">
           {renderCalendar()}
+
+          <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 space-y-4 relative overflow-hidden shadow-md">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl"></div>
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2.5">
+              <span className="font-extrabold text-blue-400 text-xs flex items-center gap-1.5 uppercase tracking-wider">
+                <Sparkles size={13} className="text-blue-400" /> Rehberlik & Motivasyon Köşesi
+              </span>
+              <span className="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/10 font-bold uppercase">Günün Tavsiyesi</span>
+            </div>
+            
+            {/* Dynamic motivation and tip selection based on day of month */}
+            {(() => {
+              const tips = [
+                {
+                  quote: "Gelecek, bugünden ona hazırlananlarındır.",
+                  author: "Malcolm X",
+                  advice: "Deneme sınavlarından sonra mutlaka yanlış analizlerinizi yapın. Her yanlış soru, öğrenilecek yeni bir kazanımdır."
+                },
+                {
+                  quote: "Başarı, her gün tekrarlanan küçük çabaların toplamıdır.",
+                  author: "Robert Collier",
+                  advice: "Pomodoro tekniği ile çalışırken mola sürelerinde ekrandan uzak durun. Gözlerinizi ve zihninizi dinlendirmek odaklanmayı %40 artırır."
+                },
+                {
+                  quote: "Nereye gideceğini bilmiyorsan, hangi yoldan gittiğinin hiçbir önemi yoktur.",
+                  author: "Lewis Carroll",
+                  advice: "Haftalık hedeflerinizi somutlaştırın. 'Çok soru çözeceğim' yerine 'Bu hafta fizikten 120, matematikten 150 soru çözeceğim' şeklinde plan yapın."
+                },
+                {
+                  quote: "Hiç kimse geriye gidip yeni bir başlangıç yapamaz; ama bugün yeni bir son yazabilir.",
+                  author: "Carl Bard",
+                  advice: "Zorlandığınız dersleri günün ilk saatlerinde çalışın. Zihniniz en dinç durumdayken soyut kavramları ve formülleri çok daha kolay kavrarsınız."
+                },
+                {
+                  quote: "Yapabildiğin her şeyi yap, ancak o zaman kendinin ne olduğunu anlayabilirsin.",
+                  author: "Cicero",
+                  advice: "Uykudan hemen önce yapılan 15 dakikalık hızlı konu tekrarları, bilginin uzun süreli belleğe geçişini (pekişmeyi) muazzam şekilde hızlandırır."
+                },
+                {
+                  quote: "Düşlemek yetmez, yaşamak için de eyleme geçmek gerekir.",
+                  author: "Johann Wolfgang von Goethe",
+                  advice: "Deneme çözmek sadece bilgi ölçmez, aynı zamanda zaman yönetimi ve stres kontrolü sınavıdır. Sınav esnasında turlama tekniğini mutlaka uygulayın."
+                },
+                {
+                  quote: "Yarınlar bugünün azimli adımlarında saklıdır.",
+                  author: "Bilinmiyor",
+                  advice: "Masada çalışırken telefonunuzu başka bir odaya bırakın. Sadece bildirim ışığı bile odaklanma derinliğinizi kesintiye uğratmak için yeterlidir."
+                }
+              ];
+              const index = new Date().getDate() % tips.length;
+              const current = tips[index];
+              return (
+                <div className="space-y-3">
+                  <div className="bg-slate-950/40 border border-slate-850/80 p-3 rounded-xl relative">
+                    <p className="text-xs text-slate-300 italic font-semibold leading-relaxed">
+                      "{current.quote}"
+                    </p>
+                    <span className="text-[10px] text-slate-500 font-bold block text-right mt-1.5">— {current.author}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-emerald-400 font-extrabold uppercase tracking-wide block flex items-center gap-1">
+                      💡 Başarı İpucu:
+                    </span>
+                    <p className="text-[11px] text-slate-400 leading-normal font-semibold">
+                      {current.advice}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
         </div>
       </div>
 

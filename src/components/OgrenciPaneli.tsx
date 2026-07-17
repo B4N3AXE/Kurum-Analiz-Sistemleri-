@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, Ogrenci, Sinif, SinavSonuc, RehberlikNotu } from '../types';
-import { Search, Plus, Edit, Trash2, FileText, Download, ToggleLeft, ToggleRight, ArrowLeft, Send, AlertCircle, Sparkles, Calendar, Clock, Award, Layers, Target, CheckSquare, BookOpen, Timer, PlusCircle, Activity } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, FileText, Download, ToggleLeft, ToggleRight, ArrowLeft, Send, AlertCircle, Sparkles, Calendar, Clock, Award, Layers, Target, CheckSquare, BookOpen, Home, Timer, PlusCircle, Activity } from 'lucide-react';
 import { getTopicAnalysisForStudent, TYT_SUBJECT_TOPICS, LGS_SUBJECT_TOPICS, AYT_SAY_SUBJECT_TOPICS, AYT_EA_SUBJECT_TOPICS, AYT_SOZ_SUBJECT_TOPICS } from './Dashboard';
+import { motion, AnimatePresence } from 'motion/react';
 
 // Helper function to calculate expected net projection for the next practice exam
 const getProjectedNet = (sonuclar: any[]): number => {
@@ -84,6 +85,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
 
   // New Engagement Tools states for Teachers/Coaches
   const [expandedChecklistSubject, setExpandedChecklistSubject] = useState<string | null>(null);
+  const [konuTakipTab, setKonuTakipTab] = useState<'tyt' | 'ayt'>('tyt');
   
   // Weekly Tasks form state
   const [newTaskText, setNewTaskText] = useState('');
@@ -1993,15 +1995,56 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
 
               {/* Feature 1: Konu Takip Çizelgesi (Tüm Müfredat) */}
               <div className="lg:col-span-12 bg-slate-900/50 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider flex items-center gap-2">
-                    <Layers size={14} className="text-cyan-400" />
-                    <span>Konu Takip Çizelgesi & Müfredat İlerleme Durumu</span>
-                  </h4>
-                  <span className="text-[9px] font-black bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full border border-cyan-500/20 uppercase tracking-wide">
-                    Müfredat Takibi
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800 pb-3">
+                  <div>
+                    <h4 className="text-sm text-slate-200 font-extrabold uppercase tracking-wider flex items-center gap-2">
+                      <Layers size={15} className="text-cyan-400" />
+                      <span>Müfredat Konu Takip Çizelgesi</span>
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Öğrencinin YKS konularındaki hazırlık ve bitirme durumunu takip edin.</p>
+                  </div>
+                  <span className="self-start sm:self-center text-[10px] font-black bg-cyan-500/10 text-cyan-400 px-2.5 py-1 rounded-full border border-cyan-500/20 uppercase tracking-wide">
+                    {detailData.student.alan || 'Sayısal'} Alanı
                   </span>
                 </div>
+
+                {/* TYT / AYT Tab Switcher */}
+                {(() => {
+                  const isLgs = detailData.student.alan === 'LGS' || detailData.student.sinif_adi?.toLowerCase().includes('lgs');
+                  if (isLgs) return null;
+                  return (
+                    <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-850 max-w-sm">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setKonuTakipTab('tyt');
+                          setExpandedChecklistSubject(null);
+                        }}
+                        className={`flex-1 py-2.5 px-4 text-xs font-black rounded-lg transition-all cursor-pointer text-center ${
+                          konuTakipTab === 'tyt'
+                            ? 'bg-cyan-600 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/45'
+                        }`}
+                      >
+                        TYT Konuları
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setKonuTakipTab('ayt');
+                          setExpandedChecklistSubject(null);
+                        }}
+                        className={`flex-1 py-2.5 px-4 text-xs font-black rounded-lg transition-all cursor-pointer text-center ${
+                          konuTakipTab === 'ayt'
+                            ? 'bg-cyan-600 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/45'
+                        }`}
+                      >
+                        AYT ({detailData.student.alan || 'Sayısal'}) Konuları
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 {/* Progress Grid summary */}
                 {(() => {
@@ -2010,13 +2053,18 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                   if (isLgs) {
                     subjMap = LGS_SUBJECT_TOPICS;
                   } else {
-                    subjMap = { ...TYT_SUBJECT_TOPICS };
-                    if (detailData.student.alan === 'Sayısal') {
-                      subjMap = { ...subjMap, ...AYT_SAY_SUBJECT_TOPICS };
-                    } else if (detailData.student.alan === 'Sözel') {
-                      subjMap = { ...subjMap, ...AYT_SOZ_SUBJECT_TOPICS };
-                    } else if (detailData.student.alan === 'Eşit Ağırlık') {
-                      subjMap = { ...subjMap, ...AYT_EA_SUBJECT_TOPICS };
+                    if (konuTakipTab === 'tyt') {
+                      subjMap = TYT_SUBJECT_TOPICS;
+                    } else {
+                      if (detailData.student.alan === 'Sayısal') {
+                        subjMap = AYT_SAY_SUBJECT_TOPICS;
+                      } else if (detailData.student.alan === 'Sözel') {
+                        subjMap = AYT_SOZ_SUBJECT_TOPICS;
+                      } else if (detailData.student.alan === 'Eşit Ağırlık') {
+                        subjMap = AYT_EA_SUBJECT_TOPICS;
+                      } else {
+                        subjMap = AYT_SAY_SUBJECT_TOPICS;
+                      }
                     }
                   }
                   const studentDoneKeys = (detailData.konu_takip || [])
@@ -2034,7 +2082,8 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                         const pct = topics.length > 0 ? Math.round((completedInSubj / topics.length) * 100) : 0;
                         const label = subjKey.toUpperCase().replace(/_/g, ' ');
                         
-                        return (                          <button 
+                        return (
+                          <button 
                             key={subjKey} 
                             type="button"
                             onClick={() => {
@@ -2042,13 +2091,13 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                               if (el) el.scrollIntoView({ behavior: 'smooth' });
                               setExpandedChecklistSubject(expandedChecklistSubject === subjKey ? null : subjKey);
                             }}
-                            className="space-y-1.5 block w-full text-left cursor-pointer hover:bg-slate-900/60 p-2.5 rounded-xl transition-colors border border-transparent hover:border-slate-800"
+                            className="space-y-2 block w-full text-left cursor-pointer hover:bg-slate-900/60 p-3 rounded-xl transition-colors border border-transparent hover:border-slate-800"
                           >
-                            <div className="flex justify-between text-[10px] font-bold">
-                              <span className="text-slate-400">{label}</span>
+                            <div className="flex justify-between text-[11px] font-bold">
+                              <span className="text-slate-300 font-black">{label}</span>
                               <span className="text-cyan-400 font-mono">{completedInSubj}/{topics.length} (%{pct})</span>
                             </div>
-                            <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-900">
+                            <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-900">
                               <div className="h-full bg-cyan-500 rounded-full transition-all duration-300" style={{ width: `${pct}%` }}></div>
                             </div>
                           </button>
@@ -2066,13 +2115,18 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                     if (isLgs) {
                       subjMap = LGS_SUBJECT_TOPICS;
                     } else {
-                      subjMap = { ...TYT_SUBJECT_TOPICS };
-                      if (detailData.student.alan === 'Sayısal') {
-                        subjMap = { ...subjMap, ...AYT_SAY_SUBJECT_TOPICS };
-                      } else if (detailData.student.alan === 'Sözel') {
-                        subjMap = { ...subjMap, ...AYT_SOZ_SUBJECT_TOPICS };
-                      } else if (detailData.student.alan === 'Eşit Ağırlık') {
-                        subjMap = { ...subjMap, ...AYT_EA_SUBJECT_TOPICS };
+                      if (konuTakipTab === 'tyt') {
+                        subjMap = TYT_SUBJECT_TOPICS;
+                      } else {
+                        if (detailData.student.alan === 'Sayısal') {
+                          subjMap = AYT_SAY_SUBJECT_TOPICS;
+                        } else if (detailData.student.alan === 'Sözel') {
+                          subjMap = AYT_SOZ_SUBJECT_TOPICS;
+                        } else if (detailData.student.alan === 'Eşit Ağırlık') {
+                          subjMap = AYT_EA_SUBJECT_TOPICS;
+                        } else {
+                          subjMap = AYT_SAY_SUBJECT_TOPICS;
+                        }
                       }
                     }
                     const studentDoneKeys = (detailData.konu_takip || [])
@@ -2092,14 +2146,14 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                           <button
                             type="button"
                             onClick={() => setExpandedChecklistSubject(isOpen ? null : subjKey)}
-                            className="w-full flex items-center justify-between p-3.5 hover:bg-slate-950/90 transition text-left cursor-pointer"
+                            className="w-full flex items-center justify-between p-4 hover:bg-slate-950/90 transition text-left cursor-pointer"
                           >
                             <div>
-                              <span className="text-xs font-black text-slate-200 tracking-wide uppercase">{subjKey.toUpperCase().replace(/_/g, ' ')}</span>
-                              <span className="text-[10px] text-slate-500 font-extrabold block mt-0.5">Toplam {topics.length} ana başlık</span>
+                              <span className="text-xs font-black text-slate-200 tracking-wider uppercase">{subjKey.toUpperCase().replace(/_/g, ' ')}</span>
+                              <span className="text-[10px] text-slate-500 font-extrabold block mt-0.5">Toplam {topics.length} ders başlığı</span>
                             </div>
                             <div className="flex items-center gap-3">
-                              <span className="text-xs font-black text-cyan-400 font-mono bg-cyan-950/40 border border-cyan-900/30 px-2 py-0.5 rounded-lg">
+                              <span className="text-xs font-black text-cyan-400 font-mono bg-cyan-950/40 border border-cyan-900/30 px-2.5 py-1 rounded-lg">
                                 {completedCount} / {topics.length} Bitti
                               </span>
                               <span className={`text-slate-500 transition-transform duration-250 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
@@ -2107,7 +2161,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                           </button>
 
                           {isOpen && (
-                            <div className="p-3 bg-slate-950/30 border-t border-slate-900/80 space-y-1.5">
+                            <div className="p-3 bg-slate-950/30 border-t border-slate-900/80 space-y-2">
                               {topics.map((topic: any, idx: number) => {
                                 const uniqueKey = `${subjKey}_${topic.ad}`.toLowerCase();
                                 const isDone = studentDoneKeys.includes(uniqueKey);
@@ -2115,22 +2169,47 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                                   <div
                                     key={idx}
                                     onClick={() => handleToggleTopic(uniqueKey, isDone)}
-                                    className={`flex items-center justify-between p-2.5 rounded-lg border text-xs font-semibold cursor-pointer transition select-none ${
+                                    className={`flex items-center justify-between p-3.5 rounded-xl border text-sm font-bold cursor-pointer transition select-none ${
                                       isDone 
-                                        ? 'bg-cyan-950/15 border-cyan-900/40 text-cyan-200 hover:bg-cyan-950/25' 
-                                        : 'bg-slate-900/20 border-slate-850/80 text-slate-400 hover:bg-slate-900/40 hover:border-slate-800'
+                                        ? 'bg-cyan-950/20 border-cyan-500/50 text-cyan-200 hover:bg-cyan-950/30' 
+                                        : 'bg-slate-900/40 border-slate-850 text-slate-300 hover:bg-slate-900/60 hover:border-slate-700'
                                     }`}
                                   >
-                                    <span className="truncate pr-2">{topic.ad}</span>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      <span className="text-[9px] text-slate-500 font-mono font-bold">Önem: {topic.soru} Soru</span>
-                                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
-                                        isDone ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'border-slate-700 text-transparent'
-                                      }`}>
-                                        <svg className="w-2.5 h-2.5 stroke-2 stroke-current" fill="none" viewBox="0 0 24 24">
-                                          <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                      </div>
+                                    <span className="truncate pr-2 font-black text-xs">{topic.ad}</span>
+                                    <div className="flex items-center gap-3 shrink-0">
+                                      <span className="text-[10px] text-slate-500 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-850/60 font-mono font-bold">
+                                        Önem: {topic.soru} Soru
+                                      </span>
+                                      <motion.div
+                                        animate={{
+                                          scale: isDone ? [1, 1.2, 1] : 1,
+                                          backgroundColor: isDone ? "rgba(6, 182, 212, 0.2)" : "rgba(15, 23, 42, 0.4)",
+                                          borderColor: isDone ? "#06b6d4" : "#475569"
+                                        }}
+                                        transition={{
+                                          backgroundColor: { type: "spring", stiffness: 300, damping: 20 },
+                                          borderColor: { type: "spring", stiffness: 300, damping: 20 },
+                                          scale: { duration: 0.3, ease: "easeInOut" }
+                                        }}
+                                        className="w-5 h-5 rounded-md border flex items-center justify-center shadow-inner"
+                                      >
+                                        <AnimatePresence>
+                                          {isDone && (
+                                            <motion.svg
+                                              initial={{ scale: 0, opacity: 0 }}
+                                              animate={{ scale: 1, opacity: 1 }}
+                                              exit={{ scale: 0, opacity: 0 }}
+                                              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                                              className="w-3.5 h-3.5 text-cyan-400 stroke-[3.5]"
+                                              fill="none"
+                                              viewBox="0 0 24 24"
+                                              stroke="currentColor"
+                                            >
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                            </motion.svg>
+                                          )}
+                                        </AnimatePresence>
+                                      </motion.div>
                                     </div>
                                   </div>
                                 );
@@ -2147,62 +2226,70 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
             </div>
 
             {/* School-Parent-Teacher Communication Hub */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               {/* Card 1: Rehberlik & Görüşme Notları */}
-              <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-                <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex justify-between items-center">
-                  <span>Rehberlik & Görüşme Notları</span>
-                  <span className="text-[10px] text-blue-400 font-bold bg-blue-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <Sparkles size={11} /> Rehber Panel
+              <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-md space-y-5">
+                <div className="border-b border-slate-800 pb-3 flex justify-between items-center">
+                  <div>
+                    <h4 className="text-sm text-slate-200 font-extrabold uppercase tracking-wider flex items-center gap-2">
+                      <Sparkles size={14} className="text-blue-400" />
+                      <span>Rehberlik & Görüşme Değerlendirme Notları</span>
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Rehberlik servisi ve danışman öğretmenlerin öğrenci takip değerlendirmeleri.</p>
+                  </div>
+                  <span className="text-[10px] text-blue-400 font-bold bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 flex items-center gap-1">
+                    🏠 Rehber Panel
                   </span>
-                </h4>
+                </div>
 
                 {/* Guidance Add note form (Only Counselor/Admin can add notes) */}
                 {(user.rol === 'admin' || user.rol === 'rehber') && (
-                  <form onSubmit={handleAddNote} className="flex flex-col gap-3">
-                    <input
-                      type="text"
-                      placeholder="Görüşme veya gelişim notu girin..."
+                  <form onSubmit={handleAddNote} className="space-y-3">
+                    <textarea
+                      placeholder="Görüşme detaylarını, gelişim notlarını veya ödev uyarılarını buraya detaylıca yazın..."
                       value={newNote}
                       onChange={e => setNewNote(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 shadow-inner"
+                      rows={3}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-100 focus:outline-none focus:border-blue-500 shadow-inner resize-none"
                     />
-                    <button
-                      type="submit"
-                      className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition shadow shadow-blue-500/20 cursor-pointer"
-                    >
-                      <Send size={14} /> Ekle
-                    </button>
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 transition shadow shadow-blue-500/20 cursor-pointer"
+                      >
+                        <Send size={13} /> Değerlendirme Notu Ekle
+                      </button>
+                    </div>
                   </form>
                 )}
 
                 {/* Notes display */}
                 {detailData.notlar.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-slate-500">Öğrenciye ait rehberlik veya görüşme kaydı bulunmuyor.</div>
+                  <div className="text-center py-10 text-xs text-slate-500 italic font-semibold">Öğrenciye ait rehberlik veya görüşme kaydı bulunmuyor.</div>
                 ) : (
-                  <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                     {detailData.notlar.map(n => (
-                      <div key={n.id} className="bg-slate-950/60 p-3 border border-slate-850 rounded-xl space-y-1 relative group">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-bold text-blue-400">{n.rehber_adi}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[9px] text-slate-500 font-medium">{n.tarih}</span>
+                      <div key={n.id} className="bg-slate-950/60 p-4 border border-slate-850 rounded-xl space-y-2 relative group hover:border-slate-700 transition">
+                        <div className="flex justify-between items-center border-b border-slate-900/60 pb-1.5">
+                          <span className="text-xs font-black text-blue-400">{n.rehber_adi}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-slate-500 font-bold">{n.tarih}</span>
                              {(user.rol === 'admin' || user.rol === 'rehber') && (
                               deleteConfirmNoteId === n.id ? (
                                 <div className="flex items-center gap-1 bg-slate-950 p-1 rounded border border-red-500/30">
-                                  <span className="text-[9px] text-red-400 font-bold px-1">Sil?</span>
+                                  <span className="text-[10px] text-red-400 font-bold px-1">Sil?</span>
                                   <button
                                     onClick={() => {
                                       handleDeleteNote(n.id);
                                       setDeleteConfirmNoteId(null);
                                     }}
-                                    className="px-1 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[8px] font-black rounded cursor-pointer leading-none"
+                                    className="px-2 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[9px] font-black rounded cursor-pointer leading-none"
                                   >
                                     Evet
                                   </button>
                                   <button
                                     onClick={() => setDeleteConfirmNoteId(null)}
-                                    className="px-1 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[8px] font-black rounded cursor-pointer leading-none"
+                                    className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[9px] font-black rounded cursor-pointer leading-none"
                                   >
                                     Hayır
                                   </button>
@@ -2213,13 +2300,13 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                                   className="text-slate-600 hover:text-red-400 transition ml-1"
                                   title="Sil"
                                 >
-                                  <Trash2 size={11} />
+                                  <Trash2 size={13} />
                                 </button>
                               )
                             )}
                           </div>
                         </div>
-                        <p className="text-xs text-slate-300 font-medium leading-relaxed">{n.not_metni}</p>
+                        <p className="text-sm text-slate-300 font-medium leading-relaxed">{n.not_metni}</p>
                       </div>
                     ))}
                   </div>
@@ -2227,67 +2314,77 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
               </div>
 
               {/* Card 2: Öğretmenlerin Ders Tavsiyeleri */}
-              <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-                <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex justify-between items-center">
-                  <span>Öğretmen Ders Tavsiyeleri</span>
-                  <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    📖 Ders Bazlı
+              <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-md space-y-5">
+                <div className="border-b border-slate-800 pb-3 flex justify-between items-center">
+                  <div>
+                    <h4 className="text-sm text-slate-200 font-extrabold uppercase tracking-wider flex items-center gap-2">
+                      <BookOpen size={14} className="text-emerald-400" />
+                      <span>Branş Öğretmenlerimizin Ders Çalışma Tavsiyeleri</span>
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Ders öğretmenlerinin konuları pekiştirme, soru ödevi ve kaynak tavsiyeleri.</p>
+                  </div>
+                  <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 flex items-center gap-1">
+                    📖 Branş Bazlı
                   </span>
-                </h4>
+                </div>
 
-                 {/* Add Teacher Advice Form (Only Admin, Teacher, Counselor can add) */}
+                {/* Add Teacher Advice Form (Only Admin, Teacher, Counselor can add) */}
                 {(user.rol === 'admin' || user.rol === 'ogretmen' || user.rol === 'rehber') && (
                   <form onSubmit={handleAddTavsiye} className="space-y-3">
                     <div className="flex flex-col gap-3">
-                      <select
-                        value={newTavsiyeCourse}
-                        onChange={e => setNewTavsiyeCourse(e.target.value)}
-                        className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 w-full shrink-0 shadow-inner"
-                      >
-                        <option value="Matematik">Matematik</option>
-                        <option value="Geometri">Geometri</option>
-                        <option value="Türkçe">Türkçe</option>
-                        <option value="Fizik">Fizik</option>
-                        <option value="Kimya">Kimya</option>
-                        <option value="Biyoloji">Biyoloji</option>
-                        <option value="Tarih">Tarih</option>
-                        <option value="Coğrafya">Coğrafya</option>
-                        <option value="Felsefe">Felsefe</option>
-                        <option value="Rehberlik">Rehberlik</option>
-                      </select>
-                      <input
-                        type="text"
-                        placeholder="Özel ders tavsiyesi ekleyin..."
-                        value={newTavsiyeText}
-                        onChange={e => setNewTavsiyeText(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 shadow-inner"
-                      />
-                      <button
-                        type="submit"
-                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition shrink-0 cursor-pointer shadow shadow-emerald-500/20"
-                      >
-                        <Send size={14} /> Ekle
-                      </button>
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                        <select
+                          value={newTavsiyeCourse}
+                          onChange={e => setNewTavsiyeCourse(e.target.value)}
+                          className="sm:col-span-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 w-full shrink-0 shadow-inner cursor-pointer"
+                        >
+                          <option value="Matematik">Matematik</option>
+                          <option value="Geometri">Geometri</option>
+                          <option value="Türkçe">Türkçe</option>
+                          <option value="Fizik">Fizik</option>
+                          <option value="Kimya">Kimya</option>
+                          <option value="Biyoloji">Biyoloji</option>
+                          <option value="Tarih">Tarih</option>
+                          <option value="Coğrafya">Coğrafya</option>
+                          <option value="Felsefe">Felsefe</option>
+                          <option value="Rehberlik">Rehberlik</option>
+                        </select>
+                        <textarea
+                          placeholder="Öğrencinin bu dersten eksiklerini kapatması için özel ders tavsiyesi yazın..."
+                          value={newTavsiyeText}
+                          onChange={e => setNewTavsiyeText(e.target.value)}
+                          rows={2}
+                          className="sm:col-span-3 w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 shadow-inner resize-none"
+                        />
+                      </div>
+                      <div className="flex justify-end">
+                        <button
+                          type="submit"
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition shrink-0 cursor-pointer shadow shadow-emerald-500/20"
+                        >
+                          <Send size={13} /> Ders Tavsiyesi Ekle
+                        </button>
+                      </div>
                     </div>
                   </form>
                 )}
 
                 {/* Teacher Advice display */}
                 {!(detailData.tavsiyeler && detailData.tavsiyeler.length > 0) ? (
-                  <div className="text-center py-8 text-xs text-slate-500">Eklenmiş ders tavsiyesi bulunmuyor.</div>
+                  <div className="text-center py-10 text-xs text-slate-500 italic font-semibold">Öğrenciye eklenmiş ders çalışma tavsiyesi bulunmuyor.</div>
                 ) : (
-                  <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                     {detailData.tavsiyeler.map(t => (
-                      <div key={t.id} className="bg-slate-950/60 p-3 border border-slate-850 rounded-xl space-y-1.5 relative group">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] bg-emerald-500/10 text-emerald-400 font-extrabold px-1.5 py-0.5 rounded uppercase">
+                      <div key={t.id} className="bg-slate-950/60 p-4 border border-slate-850 rounded-xl space-y-2 relative group hover:border-slate-700 transition">
+                        <div className="flex justify-between items-center border-b border-slate-900/60 pb-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 font-black px-2.5 py-0.5 rounded border border-emerald-500/20 uppercase">
                               {t.ders_adi}
                             </span>
-                            <span className="text-[10px] font-bold text-slate-300 truncate max-w-[100px]">{t.ogretmen_adi}</span>
+                            <span className="text-xs font-black text-slate-300">{t.ogretmen_adi}</span>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] text-slate-500 font-medium">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-slate-500 font-bold">
                               {t.tarih ? new Date(t.tarih).toLocaleDateString('tr-TR') : ''}
                             </span>
                             {(user.rol === 'admin' || user.id === t.ogretmen_id) && (
@@ -2298,13 +2395,13 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                                       handleDeleteTavsiye(t.id);
                                       setDeleteConfirmTavsiyeId(null);
                                     }}
-                                    className="px-1 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[8px] font-black rounded cursor-pointer leading-none"
+                                    className="px-2 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[9px] font-black rounded cursor-pointer leading-none"
                                   >
                                     Sil
                                   </button>
                                   <button
                                     onClick={() => setDeleteConfirmTavsiyeId(null)}
-                                    className="px-1 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[8px] font-black rounded cursor-pointer leading-none"
+                                    className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[9px] font-black rounded cursor-pointer leading-none"
                                   >
                                     X
                                   </button>
@@ -2315,13 +2412,13 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                                   className="text-slate-600 hover:text-red-400 transition"
                                   title="Sil"
                                 >
-                                  <Trash2 size={10} />
+                                  <Trash2 size={13} />
                                 </button>
                               )
                             )}
                           </div>
                         </div>
-                        <p className="text-xs text-slate-300 font-medium leading-relaxed">{t.tavsiye_metni}</p>
+                        <p className="text-sm text-slate-300 font-medium leading-relaxed">{t.tavsiye_metni}</p>
                       </div>
                     ))}
                   </div>
@@ -2329,44 +2426,52 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
               </div>
 
               {/* Card 3: Veli Geri Bildirim Notları */}
-              <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-                <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex justify-between items-center">
-                  <span>Veli Geri Bildirim Notları</span>
-                  <span className="text-[10px] text-purple-400 font-bold bg-purple-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    🏠 Evden Geri Bildirim
+              <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-md space-y-5">
+                <div className="border-b border-slate-800 pb-3 flex justify-between items-center">
+                  <div>
+                    <h4 className="text-sm text-slate-200 font-extrabold uppercase tracking-wider flex items-center gap-2">
+                      <Home size={14} className="text-purple-400" />
+                      <span>Velilerden Geri Bildirim ve Ev Takip Notları</span>
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Velilerimizin evdeki çalışma disiplini, motivasyon ve gözlem bildirimleri.</p>
+                  </div>
+                  <span className="text-[10px] text-purple-400 font-bold bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20 flex items-center gap-1">
+                    🏠 Ev Geri Bildirim
                   </span>
-                </h4>
+                </div>
 
                 {/* Veli Note form (Only Admin or Veli can add) */}
                 {(user.rol === 'admin' || user.rol === 'veli') && (
-                  <form onSubmit={handleAddVeliNote} className="flex flex-col gap-3 mb-4">
-                    <input
-                      type="text"
-                      placeholder="Velinin evdeki gözlemlerini ekleyin..."
+                  <form onSubmit={handleAddVeliNote} className="space-y-3">
+                    <textarea
+                      placeholder="Öğrencinin evdeki çalışma durumunu, günlük odak düzenini veya sormak istediklerinizi buraya yazın..."
                       value={newVeliNote}
                       onChange={e => setNewVeliNote(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-purple-500 shadow-inner"
+                      rows={3}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-100 focus:outline-none focus:border-purple-500 shadow-inner resize-none"
                     />
-                    <button
-                      type="submit"
-                      className="w-full bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition shadow shadow-purple-500/20 cursor-pointer"
-                    >
-                      <Send size={14} /> Geri Bildirim Ekle
-                    </button>
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition shadow shadow-purple-500/20 cursor-pointer"
+                      >
+                        <Send size={13} /> Geri Bildirim Gönder
+                      </button>
+                    </div>
                   </form>
                 )}
 
                 {/* Veli Geri Bildirim display */}
                 {!(detailData.veli_notlari && detailData.veli_notlari.length > 0) ? (
-                  <div className="text-center py-8 text-xs text-slate-500">Veliden henüz bir geri bildirim notu gelmemiş.</div>
+                  <div className="text-center py-10 text-xs text-slate-500 italic font-semibold">Veliden henüz bir geri bildirim notu gelmemiş.</div>
                 ) : (
-                  <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                     {detailData.veli_notlari.map(n => (
-                      <div key={n.id} className="bg-slate-950/60 p-3 border border-slate-850 rounded-xl space-y-1 relative group">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-bold text-purple-400">{n.veli_adi}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[9px] text-slate-500 font-medium">
+                      <div key={n.id} className="bg-slate-950/60 p-4 border border-slate-850 rounded-xl space-y-2 relative group hover:border-slate-700 transition">
+                        <div className="flex justify-between items-center border-b border-slate-900/60 pb-1.5">
+                          <span className="text-xs font-black text-purple-400">{n.veli_adi}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-slate-500 font-bold">
                               {n.tarih ? new Date(n.tarih).toLocaleDateString('tr-TR') : ''}
                             </span>
                             {(user.rol === 'admin' || user.rol === 'rehber') && (
@@ -2375,12 +2480,12 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                                 className="text-slate-600 hover:text-red-400 transition"
                                 title="Geri Bildirimi Sil"
                               >
-                                <Trash2 size={11} />
+                                <Trash2 size={13} />
                               </button>
                             )}
                           </div>
                         </div>
-                        <p className="text-xs text-slate-300 font-medium leading-relaxed">{n.not_metni}</p>
+                        <p className="text-sm text-slate-300 font-medium leading-relaxed">{n.not_metni}</p>
                       </div>
                     ))}
                   </div>
