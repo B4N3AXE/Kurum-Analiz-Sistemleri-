@@ -1489,6 +1489,54 @@ app.get('/api/ogrenci/:id', (req, res) => {
   });
 });
 
+const veliOzetiCache: Record<number, { date: string, text: string }> = {};
+
+app.get('/api/ogrenci/:id/ai-veli-ozeti', async (req, res) => {
+  const studentId = Number(req.params.id);
+  const student = db.getOgrenciler().find(s => s.id === studentId);
+  if (!student) return res.status(404).json({ error: 'Öğrenci bulunamadı.' });
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (veliOzetiCache[studentId] && veliOzetiCache[studentId].date === todayStr) {
+    return res.json({ ozet: veliOzetiCache[studentId].text });
+  }
+
+  const exams = db.getSinavTanimlari();
+  const results = db.getSinavSonuclari().filter(r => r.ogrenci_id === studentId).map(r => {
+    const exam = exams.find(e => e.id === r.sinav_id);
+    return {
+      ...r,
+      tarih: exam ? exam.tarih : ''
+    };
+  }).sort((a, b) => b.tarih.localeCompare(a.tarih));
+
+  const haftalikGorevler = db.getHaftalikGorevler().filter(hg => hg.ogrenci_id === studentId);
+  
+  const prompt = `Sen bir eğitim koçu ve rehber öğretmensin. Öğrencinin adı: ${student.ad_soyad}. Velisine hitaben (Örn: "Kıymetli Velimiz,"), öğrencinin bu haftaki durumunu değerlendiren yapıcı, şefkatli ve teşvik edici bir haftalık durum özeti yaz.
+  Öğrencinin son sınav sonuçları: ${JSON.stringify(results.slice(0,2))}.
+  Öğrencinin haftalık görevleri: ${JSON.stringify(haftalikGorevler)}.
+  
+  Öğrencinin risk limitinin altına düştüğü veya görevleri aksattığı durumlar varsa bunu yapıcı bir dille ifade et, endişe yaratmadan gelişim odaklı bir dille motivasyon sağla. Sadece 3-4 cümlelik kısa bir paragraf olsun. Emojiler kullanabilirsin.`;
+
+  const ai = getGeminiClient();
+  if (!ai) {
+    return res.json({ ozet: 'Sistem şu anda bu hizmeti sunamıyor (API Anahtarı eksik).' });
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+    });
+    const text = response.text || 'Öğrencimizin durumu sistem tarafından izlenmektedir.';
+    veliOzetiCache[studentId] = { date: todayStr, text };
+    res.json({ ozet: text });
+  } catch (error: any) {
+    console.error("AI Veli Özeti hatası:", error);
+    res.json({ ozet: 'Öğrencimizin durumu rehberlik birimimiz tarafından takip edilmektedir. Daha fazla bilgi için rehber öğretmeninizle iletişime geçebilirsiniz.' });
+  }
+});
+
 // Teacher recommendations
 app.post('/api/ogrenci/:id/tavsiye', (req, res) => {
   const ogrenci_id = Number(req.params.id);
@@ -1573,6 +1621,45 @@ app.delete('/api/ogrenci/:id/not/:noteId', (req, res) => {
     res.json({ success: true });
   } else {
     res.status(404).json({ error: 'Rehberlik notu bulunamadı.' });
+  }
+});
+
+app.post('/api/ogrenci/:id/velinot', (req, res) => {
+  const ogrenci_id = Number(req.params.id);
+  const { ekleyen_id, not_metni } = req.body;
+  if (!not_metni) {
+    return res.status(400).json({ error: 'Not içeriği gereklidir.' });
+  }
+  const note = db.insert('veli_notlari', {
+    ogrenci_id,
+    veli_id: Number(ekleyen_id) || 4,
+    not_metni,
+    tarih: new Date().toISOString().split('T')[0]
+  });
+  
+  // Find the user who added it to get their name
+  const adder = db.getKullanicilar().find(u => u.id === note.veli_id);
+  let ekleyenKisi = 'Veli';
+  if (adder) {
+    ekleyenKisi = adder.rol === 'admin' ? `${adder.ad_soyad} (Admin)` : adder.ad_soyad;
+  }
+
+  res.json({
+    veliNot: {
+      ...note,
+      ekleyen_kisi: ekleyenKisi,
+      veli_adi: ekleyenKisi
+    }
+  });
+});
+
+app.delete('/api/ogrenci/:id/velinot/:noteId', (req, res) => {
+  const noteId = Number(req.params.noteId);
+  const success = db.delete('veli_notlari', noteId);
+  if (success) {
+    res.json({ success: true });
+  } else {
+    res.status(404).json({ error: 'Veli notu bulunamadı.' });
   }
 });
 
@@ -2169,6 +2256,17 @@ app.post('/api/ai/chat', async (req, res) => {
   const userId = user ? Number(user.id || 0) : 0;
   const userName = user ? (user.ad_soyad || 'Kullanıcı') : 'Ziyaretçi';
 
+  let extraVeliContext = "";
+  if (userRole === 'veli') {
+    const student = db.getOgrenciler().find(s => s.veli_id === userId);
+    if (student) {
+      extraVeliContext = `\n- Öğrenciniz (Çocuğunuz): ${student.ad_soyad} (Öğrenci ID: ${student.id})\n\nDİKKAT (VELİ İÇİN ZORUNLU KURAL): Sen velinin çocuğunun "${student.ad_soyad}" olduğunu zaten biliyorsun! Kullanıcıya "Hangi öğrenci?" diye KESİNLİKLE SORMA. Veli genel bir "Öğrencinin netleri nedir?" sorusu sorduğunda, doğrudan ${student.id} ID'si ile "getStudentDetail" aracını çağır ve sonucu göster. Başka bir öğrencinin adını yazsa bile bunu reddet ve sadece "${student.ad_soyad}" hakkında bilgi verebileceğini söyle.`;
+    }
+  } else if (userRole === 'ogrenci') {
+    const studentId = userId - 10000;
+    extraVeliContext = `\n- Senin Öğrenci ID'n: ${studentId}\n\nDİKKAT (ÖĞRENCİ İÇİN ZORUNLU KURAL): Sen kullanıcının kim olduğunu biliyorsun! "Kimin notlarına bakmak istiyorsun?" diye SORMA. Genel bir soru sorduğunda doğrudan ${studentId} ID'sini kullanarak "getStudentDetail" çağır.`;
+  }
+
   // Customize System Instruction based on user role
   let systemInstruction = `Sen KAS.ai'sin. Kurum Analiz Sistemi (K.A.S)'nin akıllı, profesyonel, yardımsever ve son derece şık yapay zeka asistanısın.
 Kullanıcılara sıcak ve cana yakın bir Türkçe ile hitap et. Rollerine uygun şekilde konuş.
@@ -2176,7 +2274,7 @@ Kullanıcılara sıcak ve cana yakın bir Türkçe ile hitap et. Rollerine uygun
 Mevcut kullanıcı bilgileri:
 - İsim: ${userName}
 - Rol: ${userRole}
-- ID: ${userId}
+- ID: ${userId}${extraVeliContext}
 
 Rol bazlı kurallar:
 1. Rolün 'admin' (Yönetici) ise: Kurumdaki tüm verileri analiz edebilirsin. Onlara "değerli yöneticim" şeklinde hitap et.
@@ -2191,9 +2289,9 @@ Rol bazlı kurallar:
   * Bir öğretmen edasıyla, son derece cana yakın, şefkatli, motive edici ve açıklayıcı bir Türkçe ile öğrencinin sorduğu HER TÜRLÜ soruyu eksiksiz, bilimsel olarak doğru ve detaylı bir şekilde cevapla.
   * Öğrenci arkadaşına her konuda yardımcı ol, örnekler ver, konuyu sevdirecek bir dille anlat ki başka hiçbir yapay zeka asistanına gitmeye ihtiyaç duymasın. Ona her zaman en iyi öğretmen ve arkadaş ol!
 
-Sana sorulan öğrenci netlerini, devamsızlık durumunu ve ödevleri/görevleri bulmak için 'searchStudents' ve 'getStudentDetail' araçlarını kullanmalısın.
-Eğer kullanıcı doğrudan bir öğrencinin durumunu sorarsa ve elinde o öğrencinin ID'si yoksa önce 'searchStudents' ile öğrenciyi ara. ID'sini bulduktan sonra 'getStudentDetail' aracını çağırarak detaylı akademik ve devamsızlık verilerini getir.
-Eğer kullanıcı zaten kendi verilerini görmek isteyen bir Öğrenci veya Veli ise, doğrudan 'getStudentDetail' aracını kullan (Öğrenci için kendi ID'si, Veli için kendi çocuğunun ID'si).
+Sana sorulan öğrenci netlerini, devamsızlık durumunu ve ödevleri/görevleri bulmak için araçları kullanmalısın.
+- Eğer kullanıcı (Veli veya Öğrenci ise), SAKIN 'searchStudents' kullanma veya KULLANICIYA İSİM SORMA! Sadece kendi ID'si ile (veya çocuğunun ID'si ile) 'getStudentDetail' aracını doğrudan çağır.
+- Eğer kullanıcı (Yönetici, Öğretmen veya Rehber) ise ve doğrudan bir öğrencinin durumunu sorarsa önce 'searchStudents' ile öğrenciyi ara. ID'sini bulduktan sonra 'getStudentDetail' aracını çağırarak detaylı verilerini getir.
 
 Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve çok şık, okunaklı listeler şeklinde sun.`;
 
@@ -2354,12 +2452,16 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
     let finalResponseText = '';
 
     while (loopCount < maxLoops) {
+      const availableTools = (userRole === 'veli' || userRole === 'ogrenci') 
+        ? [getStudentDetailDeclaration] 
+        : [searchStudentsDeclaration, getStudentDetailDeclaration];
+
       let response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: callHistory,
         config: {
           systemInstruction: systemInstruction,
-          tools: [{ functionDeclarations: [searchStudentsDeclaration, getStudentDetailDeclaration] }]
+          tools: [{ functionDeclarations: availableTools }]
         }
       });
 

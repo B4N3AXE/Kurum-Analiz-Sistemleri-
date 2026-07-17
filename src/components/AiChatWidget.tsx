@@ -10,13 +10,14 @@ interface ChatMessage {
 }
 
 interface AiChatWidgetProps {
+  mode?: "widget" | "full";
   isOpen: boolean;
   onClose: () => void;
   user: any;
   token: string;
 }
 
-export default function AiChatWidget({ isOpen, onClose, user, token }: AiChatWidgetProps) {
+export default function AiChatWidget({ isOpen, onClose, user, token, mode = 'widget' }: AiChatWidgetProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -253,12 +254,16 @@ export default function AiChatWidget({ isOpen, onClose, user, token }: AiChatWid
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.9 }}
+          initial={{ opacity: 0, y: mode === 'widget' ? 50 : 10, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 50, scale: 0.9 }}
+          exit={{ opacity: 0, y: mode === 'widget' ? 50 : 10, scale: 0.95 }}
           transition={{ type: 'spring', damping: 25, stiffness: 350 }}
           id="kas-ai-chat-widget"
-          className="fixed bottom-4 right-4 z-50 w-[380px] h-[550px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-32px)] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl shadow-indigo-950/40 flex flex-col overflow-hidden"
+          className={
+            mode === 'widget' 
+              ? "fixed bottom-4 right-4 z-50 w-[380px] h-[550px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-32px)] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl shadow-indigo-950/40 flex flex-col overflow-hidden"
+              : "w-full h-full min-h-[600px] bg-slate-900 border border-slate-800 rounded-2xl shadow-sm flex flex-col overflow-hidden relative"
+          }
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-950 p-4 border-b border-indigo-900/40 flex items-center justify-between relative shrink-0">
@@ -288,13 +293,15 @@ export default function AiChatWidget({ isOpen, onClose, user, token }: AiChatWid
               >
                 <Trash2 size={14} />
               </button>
-              <button
-                onClick={onClose}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-950/60 transition cursor-pointer"
-                title="Kapat"
-              >
-                <X size={14} />
-              </button>
+              {mode === 'widget' && (
+                <button
+                  onClick={onClose}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-950/60 transition cursor-pointer"
+                  title="Kapat"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
           </div>
 

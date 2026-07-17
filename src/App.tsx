@@ -103,6 +103,8 @@ export default function App() {
     tavsiyeler?: any[];
     veli_notlari?: any[];
   } | null>(null);
+  const [childAiSummary, setChildAiSummary] = useState<string | null>(null);
+  const [loadingChildAi, setLoadingChildAi] = useState(false);
   const [loadingChild, setLoadingChild] = useState(false);
   const [veliChartTab, setVeliChartTab] = useState<'TYT' | 'AYT' | 'LGS'>('TYT');
   const [newVeliNote, setNewVeliNote] = useState('');
@@ -537,6 +539,14 @@ export default function App() {
           if (resDetail.ok) {
             setChildReport(await resDetail.json());
           }
+          
+          setLoadingChildAi(true);
+          const aiRes = await fetch(`/api/ogrenci/${child.id}/ai-veli-ozeti`, { headers: { 'Authorization': sessionToken } });
+          if (aiRes.ok) {
+            const aiData = await aiRes.json();
+            setChildAiSummary(aiData.ozet);
+          }
+          setLoadingChildAi(false);
         }
       }
     } catch (err) {
@@ -2503,9 +2513,9 @@ export default function App() {
 
                     {/* Tab: KAS.ai AI Chatbot */}
                     <button
-                      onClick={() => { setIsAiChatOpen(true); setIsMobileMenuOpen(false); }}
+                      onClick={() => { setCurrentTab("kas-ai"); setIsMobileMenuOpen(false); }}
                       className={`flex items-center justify-between gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer relative overflow-hidden group border ${
-                        isAiChatOpen
+                        currentTab === "kas-ai"
                           ? "bg-indigo-600 text-white border-indigo-500/50 shadow"
                           : "bg-gradient-to-r from-indigo-950/40 to-blue-950/40 text-indigo-300 border-indigo-900/40 hover:border-indigo-800"
                       }`}
@@ -2756,16 +2766,16 @@ export default function App() {
 
               {/* Button: KAS.ai Chatbot (All roles) */}
               <button
-                onClick={() => setIsAiChatOpen(true)}
+                onClick={() => setCurrentTab("kas-ai")}
                 className={`flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 relative overflow-hidden group border ${
-                  isAiChatOpen
+                  currentTab === "kas-ai"
                     ? "bg-indigo-600 text-white border-indigo-500/50 shadow-lg shadow-indigo-500/20"
                     : "bg-gradient-to-r from-indigo-950/40 to-blue-950/40 text-indigo-300 border-indigo-900/40 hover:border-indigo-800 hover:text-white"
                 }`}
               >
                 <div className="absolute -inset-x-20 top-0 h-[1px] bg-gradient-to-r from-transparent via-indigo-400 to-transparent animate-pulse"></div>
                 <div className="flex items-center gap-3">
-                  <Sparkles size={15} className={`text-indigo-400 group-hover:animate-bounce ${isAiChatOpen ? 'text-white' : ''}`} />
+                  <Sparkles size={15} className={`text-indigo-400 group-hover:animate-bounce ${currentTab === "kas-ai" ? 'text-white' : ''}`} />
                   <span className="font-extrabold tracking-wide">KAS.ai Asistanı</span>
                 </div>
                 <span className="flex h-2 w-2 relative">
@@ -3032,6 +3042,16 @@ export default function App() {
                   <RiskLimitleri user={user} token={token} />
                 )}
 
+                {/* MOUNT VIEW: KAS.ai Assistant */}
+                <div className={currentTab === "kas-ai" ? "h-full min-h-[600px] w-full max-w-5xl mx-auto block" : "hidden"}>
+                   <AiChatWidget
+                    isOpen={true}
+                    onClose={() => setCurrentTab("dashboard")}
+                    user={user}
+                    token={token}
+                    mode="full"
+                  />
+                </div>
                 {/* MOUNT VIEW: Abonelik & Ödeme */}
                 {currentTab === 'abonelik' && user.rol === 'admin' && (
                   <Abonelik 
@@ -3074,6 +3094,26 @@ export default function App() {
                       <p className="text-xs text-slate-400 font-medium mt-1">
                         Sınıfı: {childReport.student.sinif_adi} • Sınav Gelişim Alanı: {childReport.student.alan} • Öğrencinin Seçtiği Yıl Sonu Hedef Neti: <span className="text-amber-400 font-extrabold">{childReport.student.hedef_net || 95} Net</span>
                       </p>
+                    </div>
+
+                    {/* AI Haftalık Durum Özeti */}
+                    <div className="bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border border-blue-800/30 rounded-2xl p-6 relative overflow-hidden shadow-sm">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Sparkles className="text-blue-400" size={16} />
+                        <span className="text-[10px] text-blue-400 font-black uppercase tracking-wider">Yapay Zeka Destekli Haftalık Durum Özeti</span>
+                      </div>
+                      {loadingChildAi ? (
+                        <div className="flex items-center gap-3 text-xs text-slate-400 font-medium">
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
+                          Yapay Zeka öğrencinin son durumunu analiz ediyor...
+                        </div>
+                      ) : childAiSummary ? (
+                        <p className="text-[13px] text-slate-300 leading-relaxed font-medium">
+                          {childAiSummary}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-500 font-medium">Özet yüklenemedi.</p>
+                      )}
                     </div>
 
                     {/* Akademik Gelişim Değerlendirme Kartı */}
@@ -3467,6 +3507,70 @@ export default function App() {
                           </div>
                         )}
                       </div>
+                    </div>
+
+                    {/* Sınav Karşılaştırma Tablosu (Önceki vs Bu Sınav) */}
+                    <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                      <h4 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex justify-between items-center">
+                        <span>📊 Önceki Sınav vs. Son Sınav Karşılaştırması</span>
+                      </h4>
+                      {(() => {
+                        const allExams = childReport.sonuclar || [];
+                        if (allExams.length < 2) {
+                          return <div className="text-center py-6 text-xs text-slate-500">Karşılaştırma yapabilmek için en az 2 sınav sonucu gereklidir.</div>;
+                        }
+                        
+                        // Select the last two exams (assuming they are sorted by date ascending)
+                        const currentExam = allExams[allExams.length - 1];
+                        const previousExam = allExams[allExams.length - 2];
+                        
+                        const branches = [
+                          { key: 'turkce_net', label: 'Türkçe' },
+                          { key: 'matematik_net', label: 'Matematik' },
+                          { key: 'sosyal_net', label: 'Sosyal / Diğer' },
+                          { key: 'fen_net', label: 'Fen' },
+                          { key: 'toplam_net', label: 'Toplam' }
+                        ];
+
+                        return (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="border-b border-slate-800/60 text-slate-400">
+                                  <th className="py-2 px-3 font-semibold">Ders / Branş</th>
+                                  <th className="py-2 px-3 font-semibold">{previousExam.sinav_adi} <br/><span className="text-[9px] font-normal text-slate-500">{previousExam.tarih}</span></th>
+                                  <th className="py-2 px-3 font-semibold text-white">{currentExam.sinav_adi} <br/><span className="text-[9px] font-normal text-slate-400">{currentExam.tarih}</span></th>
+                                  <th className="py-2 px-3 font-semibold text-right">Değişim</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-800/30">
+                                {branches.map(branch => {
+                                  const prevVal = Number(previousExam[branch.key]) || 0;
+                                  const currVal = Number(currentExam[branch.key]) || 0;
+                                  const diff = currVal - prevVal;
+                                  
+                                  return (
+                                    <tr key={branch.key} className="hover:bg-slate-900/30 transition-colors">
+                                      <td className="py-2 px-3 font-medium text-slate-300">{branch.label}</td>
+                                      <td className="py-2 px-3 font-mono text-slate-400">{prevVal.toFixed(2)}</td>
+                                      <td className="py-2 px-3 font-mono font-bold text-slate-200">{currVal.toFixed(2)}</td>
+                                      <td className="py-2 px-3 font-mono text-right font-extrabold">
+                                        {diff > 0 ? (
+                                          <span className="text-emerald-400">+{diff.toFixed(2)}</span>
+                                        ) : diff < 0 ? (
+                                          <span className="text-rose-400">{diff.toFixed(2)}</span>
+                                        ) : (
+                                          <span className="text-slate-500">0.00</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Veli & Öğretmen İletişim ve Tavsiye Portalı */}
@@ -4873,12 +4977,12 @@ export default function App() {
         </div>
       )}
 
-      <AiChatWidget
+      {!isLoggedIn && <AiChatWidget
         isOpen={isAiChatOpen}
         onClose={() => setIsAiChatOpen(false)}
         user={user}
         token={token}
-      />
+      />}
     </div>
   );
 }
