@@ -2312,10 +2312,21 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
 
   try {
     // Format incoming chat history for @google/genai format
-    const contents = (history || []).map((h: any) => ({
-      role: h.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: h.content }]
-    }));
+    const contents = (history || []).map((h: any) => {
+      const role = h.role === 'assistant' || h.role === 'model' ? 'model' : 'user';
+      let text = '';
+      if (h.parts && h.parts[0] && typeof h.parts[0].text === 'string') {
+        text = h.parts[0].text;
+      } else if (typeof h.text === 'string') {
+        text = h.text;
+      } else if (typeof h.content === 'string') {
+        text = h.content;
+      }
+      return {
+        role,
+        parts: [{ text }]
+      };
+    }).filter((c: any) => c.parts[0].text.trim() !== '');
     
     contents.push({
       role: 'user',
@@ -2347,7 +2358,7 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
       // Format role model and tool outputs to send back to Gemini
       const modelTurn = {
         role: "model",
-        parts: [{ functionCalls: [call] }]
+        parts: [{ functionCall: { name: call.name, args: call.args, id: call.id } }]
       };
       
       const toolTurn = {
@@ -2355,7 +2366,8 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
         parts: [{
           functionResponse: {
             name: call.name,
-            response: { result: toolResult }
+            response: { result: toolResult },
+            id: call.id
           }
         }]
       };
