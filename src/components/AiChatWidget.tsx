@@ -22,8 +22,31 @@ export default function AiChatWidget({ isOpen, onClose, user, token }: AiChatWid
   const [isLoading, setIsLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const [systemStudents, setSystemStudents] = useState<any[]>([]);
+
   const userRole = user?.rol || 'ogrenci';
   const userName = user?.ad_soyad || 'Değerli Kullanıcı';
+
+  // Fetch real students to use in suggestions
+  useEffect(() => {
+    if (user && token && (userRole === 'admin' || userRole === 'ogretmen' || userRole === 'rehber')) {
+      fetch('/api/ogrenci', {
+        headers: {
+          'Authorization': token
+        }
+      })
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error('Failed to load students');
+      })
+      .then(data => {
+        if (Array.isArray(data)) {
+          setSystemStudents(data);
+        }
+      })
+      .catch(err => console.error('Error fetching students for chatbot suggestions:', err));
+    }
+  }, [user, token, userRole]);
 
   // Role-based greeting text
   const getGreeting = () => {
@@ -41,12 +64,18 @@ export default function AiChatWidget({ isOpen, onClose, user, token }: AiChatWid
   // Role-based suggestion chips
   const getSuggestions = () => {
     if (userRole === 'admin' || userRole === 'ogretmen' || userRole === 'rehber') {
-      return [
-        'Mehmet Yılmaz öğrencisini ara',
-        'Zeynep Kaya deneme netlerini özetle',
-        'Öğrenci devamsızlık durumları',
-        'Kurum genel başarı analiz raporu'
-      ];
+      const suggestions: string[] = [];
+      if (systemStudents && systemStudents.length > 0) {
+        const s1 = systemStudents[0];
+        suggestions.push(`${s1.ad_soyad} öğrencisini ara`);
+        if (systemStudents.length > 1) {
+          const s2 = systemStudents[1];
+          suggestions.push(`${s2.ad_soyad} deneme netlerini özetle`);
+        }
+      }
+      suggestions.push('Öğrenci devamsızlık durumları');
+      suggestions.push('Kurum genel başarı analiz raporu');
+      return suggestions;
     } else if (userRole === 'veli') {
       return [
         'Öğrencinin son deneme netleri nedir?',
