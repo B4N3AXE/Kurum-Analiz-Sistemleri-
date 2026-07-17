@@ -995,7 +995,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-slate-400 font-bold mb-1.5 uppercase tracking-wider">T.C. Kimlik / Öğrenci No *</label>
                 <input
@@ -1024,7 +1024,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-slate-400 font-bold mb-1.5 uppercase tracking-wider">Atanacak Sınıf *</label>
                 <select
@@ -1049,7 +1049,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-slate-400 font-bold mb-1.5 uppercase tracking-wider">Danışman Öğretmen</label>
                 <select

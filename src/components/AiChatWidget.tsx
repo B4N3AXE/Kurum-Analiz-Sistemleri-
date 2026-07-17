@@ -21,6 +21,7 @@ export default function AiChatWidget({ isOpen, onClose, user, token, mode = 'wid
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'chat' | 'context' | 'templates'>('chat');
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [systemStudents, setSystemStudents] = useState<any[]>([]);
@@ -338,10 +339,52 @@ export default function AiChatWidget({ isOpen, onClose, user, token, mode = 'wid
   // Render full screen dashboard layout with split panels
   if (mode === 'full') {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full h-[680px] min-h-[600px] animate-fade-in text-slate-200">
+      <div className="flex flex-col w-full animate-fade-in text-slate-200">
         
-        {/* LEFT COLUMN: Contextual Info Card: Interactive Students List or Student Scorecard */}
-        <div className="lg:col-span-3 flex flex-col gap-4 h-full overflow-hidden">
+        {/* Mobile Tab Switcher */}
+        <div className="flex lg:hidden bg-slate-950/60 p-1.5 rounded-xl border border-slate-800/80 mb-3 gap-1 shadow-inner">
+          <button
+            type="button"
+            onClick={() => setMobileTab('chat')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-black transition-all duration-200 ${
+              mobileTab === 'chat'
+                ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-md shadow-indigo-600/10 border border-indigo-500/25'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/40 border border-transparent'
+            }`}
+          >
+            <Sparkles size={11} />
+            <span>Sohbet</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab('context')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-black transition-all duration-200 ${
+              mobileTab === 'context'
+                ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-md shadow-indigo-600/10 border border-indigo-500/25'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/40 border border-transparent'
+            }`}
+          >
+            <UserCheck size={11} />
+            <span>{userRole === 'admin' || userRole === 'ogretmen' || userRole === 'rehber' ? 'Öğrenciler' : 'Durum'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab('templates')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-black transition-all duration-200 ${
+              mobileTab === 'templates'
+                ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-md shadow-indigo-600/10 border border-indigo-500/25'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/40 border border-transparent'
+            }`}
+          >
+            <MessageSquare size={11} />
+            <span>Şablonlar</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 w-full h-[520px] lg:h-[680px] lg:min-h-[600px]">
+          
+          {/* LEFT COLUMN: Contextual Info Card: Interactive Students List or Student Scorecard */}
+          <div className={`lg:col-span-3 gap-4 h-full overflow-hidden ${mobileTab === 'context' ? 'flex flex-col' : 'hidden lg:flex lg:flex-col'}`}>
           
           <div className="bg-slate-900 border border-slate-800 p-4.5 rounded-2xl flex-1 flex flex-col gap-3 overflow-hidden shadow-lg shadow-slate-950/20">
             
@@ -440,7 +483,7 @@ export default function AiChatWidget({ isOpen, onClose, user, token, mode = 'wid
         </div>
 
         {/* MIDDLE COLUMN: Core Chat Room */}
-        <div className="lg:col-span-6 flex flex-col h-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden relative shadow-lg shadow-indigo-950/40">
+        <div className={`lg:col-span-6 h-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden relative shadow-lg shadow-indigo-950/40 ${mobileTab === 'chat' ? 'flex flex-col' : 'hidden lg:flex lg:flex-col'}`}>
           
           {/* Chat Header */}
           <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-950 p-4 border-b border-indigo-900/40 flex items-center justify-between relative shrink-0">
@@ -478,7 +521,7 @@ export default function AiChatWidget({ isOpen, onClose, user, token, mode = 'wid
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex gap-2.5 max-w-[85%] ${
+                className={`flex gap-2.5 max-w-[92%] sm:max-w-[85%] ${
                   msg.role === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto'
                 }`}
               >
@@ -494,15 +537,15 @@ export default function AiChatWidget({ isOpen, onClose, user, token, mode = 'wid
                 </div>
 
                 {/* Bubble */}
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0">
                   <div
-                    className={`p-3 rounded-2xl ${
+                    className={`p-3 rounded-2xl break-words ${
                       msg.role === 'user'
                         ? 'bg-indigo-600 border border-indigo-500/30 text-white rounded-tr-none'
                         : 'bg-slate-900 border border-slate-850 text-slate-200 rounded-tl-none'
                     }`}
                   >
-                    <div className="space-y-1.5 whitespace-pre-wrap">
+                    <div className="space-y-1.5 whitespace-pre-wrap min-w-0">
                       {msg.role === 'user' ? (
                         <p className="text-xs font-sans font-medium leading-relaxed">{msg.text}</p>
                       ) : (
@@ -519,7 +562,7 @@ export default function AiChatWidget({ isOpen, onClose, user, token, mode = 'wid
 
             {/* Loading / Typing indicator */}
             {isLoading && (
-              <div className="flex gap-2.5 max-w-[85%] mr-auto">
+              <div className="flex gap-2.5 max-w-[92%] sm:max-w-[85%] mr-auto">
                 <div className="w-7 h-7 rounded-lg bg-indigo-950 border border-indigo-900/60 flex items-center justify-center text-indigo-400 shrink-0">
                   <Bot size={12} />
                 </div>
@@ -561,7 +604,7 @@ export default function AiChatWidget({ isOpen, onClose, user, token, mode = 'wid
         </div>
 
         {/* RIGHT COLUMN: Interactive Prompt Templates / Shortcuts Library */}
-        <div className="lg:col-span-3 flex flex-col gap-4 h-full overflow-hidden">
+        <div className={`lg:col-span-3 gap-4 h-full overflow-hidden ${mobileTab === 'templates' ? 'flex flex-col' : 'hidden lg:flex lg:flex-col'}`}>
           
           <div className="bg-slate-900 border border-slate-800 p-4.5 rounded-2xl flex-1 flex flex-col gap-3.5 overflow-hidden shadow-lg shadow-slate-950/20">
             <div className="flex items-center gap-2 shrink-0">
@@ -612,6 +655,7 @@ export default function AiChatWidget({ isOpen, onClose, user, token, mode = 'wid
         </div>
 
       </div>
+    </div>
     );
   }
 
@@ -676,7 +720,7 @@ export default function AiChatWidget({ isOpen, onClose, user, token, mode = 'wid
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex gap-2.5 max-w-[85%] ${
+                className={`flex gap-2.5 max-w-[92%] sm:max-w-[85%] ${
                   msg.role === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto'
                 }`}
               >
@@ -692,15 +736,15 @@ export default function AiChatWidget({ isOpen, onClose, user, token, mode = 'wid
                 </div>
 
                 {/* Bubble */}
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0">
                   <div
-                    className={`p-3 rounded-2xl ${
+                    className={`p-3 rounded-2xl break-words ${
                       msg.role === 'user'
                         ? 'bg-indigo-600 border border-indigo-500/30 text-white rounded-tr-none'
                         : 'bg-slate-900 border border-slate-850 text-slate-200 rounded-tl-none'
                     }`}
                   >
-                    <div className="space-y-1.5 whitespace-pre-wrap">
+                    <div className="space-y-1.5 whitespace-pre-wrap min-w-0">
                       {msg.role === 'user' ? (
                         <p className="text-xs font-sans font-medium leading-relaxed">{msg.text}</p>
                       ) : (
@@ -717,7 +761,7 @@ export default function AiChatWidget({ isOpen, onClose, user, token, mode = 'wid
 
             {/* Loading / Typing indicator */}
             {isLoading && (
-              <div className="flex gap-2.5 max-w-[85%] mr-auto">
+              <div className="flex gap-2.5 max-w-[92%] sm:max-w-[85%] mr-auto">
                 <div className="w-7 h-7 rounded-lg bg-indigo-950 border border-indigo-900/60 flex items-center justify-center text-indigo-400 shrink-0">
                   <Bot size={12} />
                 </div>

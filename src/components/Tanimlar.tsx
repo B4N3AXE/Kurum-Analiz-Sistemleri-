@@ -515,7 +515,7 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">E-posta (Giriş) *</label>
                   <input
@@ -585,7 +585,7 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Sınav Türü *</label>
                   <select
@@ -884,7 +884,7 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
               </div>
             </div>
           ) : (
-            <div className="max-h-96 overflow-y-auto pr-1">
+            <div className="max-h-96 overflow-y-auto overflow-x-auto pr-1">
               <table className="w-full text-left text-xs text-slate-300">
                 <thead>
                   <tr className="border-b border-slate-800 text-[9px] uppercase font-bold text-slate-500">
