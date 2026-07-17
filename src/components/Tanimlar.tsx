@@ -34,6 +34,7 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
     if (type === 'sinif') {
       setClassAd(item.ad);
       setClassSeviye(item.seviye.toString());
+      setClassAlan(item.alan || 'Sayısal');
     } else {
       setStaffName(item.ad_soyad);
       setStaffEmail(item.email);
@@ -49,6 +50,7 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
     setEditingItem(null);
     setClassAd('');
     setClassSeviye('12');
+    setClassAlan('Sayısal');
     setStaffName('');
     setStaffEmail('');
     setStaffPassword('');
@@ -63,6 +65,7 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
   // Class Form fields
   const [classAd, setClassAd] = useState('');
   const [classSeviye, setClassSeviye] = useState('12');
+  const [classAlan, setClassAlan] = useState<'Sayısal' | 'Sözel' | 'Eşit Ağırlık' | 'Yabancı Dil' | 'LGS'>('Sayısal');
 
   // Staff Form fields (shared)
   const [staffName, setStaffName] = useState('');
@@ -92,8 +95,14 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
     setSuccess('');
     try {
       if (activeTab === 'sinif') {
-        const res = await fetch(`/api/sinif?kurum_id=${user.kurum_id}`, { headers: { 'Authorization': token } });
-        if (res.ok) setClasses(await res.json());
+        const [resC, resO] = await Promise.all([
+          fetch(`/api/sinif?kurum_id=${user.kurum_id}`, { headers: { 'Authorization': token } }),
+          fetch(`/api/ogrenci`, { headers: { 'Authorization': token } })
+        ]);
+        if (resC.ok && resO.ok) {
+          setClasses(await resC.json());
+          setStudents(await resO.json());
+        }
       } else if (activeTab === 'ogretmen') {
         const [resT, resC] = await Promise.all([
           fetch(`/api/ogretmen?kurum_id=${user.kurum_id}`, { headers: { 'Authorization': token } }),
@@ -152,7 +161,7 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
       const res = await fetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json', 'Authorization': token },
-        body: JSON.stringify({ ad: classAd, seviye: Number(classSeviye), kurum_id: user.kurum_id })
+        body: JSON.stringify({ ad: classAd, seviye: Number(classSeviye), alan: classAlan, kurum_id: user.kurum_id })
       });
       if (res.ok) {
         setSuccess(isEdit ? "Sınıf başarıyla güncellendi." : "Sınıf başarıyla tanımlandı.");
@@ -415,7 +424,7 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                 <input
                   type="text"
                   required
-                  placeholder="Örn: 12-C SAY"
+                  placeholder="Örn: 12-C"
                   value={classAd}
                   onChange={e => setClassAd(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs md:text-sm text-slate-100 font-medium focus:outline-none focus:border-blue-500 transition-all"
@@ -437,6 +446,41 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                   <option value="11">11. Sınıf</option>
                   <option value="12">12. Sınıf / Mezun</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Sınıf Alanı / Branşı *</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['Sayısal', 'Eşit Ağırlık', 'Sözel'] as const).map((alan) => (
+                    <button
+                      key={alan}
+                      type="button"
+                      onClick={() => setClassAlan(alan)}
+                      className={`py-2 px-1 rounded-lg border text-[11px] font-black tracking-wide uppercase transition cursor-pointer text-center ${
+                        classAlan === alan
+                          ? 'bg-blue-600/10 border-blue-500 text-blue-400 font-extrabold'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700/80'
+                      }`}
+                    >
+                      {alan}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {(['Yabancı Dil', 'LGS'] as const).map((alan) => (
+                    <button
+                      key={alan}
+                      type="button"
+                      onClick={() => setClassAlan(alan)}
+                      className={`py-1.5 px-1 rounded-lg border text-[10px] font-black tracking-wide uppercase transition cursor-pointer text-center ${
+                        classAlan === alan
+                          ? 'bg-blue-600/10 border-blue-500 text-blue-400 font-extrabold'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700/80'
+                      }`}
+                    >
+                      {alan}
+                    </button>
+                  ))}
+                </div>
               </div>
               <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs transition">
                 {editingItem ? 'Sınıf Bilgilerini Güncelle' : 'Sınıfı Tanımla'}
@@ -738,19 +782,112 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                 })}
               </div>
             </div>
+          ) : activeTab === 'sinif' ? (
+            <div className="max-h-[32rem] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {classes.length === 0 ? (
+                  <div className="col-span-full text-center text-xs text-slate-500 py-8 italic">
+                    Tanımlı sınıf bulunmamaktadır. Soldaki formdan sınıf tanımlayabilirsiniz.
+                  </div>
+                ) : (
+                  classes.map(c => {
+                    const classStudents = students.filter(s => s.sinif_id === c.id);
+                    return (
+                      <div key={c.id} className="relative bg-slate-950/60 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-slate-700/80 transition duration-150">
+                        {deleteConfirm?.type === 'sinif' && deleteConfirm.id === c.id ? (
+                          <div className="absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center gap-2 rounded-xl z-10 p-4 text-center">
+                            <AlertCircle className="text-red-500 animate-pulse" size={16} />
+                            <span className="text-[11px] text-red-400 font-black leading-tight">Bu sınıfı silmek istediğinize emin misiniz?</span>
+                            <p className="text-[9px] text-slate-500 leading-tight">Sınıf silindiğinde içindeki öğrencilerin sınıf bilgisi sıfırlanacaktır.</p>
+                            <div className="flex gap-2 mt-1">
+                              <button
+                                onClick={() => {
+                                  handleDeleteClass(c.id);
+                                  setDeleteConfirm(null);
+                                }}
+                                className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-[10px] font-black rounded cursor-pointer transition"
+                              >
+                                Evet, Sil
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(null)}
+                                className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-black rounded cursor-pointer transition"
+                              >
+                                Vazgeç
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        <div>
+                          {/* Header */}
+                          <div className="flex justify-between items-start gap-2 mb-3">
+                            <div>
+                              <h4 className="text-xs font-black text-slate-200">{c.ad}</h4>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                <span className="inline-block text-[9px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/15 font-black px-1.5 py-0.5 rounded">
+                                  {c.seviye}. Sınıf
+                                </span>
+                                {c.alan && (
+                                  <span className="inline-block text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/15 font-black px-1.5 py-0.5 rounded">
+                                    {c.alan}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Actions */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                onClick={() => handleEditClick('sinif', c)}
+                                className="p-1.5 bg-slate-900 hover:bg-slate-800 text-blue-400 rounded transition cursor-pointer"
+                                title="Sınıfı Düzenle"
+                              >
+                                <Edit size={12} />
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm({ type: 'sinif', id: c.id })}
+                                className="p-1.5 bg-slate-900 hover:bg-slate-800 text-red-500 rounded transition cursor-pointer"
+                                title="Sınıfı Sil"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Students List */}
+                          <div className="mt-4 border-t border-slate-900/60 pt-3">
+                            <div className="flex justify-between items-center text-[9px] text-slate-500 font-extrabold uppercase tracking-wider mb-2">
+                              <span>Öğrenciler</span>
+                              <span className="text-slate-400 font-black font-mono">({classStudents.length})</span>
+                            </div>
+                            <div className="space-y-1 max-h-40 overflow-y-auto pr-0.5">
+                              {classStudents.length === 0 ? (
+                                <div className="text-[10px] text-slate-600 py-2 italic font-medium">Bu sınıfta kayıtlı öğrenci yok.</div>
+                              ) : (
+                                classStudents.map(student => (
+                                  <div key={student.id} className="flex justify-between items-center bg-slate-900/40 border border-slate-900 px-2 py-1 rounded text-[11px]">
+                                    <span className="text-slate-300 font-bold truncate max-w-[130px]">{student.ad_soyad}</span>
+                                    <span className="text-[8.5px] text-slate-500 font-extrabold uppercase tracking-wide bg-slate-950 px-1 py-0.5 rounded shrink-0">
+                                      {student.alan}
+                                    </span>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           ) : (
             <div className="max-h-96 overflow-y-auto pr-1">
               <table className="w-full text-left text-xs text-slate-300">
                 <thead>
                   <tr className="border-b border-slate-800 text-[9px] uppercase font-bold text-slate-500">
-                    {activeTab === 'sinif' && (
-                      <>
-                        <th className="pb-2">Sınıf Adı</th>
-                        <th className="pb-2">Öğretim Seviyesi</th>
-                        <th className="pb-2">Durum</th>
-                        <th className="pb-2 text-right">İşlemler</th>
-                      </>
-                    )}
                     {activeTab === 'ogretmen' && (
                       <>
                         <th className="pb-2">Öğretmen</th>
@@ -779,52 +916,6 @@ export default function Tanimlar({ user, token, activeTab: propActiveTab, setAct
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/40 font-medium">
-                  {activeTab === 'sinif' && classes.map(c => (
-                    <tr key={c.id}>
-                      <td className="py-2.5 font-bold text-slate-200">{c.ad}</td>
-                      <td className="py-2.5 text-slate-400">{c.seviye}. Sınıf</td>
-                      <td className="py-2.5 text-emerald-400">Aktif</td>
-                      <td className="py-2.5 text-right">
-                        <div className="flex justify-end items-center gap-1.5">
-                          <button
-                            onClick={() => handleEditClick('sinif', c)}
-                            className="p-1 bg-slate-950 hover:bg-slate-800 text-blue-400 rounded transition cursor-pointer"
-                            title="Sınıfı Düzenle"
-                          >
-                            <Edit size={13} />
-                          </button>
-                          {deleteConfirm?.type === 'sinif' && deleteConfirm.id === c.id ? (
-                            <div className="flex justify-end gap-1 items-center bg-slate-950 p-1 rounded border border-slate-800 z-10">
-                              <span className="text-[10px] text-red-400 font-bold">Silinsin mi?</span>
-                              <button
-                                onClick={() => {
-                                  handleDeleteClass(c.id);
-                                  setDeleteConfirm(null);
-                                }}
-                                className="px-1.5 py-0.5 bg-red-600 hover:bg-red-500 text-white text-[9px] font-extrabold rounded cursor-pointer"
-                              >
-                                Evet
-                              </button>
-                              <button
-                                onClick={() => setDeleteConfirm(null)}
-                                className="px-1.5 py-0.5 bg-slate-850 hover:bg-slate-700 text-slate-300 text-[9px] font-extrabold rounded cursor-pointer"
-                              >
-                                Hayır
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setDeleteConfirm({ type: 'sinif', id: c.id })}
-                              className="p-1 bg-slate-950 hover:bg-slate-800 text-red-500 rounded transition cursor-pointer"
-                              title="Sınıfı Sil"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
 
                   {activeTab === 'ogretmen' && teachers.map(t => (
                     <tr key={t.id}>

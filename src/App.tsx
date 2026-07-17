@@ -3044,7 +3044,7 @@ export default function App() {
                 )}
 
                 {/* MOUNT VIEW: KAS.ai Assistant */}
-                <div className={currentTab === "kas-ai" ? "h-full min-h-[600px] w-full max-w-5xl mx-auto block" : "hidden"}>
+                <div className={currentTab === "kas-ai" ? "h-full min-h-[600px] w-full max-w-7xl mx-auto px-2 sm:px-4 block" : "hidden"}>
                    <AiChatWidget
                     isOpen={true}
                     onClose={() => setCurrentTab("dashboard")}

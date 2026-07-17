@@ -3,57 +3,31 @@
 /* 
  * K.A.S (Kurum Analiz Sistemleri) - Platform-wide Card Modernization
  * Adds a smooth, high-fidelity tactile hover depth effect (shadow-lg) 
- * and an elegant soft blue border glow (border-blue-500/20) to all card structures.
+ * and an elegant soft blue border glow (border-blue-500/20) to hover-lift components.
  */
 
-div[class*="bg-slate-900"],
-div[class*="bg-slate-950"],
-div[class*="bg-gradient-to-"],
-article[class*="bg-slate-"],
-section[class*="bg-slate-"] {
-  
-  /* Apply exclusively to visual card structures with rounded corners and/or borders, 
-     excluding page-level layouts, sidebar rails, or responsive wrappers */
-  &[class*="rounded-xl"],
-  &[class*="rounded-2xl"],
-  &[class*="rounded-3xl"],
-  &[class*="rounded-"][class*="border-"] {
-    
-    /* Ensure layout wrappers or screen-sized modules don't accidentally lift */
-    &:not([class*="h-screen"]):not([class*="min-h-screen"]):not([class*="w-screen"]):not([class*="fixed"]):not([class*="absolute"]):not(aside) {
-      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), 
-                  box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), 
-                  border-color 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-      will-change: transform, box-shadow, border-color;
-    }
-  }
-
-  &[class*="rounded-xl"]:hover,
-  &[class*="rounded-2xl"]:hover,
-  &[class*="rounded-3xl"]:hover,
-  &[class*="rounded-"][class*="border-"]:hover {
-    
-    &:not([class*="h-screen"]):not([class*="min-h-screen"]):not([class*="w-screen"]):not([class*="fixed"]):not([class*="absolute"]):not(aside) {
-      /* Soft border blue-500/20 glow */
-      border-color: rgba(59, 130, 246, 0.2) !important;
-      
-      /* Distinct, high-fidelity shadow depth (shadow-lg equivalent with indigo accent) */
-      box-shadow: 0 12px 25px -5px rgba(0, 0, 0, 0.65), 
-                  0 8px 10px -6px rgba(0, 0, 0, 0.65),
-                  0 0 15px -3px rgba(59, 130, 246, 0.08);
-      
-      /* Micro-translation lift for natural hand-to-eye alignment */
-      transform: translateY(-2px);
-    }
-  }
-
-  /* Provide solid active/press tactile feedback for clickable cards */
-  &[class*="rounded-xl"]:active,
-  &[class*="rounded-2xl"]:active,
-  &[class*="rounded-3xl"]:active {
-    &:not([class*="h-screen"]):not([class*="min-h-screen"]):not([class*="w-screen"]) {
-      transform: translateY(0px);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-    }
-  }
+.hover-lift {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform, box-shadow, border-color;
 }
+
+.hover-lift:hover {
+  /* Soft border blue-500/20 glow */
+  border-color: rgba(59, 130, 246, 0.25) !important;
+  
+  /* Distinct, high-fidelity shadow depth (shadow-lg equivalent with indigo accent) */
+  box-shadow: 0 12px 25px -5px rgba(0, 0, 0, 0.65), 
+              0 8px 10px -6px rgba(0, 0, 0, 0.65),
+              0 0 15px -3px rgba(59, 130, 246, 0.08) !important;
+  
+  /* Micro-translation lift for natural hand-to-eye alignment */
+  transform: translateY(-2px);
+}
+
+.hover-lift:active {
+  transform: translateY(0px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4) !important;
+}
+

@@ -3,7 +3,7 @@ import { User, SinavTanim } from '../types';
 import { 
   Clock, Calendar, AlertTriangle, TrendingUp, Users, BookOpen, Layers,
   Search, Filter, ArrowUpRight, ArrowDownRight, Sparkles, GraduationCap, 
-  ChevronRight, ChevronDown, Award, Check, Info, FileText
+  ChevronRight, ChevronLeft, ChevronDown, Award, Check, Info, FileText
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -369,6 +369,11 @@ export default function Dashboard({ user, token }: DashboardProps) {
   const [messageSuccess, setMessageSuccess] = useState(false);
   const [noteSuccess, setNoteSuccess] = useState(false);
 
+  // Calendar states
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
+
   useEffect(() => {
     if (user.rol === 'ogretmen') {
       const fetchStudentsAndProfile = async () => {
@@ -470,47 +475,266 @@ export default function Dashboard({ user, token }: DashboardProps) {
 
   const renderCalendar = () => {
     const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
+    const year = calendarYear;
+    const month = calendarMonth;
     const firstDay = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
 
     const monthNames = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
-    const weekDays = ["Pz", "Pt", "Sa", "Ça", "Pe", "Cu", "Ct"];
+    const weekDays = ["Pt", "Sa", "Ça", "Pe", "Cu", "Ct", "Pz"];
 
     const blankDays = Array(firstDay === 0 ? 6 : firstDay - 1).fill(null);
     const dayCells = Array.from({ length: totalDays }, (_, i) => i + 1);
     const allCells = [...blankDays, ...dayCells];
 
+    // Navigate month handlers
+    const handlePrevMonth = () => {
+      if (calendarMonth === 0) {
+        setCalendarMonth(11);
+        setCalendarYear(prev => prev - 1);
+      } else {
+        setCalendarMonth(prev => prev - 1);
+      }
+      setSelectedCalendarDate(null);
+    };
+
+    const handleNextMonth = () => {
+      if (calendarMonth === 11) {
+        setCalendarMonth(0);
+        setCalendarYear(prev => prev + 1);
+      } else {
+        setCalendarMonth(prev => prev + 1);
+      }
+      setSelectedCalendarDate(null);
+    };
+
+    const handleToday = () => {
+      setCalendarMonth(today.getMonth());
+      setCalendarYear(today.getFullYear());
+      setSelectedCalendarDate(null);
+    };
+
+    // Filter exams for this calendar view's month
+    const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const monthExams = (stats.recentExams || []).filter(e => {
+      if (!e.tarih) return false;
+      const examDateOnly = e.tarih.includes('T') ? e.tarih.split('T')[0] : e.tarih;
+      return examDateOnly.startsWith(monthPrefix);
+    }).sort((a, b) => a.tarih.localeCompare(b.tarih));
+
+    // If a day is selected, filter to that day
+    const selectedExams = selectedCalendarDate 
+      ? (stats.recentExams || []).filter(e => {
+          if (!e.tarih) return false;
+          const examDateOnly = e.tarih.includes('T') ? e.tarih.split('T')[0] : e.tarih;
+          return examDateOnly === selectedCalendarDate;
+        })
+      : [];
+
+    const formatDateTurkish = (dateStr: string) => {
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+      } catch {
+        return dateStr;
+      }
+    };
+
     return (
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-        <div className="flex justify-between items-center mb-2 border-b border-slate-800 pb-2">
-          <span className="font-bold text-blue-400 text-sm flex items-center gap-2">
-            <Calendar size={15} /> {monthNames[month]} {year}
+      <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 shadow-lg shadow-slate-950/20 flex flex-col gap-4">
+        {/* Calendar Header with Controls */}
+        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-1.5">
+            <div className="p-1.5 bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/15">
+              <Calendar size={14} />
+            </div>
+            <div>
+              <h4 className="text-xs font-black text-slate-100 uppercase tracking-wider">Kurum Sınav Planı</h4>
+              <p className="text-[9px] text-slate-500 font-bold">Canlı Takvim Senkronizasyonu</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handlePrevMonth}
+              className="p-1 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded transition cursor-pointer"
+              title="Önceki Ay"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={handleToday}
+              className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold rounded transition cursor-pointer"
+              title="Bugüne Git"
+            >
+              Bugün
+            </button>
+            <button
+              type="button"
+              onClick={handleNextMonth}
+              className="p-1 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded transition cursor-pointer"
+              title="Sonraki Ay"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Current Month and Year Label */}
+        <div className="flex justify-between items-center text-xs px-1">
+          <span className="font-extrabold text-blue-400 text-sm">
+            {monthNames[month]} {year}
           </span>
-          <span className="text-xs text-slate-400">Mini Takvim</span>
+          <span className="text-[10px] text-slate-500 font-mono font-bold">
+            {monthExams.length} Sınav Tanımlı
+          </span>
         </div>
-        <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-slate-500 mb-1">
-          {weekDays.map(d => <div key={d}>{d}</div>)}
+
+        {/* Week Days Header */}
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black text-slate-500 uppercase tracking-wider">
+          {weekDays.map(d => <div key={d} className="py-1">{d}</div>)}
         </div>
-        <div className="grid grid-cols-7 gap-1 text-center text-xs">
+
+        {/* Calendar Days Grid */}
+        <div className="grid grid-cols-7 gap-1.5 text-center text-xs">
           {allCells.map((d, index) => {
-            const isToday = d === today.getDate();
+            if (d === null) {
+              return <div key={`empty-${index}`} className="py-2"></div>;
+            }
+
+            const cellDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+            const isSelected = selectedCalendarDate === cellDateStr;
+            
+            // Check if there are exams on this day
+            const dayExams = (stats.recentExams || []).filter(e => {
+              if (!e.tarih) return false;
+              const examDateOnly = e.tarih.includes('T') ? e.tarih.split('T')[0] : e.tarih;
+              return examDateOnly === cellDateStr;
+            });
+            const hasExams = dayExams.length > 0;
+
             return (
-              <div
-                key={index}
-                className={`py-1 rounded font-medium ${
-                  d === null
-                    ? ""
+              <button
+                key={`day-${d}`}
+                type="button"
+                onClick={() => {
+                  const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                  setSelectedCalendarDate(selectedCalendarDate === dateStr ? null : dateStr);
+                }}
+                className={`py-1.5 rounded-lg font-bold flex flex-col items-center justify-center relative cursor-pointer group transition duration-150 min-h-[38px] ${
+                  isSelected
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10 border border-indigo-500"
                     : isToday
-                    ? "bg-blue-600 text-white font-bold"
-                    : "text-slate-300 hover:bg-slate-800"
+                    ? "bg-blue-950/60 text-blue-400 border border-blue-500/30"
+                    : "text-slate-300 hover:bg-slate-800/60 border border-transparent"
                 }`}
               >
-                {d || ""}
-              </div>
+                <span className="z-10 text-[11px] font-mono font-bold">{d}</span>
+                
+                {/* Exam Indicator (Minik işaret) */}
+                {hasExams && (
+                  <span className={`w-1.5 h-1.5 rounded-full mt-0.5 animate-pulse ${
+                    isSelected ? "bg-white" : "bg-indigo-400"
+                  }`} />
+                )}
+              </button>
             );
           })}
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-slate-850/60 my-1"></div>
+
+        {/* Dynamic Exam List under Calendar */}
+        <div className="space-y-2.5">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+              {selectedCalendarDate ? (
+                <>📅 Seçili Günün Sınavları ({formatDateTurkish(selectedCalendarDate)})</>
+              ) : (
+                <>🗓️ Bu Ayın Sınavları ({monthNames[month]})</>
+              )}
+            </span>
+            {selectedCalendarDate && (
+              <button
+                type="button"
+                onClick={() => setSelectedCalendarDate(null)}
+                className="text-[9px] text-indigo-400 hover:text-indigo-300 font-extrabold uppercase cursor-pointer"
+              >
+                Hepsini Göster
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-0.5">
+            {selectedCalendarDate ? (
+              selectedExams.length === 0 ? (
+                <div className="text-[10px] text-slate-500 italic py-3 text-center bg-slate-950/20 border border-slate-900 rounded-xl">
+                  Bu tarihte tanımlanmış bir sınav bulunmamaktadır.
+                </div>
+              ) : (
+                selectedExams.map(e => (
+                  <div key={e.id} className="flex items-center justify-between p-2 rounded-xl bg-indigo-950/15 border border-indigo-500/20">
+                    <div className="overflow-hidden mr-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wide inline-block bg-indigo-500/10 text-indigo-400 border border-indigo-500/15 px-1.5 py-0.5 rounded mb-1">
+                        {e.tur}
+                      </span>
+                      <h5 className="text-[11px] font-black text-slate-200 leading-tight truncate">{e.ad}</h5>
+                    </div>
+                    {e.katilimci_sayisi > 0 ? (
+                      <div className="text-right shrink-0">
+                        <span className="text-[9px] text-emerald-400 font-black block">{e.ortalama_net} Net</span>
+                        <span className="text-[8px] text-slate-500 font-bold block">{e.katilimci_sayisi} Katılım</span>
+                      </div>
+                    ) : (
+                      <span className="text-[9px] text-slate-500 font-bold shrink-0">Henüz Uygulanmadı</span>
+                    )}
+                  </div>
+                ))
+              )
+            ) : monthExams.length === 0 ? (
+              <div className="text-[10px] text-slate-500 italic py-4 text-center bg-slate-950/20 border border-slate-900 rounded-xl">
+                Bu ay için tanımlanmış sınav bulunmamaktadır.
+              </div>
+            ) : (
+              monthExams.map(e => {
+                const examDateOnly = e.tarih?.includes('T') ? e.tarih.split('T')[0] : e.tarih;
+                const examDay = examDateOnly ? Number(examDateOnly.split('-')[2]) : 1;
+                return (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => setSelectedCalendarDate(examDateOnly)}
+                    className="w-full text-left flex items-center justify-between p-2 rounded-xl bg-slate-950/30 border border-slate-900 hover:border-slate-800 hover:bg-slate-900/30 transition text-slate-300"
+                  >
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      <div className="flex flex-col items-center justify-center w-7 h-7 rounded-lg bg-slate-900 border border-slate-800 text-center shrink-0">
+                        <span className="text-[10px] font-black font-mono leading-none text-slate-200">{examDay}</span>
+                        <span className="text-[6.5px] font-extrabold text-slate-500 uppercase tracking-tight leading-none mt-0.5">
+                          {monthNames[month].substring(0, 3)}
+                        </span>
+                      </div>
+                      <div className="overflow-hidden text-left">
+                        <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded border uppercase mr-1.5 ${
+                          e.tur === 'TYT' ? 'bg-blue-500/5 text-blue-400 border-blue-500/10' :
+                          e.tur === 'AYT' ? 'bg-purple-500/5 text-purple-400 border-purple-500/10' :
+                          'bg-amber-500/5 text-amber-400 border-amber-500/10'
+                        }`}>
+                          {e.tur}
+                        </span>
+                        <span className="text-[10.5px] font-bold text-slate-300 leading-tight">{e.ad}</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={10} className="text-slate-600 shrink-0" />
+                  </button>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
     );
@@ -839,9 +1063,11 @@ export default function Dashboard({ user, token }: DashboardProps) {
       </div>
 
       {/* Analytics, Calendar & Risk Columns */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        {/* Exam trend chart */}
-        <div className="xl:col-span-8 bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-md">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        {/* Left Column (xl:col-span-8) */}
+        <div className="xl:col-span-8 space-y-6">
+          {/* Exam trend chart */}
+          <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-md">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 border-b border-slate-800 pb-3">
             <div>
               <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
@@ -958,11 +1184,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
               </div>
             );
           })()}
-        </div>
-
-        {/* Calendar and Sidebar elements */}
-        <div className="xl:col-span-4 space-y-4">
-          {renderCalendar()}
+          </div>
 
           <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 space-y-4 relative overflow-hidden shadow-md">
             <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl"></div>
@@ -1034,6 +1256,11 @@ export default function Dashboard({ user, token }: DashboardProps) {
               );
             })()}
           </div>
+        </div>
+
+        {/* Calendar and Sidebar elements */}
+        <div className="xl:col-span-4 space-y-4">
+          {renderCalendar()}
         </div>
       </div>
 

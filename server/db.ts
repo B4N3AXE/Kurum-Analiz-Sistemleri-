@@ -25,6 +25,7 @@ export interface Sinif {
   ad: string;
   seviye: number; // e.g. 11, 12
   kurum_id: number;
+  alan?: string;
 }
 
 export interface Ogrenci {

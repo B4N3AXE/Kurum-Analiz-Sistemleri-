@@ -815,6 +815,14 @@ app.post('/api/students', (req, res) => {
     return res.status(400).json({ error: 'Ad Soyad, Sınıf ve Alan gereklidir.' });
   }
 
+  if (tc_no && tc_no.trim() !== '') {
+    const cleanTc = tc_no.trim();
+    const existing = db.getOgrenciler().find(s => s.tc_no && s.tc_no.trim() === cleanTc);
+    if (existing) {
+      return res.status(400).json({ error: 'Bu TC Kimlik numarasına sahip bir öğrenci zaten kayıtlı.' });
+    }
+  }
+
   const student = db.insert('ogrenciler', {
     ad_soyad,
     tc_no: tc_no || '',
@@ -830,6 +838,14 @@ app.post('/api/students', (req, res) => {
 app.put('/api/students/:id', (req, res) => {
   const id = Number(req.params.id);
   const { ad_soyad, tc_no, sinif_id, veli_id, alan, aktif } = req.body;
+
+  if (tc_no && tc_no.trim() !== '') {
+    const cleanTc = tc_no.trim();
+    const existing = db.getOgrenciler().find(s => s.tc_no && s.tc_no.trim() === cleanTc && s.id !== id);
+    if (existing) {
+      return res.status(400).json({ error: 'Bu TC Kimlik numarasına sahip bir öğrenci zaten kayıtlı.' });
+    }
+  }
 
   const updates: any = {};
   if (ad_soyad !== undefined) updates.ad_soyad = ad_soyad;
@@ -870,13 +886,14 @@ app.get('/api/classes', (req, res) => {
 });
 
 app.post('/api/classes', (req, res) => {
-  const { ad, seviye, kurum_id } = req.body;
+  const { ad, seviye, alan, kurum_id } = req.body;
   if (!ad || !seviye) {
     return res.status(400).json({ error: 'Sınıf adı ve seviye gereklidir.' });
   }
   const cls = db.insert('siniflar', {
     ad,
     seviye: Number(seviye),
+    alan: alan || 'Sayısal',
     kurum_id: kurum_id ? Number(kurum_id) : 1
   });
   res.json(cls);
@@ -1379,6 +1396,15 @@ app.post('/api/ogrenci', (req, res) => {
   if (!ad_soyad || !sinif_id || !alan) {
     return res.status(400).json({ error: 'Ad Soyad, Sınıf ve Alan gereklidir.' });
   }
+
+  if (tc_no && tc_no.trim() !== '') {
+    const cleanTc = tc_no.trim();
+    const existing = db.getOgrenciler().find(s => s.tc_no && s.tc_no.trim() === cleanTc);
+    if (existing) {
+      return res.status(400).json({ error: 'Bu TC Kimlik numarasına sahip bir öğrenci zaten kayıtlı.' });
+    }
+  }
+
   const student = db.insert('ogrenciler', {
     ad_soyad,
     tc_no: tc_no || '',
@@ -1396,6 +1422,14 @@ app.post('/api/ogrenci', (req, res) => {
 app.put('/api/ogrenci/:id', (req, res) => {
   const id = Number(req.params.id);
   const { ad_soyad, tc_no, sinif_id, veli_id, alan, aktif, hedef_net, danisman_id, sifre } = req.body;
+
+  if (tc_no && tc_no.trim() !== '') {
+    const cleanTc = tc_no.trim();
+    const existing = db.getOgrenciler().find(s => s.tc_no && s.tc_no.trim() === cleanTc && s.id !== id);
+    if (existing) {
+      return res.status(400).json({ error: 'Bu TC Kimlik numarasına sahip bir öğrenci zaten kayıtlı.' });
+    }
+  }
 
   const updates: any = {};
   if (ad_soyad !== undefined) updates.ad_soyad = ad_soyad;
@@ -1818,13 +1852,14 @@ app.get('/api/sinif', (req, res) => {
 });
 
 app.post('/api/sinif', (req, res) => {
-  const { ad, seviye } = req.body;
+  const { ad, seviye, alan } = req.body;
   if (!ad || !seviye) {
     return res.status(400).json({ error: 'Sınıf adı ve seviye gereklidir.' });
   }
   const cls = db.insert('siniflar', {
     ad,
     seviye: Number(seviye),
+    alan: alan || 'Sayısal',
     kurum_id: 1
   });
   res.json(cls);
@@ -1832,10 +1867,11 @@ app.post('/api/sinif', (req, res) => {
 
 app.put('/api/sinif/:id', (req, res) => {
   const id = Number(req.params.id);
-  const { ad, seviye } = req.body;
+  const { ad, seviye, alan } = req.body;
   const updates: any = {};
   if (ad !== undefined) updates.ad = ad;
   if (seviye !== undefined) updates.seviye = Number(seviye);
+  if (alan !== undefined) updates.alan = alan;
   const success = db.update('siniflar', id, updates);
   if (success) {
     res.json({ message: 'Sınıf güncellendi.' });
@@ -2265,6 +2301,10 @@ app.post('/api/ai/chat', async (req, res) => {
       return res.json({ text: 'Merhaba! Ben KAS.ai. Sisteminizde **GEMINI_API_KEY** tanımlı olmadığı için demo modunda çalışıyorum. Size nasıl yardımcı olabilirim? 😊' });
     }
     
+    if (msgLower.includes('geliştirici') || msgLower.includes('gelistirici') || msgLower.includes('yaratıcı') || msgLower.includes('yaratici') || msgLower.includes('kim geliştirdi') || msgLower.includes('kim gelistirdi') || msgLower.includes('yapımcı') || msgLower.includes('yapimci') || msgLower.includes('sahibi') || msgLower.includes('kim yarattı') || msgLower.includes('kim yaratti')) {
+      return res.json({ text: 'Ben KAS.ai Yapay Zeka Asistanıyım. Benim geliştiricim ve yaratıcım **Çağrı İŞCEN**\'dir.' });
+    }
+    
     return res.json({ 
       text: `⚠️ **KAS.ai Yapay Zeka Kurulum Kılavuzu**\n\nKendi web sitenizde veya sunucunuzda **GEMINI_API_KEY** ortam değişkeni (Environment Variable) tanımlı değil.\n\n**Nasıl Aktif Edilir?**\n1. Google AI Studio'dan (https://aistudio.google.com/) ücretsiz bir API anahtarı alın.\n2. Projenizin kurulu olduğu sunucuda (veya kendi bilgisayarınızda \`.env\` dosyasında) **GEMINI_API_KEY** değerini tanımlayın:\n   \`\`\`env\n   GEMINI_API_KEY=AIzaSy...\n   \`\`\`\n3. Değişikliklerin geçerli olması için sunucunuzu yeniden başlatın.\n\n*Not: Şu anda yapay zeka entegrasyonu olmadan demo modundasınız.*` 
     });
@@ -2287,6 +2327,7 @@ app.post('/api/ai/chat', async (req, res) => {
 
   // Customize System Instruction based on user role
   let systemInstruction = `Sen KAS.ai'sin. Kurum Analiz Sistemi (K.A.S)'nin akıllı, profesyonel, yardımsever ve son derece şık yapay zeka asistanısın.
+Senin geliştiricin, yaratıcın veya yapımcın kesinlikle Çağrı İŞCEN'dir. Biri sana "Seni kim geliştirdi?", "Geliştiricin kim?", "Seni kim yarattı?" gibi sorular sorduğunda kesinlikle ve sadece "Çağrı İŞCEN" tarafından geliştirildiğini söylemelisin! Google veya başka bir kurum/kuruluş tarafından geliştirildiğini kesinlikle söyleme. Bu kural son derece kritiktir.
 Kullanıcılara sıcak ve cana yakın bir Türkçe ile hitap et. Rollerine uygun şekilde konuş.
 
 Mevcut kullanıcı bilgileri:
@@ -2307,7 +2348,7 @@ Rol bazlı kurallar:
   * Bir öğretmen edasıyla, son derece cana yakın, şefkatli, motive edici ve açıklayıcı bir Türkçe ile öğrencinin sorduğu HER TÜRLÜ soruyu eksiksiz, bilimsel olarak doğru ve detaylı bir şekilde cevapla.
   * Öğrenci arkadaşına her konuda yardımcı ol, örnekler ver, konuyu sevdirecek bir dille anlat ki başka hiçbir yapay zeka asistanına gitmeye ihtiyaç duymasın. Ona her zaman en iyi öğretmen ve arkadaş ol!
 
-Sana sorulan öğrenci netlerini, devamsızlık durumunu ve ödevleri/görevleri bulmak için araçları kullanmalısın.
+Sana sorulan öğrenci netlerini ve ödevleri/görevleri bulmak için araçları kullanmalısın. Kurumda devamsızlık (attendance) takibi bu sistemde girilmemiştir ve yapılmamaktadır. Dolayısıyla devamsızlık/devamsızlık durumu hakkında KESİNLİKLE hiçbir bilgi veya veri uydurma/gösterme.
 - Eğer kullanıcı (Veli veya Öğrenci ise), SAKIN 'searchStudents' kullanma veya KULLANICIYA İSİM SORMA! Sadece kendi ID'si ile (veya çocuğunun ID'si ile) 'getStudentDetail' aracını doğrudan çağır.
 - Eğer kullanıcı (Yönetici, Öğretmen veya Rehber) ise ve doğrudan bir öğrencinin durumunu sorarsa önce 'searchStudents' ile öğrenciyi ara. ID'sini bulduktan sonra 'getStudentDetail' aracını çağırarak detaylı verilerini getir.
 
@@ -2331,7 +2372,7 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
 
   const getStudentDetailDeclaration = {
     name: "getStudentDetail",
-    description: "Belirtilen öğrenci ID'sine ait deneme sınavı netlerini, ödevlerini/görevlerini ve devamsızlık bilgisini getirir.",
+    description: "Belirtilen öğrenci ID'sine ait deneme sınavı netlerini ve ödevlerini/görevlerini getirir.",
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -2419,25 +2460,13 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
       completed: st.tamamlandi
     }));
     
-    const hash = student.id % 5;
-    const attendance = {
-      excusedAbsence: hash === 0 ? 0.5 : hash === 1 ? 2.0 : hash === 2 ? 1.5 : 0,
-      unexcusedAbsence: hash === 0 ? 0 : hash === 1 ? 1.0 : hash === 2 ? 0 : 0.5,
-      lateArrival: hash * 2,
-      totalDays: (hash === 0 ? 0.5 : hash === 1 ? 3.0 : hash === 2 ? 1.5 : 0.5) + (hash * 2 * 0.1)
-    };
-    
     return {
       studentId: student.id,
       name: student.ad_soyad,
       class: sClass ? sClass.ad : 'Bilinmeyen Sınıf',
       field: student.alan,
       exams: studentExams,
-      tasks: studentTasks,
-      attendance: {
-        summary: `Toplam ${attendance.totalDays.toFixed(1)} Gün Devamsızlık`,
-        details: `${attendance.excusedAbsence.toFixed(1)} gün izinli, ${attendance.unexcusedAbsence.toFixed(1)} gün izinsiz, ${attendance.lateArrival} kez geç kalma.`
-      }
+      tasks: studentTasks
     };
   };
 
