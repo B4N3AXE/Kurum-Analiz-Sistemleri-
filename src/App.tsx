@@ -7,6 +7,7 @@ import Mesajlar from './components/Mesajlar';
 import Tanimlar from './components/Tanimlar';
 import Abonelik from './components/Abonelik';
 import RiskLimitleri from './components/RiskLimitleri';
+import AiChatWidget from './components/AiChatWidget';
 import { Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key, Target, Eye, Send, Trash2, Play, Pause, RotateCcw, Plus, Square, CheckSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -58,6 +59,7 @@ export default function App() {
   const [showAuthScreen, setShowAuthScreen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAiChatOpen, setIsAiChatOpen] = useState(false);
 
   // Intro Animation State
   const [isIntroComplete, setIsIntroComplete] = useState(false);
@@ -2499,6 +2501,25 @@ export default function App() {
                       <Mail size={14} /> Mesaj Merkezi
                     </button>
 
+                    {/* Tab: KAS.ai AI Chatbot */}
+                    <button
+                      onClick={() => { setIsAiChatOpen(true); setIsMobileMenuOpen(false); }}
+                      className={`flex items-center justify-between gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer relative overflow-hidden group border ${
+                        isAiChatOpen
+                          ? "bg-indigo-600 text-white border-indigo-500/50 shadow"
+                          : "bg-gradient-to-r from-indigo-950/40 to-blue-950/40 text-indigo-300 border-indigo-900/40 hover:border-indigo-800"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Sparkles size={14} className="text-indigo-400 group-hover:animate-bounce" />
+                        <span className="font-extrabold tracking-wide">KAS.ai Asistanı</span>
+                      </div>
+                      <span className="flex h-2 w-2 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                      </span>
+                    </button>
+
                     {/* Tab: Abonelik & Ödeme */}
                     {user.rol === 'admin' && (
                       <button
@@ -2733,6 +2754,26 @@ export default function App() {
                 <Mail size={15} /> Mesaj Merkezi
               </button>
 
+              {/* Button: KAS.ai Chatbot (All roles) */}
+              <button
+                onClick={() => setIsAiChatOpen(true)}
+                className={`flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 relative overflow-hidden group border ${
+                  isAiChatOpen
+                    ? "bg-indigo-600 text-white border-indigo-500/50 shadow-lg shadow-indigo-500/20"
+                    : "bg-gradient-to-r from-indigo-950/40 to-blue-950/40 text-indigo-300 border-indigo-900/40 hover:border-indigo-800 hover:text-white"
+                }`}
+              >
+                <div className="absolute -inset-x-20 top-0 h-[1px] bg-gradient-to-r from-transparent via-indigo-400 to-transparent animate-pulse"></div>
+                <div className="flex items-center gap-3">
+                  <Sparkles size={15} className={`text-indigo-400 group-hover:animate-bounce ${isAiChatOpen ? 'text-white' : ''}`} />
+                  <span className="font-extrabold tracking-wide">KAS.ai Asistanı</span>
+                </div>
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                </span>
+              </button>
+
               {/* Tab: Abonelik & Ödeme (Only Admin) */}
               {user.rol === 'admin' && (
                 <button
@@ -2891,7 +2932,8 @@ export default function App() {
           </aside>
 
           {/* Core App Viewport */}
-          <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full overflow-y-auto">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-slate-900 scrollbar-thumb-slate-800">
+            <main className="p-6 md:p-8 max-w-7xl mx-auto w-full">
             
             {user.rol === 'admin' && currentSubscription === 'trial' && trialDaysLeft <= 0 ? (
               user.rol === 'admin' && currentTab === 'abonelik' ? (
@@ -4042,9 +4084,9 @@ export default function App() {
                                 const isExpanded = expandedChecklistSubject === subjKey;
                                 const studentDoneKeys = (studentReport.konu_takip || [])
                                   .filter((kt: any) => kt.tamamlandi)
-                                  .map((kt: any) => kt.konu_key);
+                                  .map((kt: any) => kt.konu_key.toLowerCase());
                                 
-                                const subjTopicsDoneCount = topics.filter((t: any) => studentDoneKeys.includes(`${subjKey}_${t.ad}`)).length;
+                                const subjTopicsDoneCount = topics.filter((t: any) => studentDoneKeys.includes(`${subjKey}_${t.ad}`.toLowerCase())).length;
                                 const completionRatio = Math.round((subjTopicsDoneCount / topics.length) * 100) || 0;
 
                                 return (
@@ -4066,7 +4108,7 @@ export default function App() {
                                     {isExpanded && (
                                       <div className="p-2 bg-slate-950/30 border-t border-slate-900 space-y-1.5">
                                         {topics.slice(0, 8).map((topic: any) => {
-                                          const uniqueKey = `${subjKey}_${topic.ad}`;
+                                          const uniqueKey = `${subjKey}_${topic.ad}`.toLowerCase();
                                           const isDone = studentDoneKeys.includes(uniqueKey);
                                           return (
                                             <div 
@@ -4652,7 +4694,8 @@ export default function App() {
             )}
           </>
         )}
-      </main>
+            </main>
+          </div>
         </div>
       )}
 
@@ -4787,6 +4830,13 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <AiChatWidget
+        isOpen={isAiChatOpen}
+        onClose={() => setIsAiChatOpen(false)}
+        user={user}
+        token={token}
+      />
     </div>
   );
 }

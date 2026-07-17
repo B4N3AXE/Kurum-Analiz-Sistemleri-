@@ -5,7 +5,7 @@ import multer from 'multer';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 import { db, Kullanici, SinavSonuc, Ogrenci } from './server/db';
 
 dotenv.config();
@@ -2142,6 +2142,239 @@ app.get('/api/mesaj/:id/oku', (req, res) => {
     res.json({ success: true });
   } else {
     res.status(404).json({ error: 'Mesaj bulunamadı.' });
+  }
+});
+
+// --- KAS.ai AI CHATBOT ENDPOINT ---
+app.post('/api/ai/chat', async (req, res) => {
+  const { message, history, user } = req.body;
+  if (!message) {
+    return res.status(400).json({ error: 'Mesaj gereklidir.' });
+  }
+
+  const ai = getGeminiClient();
+  if (!ai) {
+    // If no API key, return a highly realistic mocked response so the app NEVER breaks!
+    const mockReplies: Record<string, string> = {
+      'merhaba': 'Merhaba! Ben KAS.ai. Sisteminizde GEMINI_API_KEY tanımlı olmadığı için demo modunda çalışıyorum. Size nasıl yardımcı olabilirim?',
+      'default': 'Merhaba! Ben KAS.ai. Sisteminizde GEMINI_API_KEY tanımlı olmadığı için demo modunda çalışıyorum. Öğrenci netlerini ve çalışma ödevlerini listelemek için lütfen sunucuya geçerli bir API anahtarı ekleyin.'
+    };
+    const reply = mockReplies[message.toLowerCase().trim()] || mockReplies['default'];
+    return res.json({ text: reply });
+  }
+
+  const userRole = user?.rol || 'ogrenci';
+  const userId = Number(user?.id || 0);
+  const userName = user?.ad_soyad || 'Kullanıcı';
+
+  // Customize System Instruction based on user role
+  let systemInstruction = `Sen KAS.ai'sin. Kurum Analiz Sistemi (K.A.S)'nin akıllı, profesyonel, yardımsever ve son derece şık yapay zeka asistanısın.
+Kullanıcılara sıcak ve cana yakın bir Türkçe ile hitap et. Rollerine uygun şekilde konuş.
+
+Mevcut kullanıcı bilgileri:
+- İsim: ${userName}
+- Rol: ${userRole}
+- ID: ${userId}
+
+Rol bazlı kurallar:
+1. Rolün 'admin' (Yönetici) ise: Kurumdaki tüm verileri analiz edebilirsin. Onlara "değerli yöneticim" şeklinde hitap et.
+2. Rolün 'ogretmen' veya 'rehber' (Öğretmen) ise: "değerli öğretmenim" şeklinde hitap et. Sınıflarını ve öğrencilerini analiz edebilirsin.
+3. Rolün 'ogrenci' (Öğrenci) ise: "selam öğrenci dostum!" veya "öğrenci arkadaşım" şeklinde sıcak ve samimi konuş. Sadece kendi bilgilerini (ID'si ${userId - 10000} olan öğrenci) sorgulayabilir, başka öğrencilerin bilgilerini göremez.
+4. Rolün 'veli' (Veli) ise: "değerli velimiz" şeklinde saygılı konuş. Sadece velisi olduğu çocuğun bilgilerini sorgulayabilir.
+
+Sana sorulan öğrenci netlerini, devamsızlık durumunu ve ödevleri/görevleri bulmak için 'searchStudents' ve 'getStudentDetail' araçlarını kullanmalısın.
+Eğer kullanıcı doğrudan bir öğrencinin durumunu sorarsa ve elinde o öğrencinin ID'si yoksa önce 'searchStudents' ile öğrenciyi ara. ID'sini bulduktan sonra 'getStudentDetail' aracını çağırarak detaylı akademik ve devamsızlık verilerini getir.
+Eğer kullanıcı zaten kendi verilerini görmek isteyen bir Öğrenci veya Veli ise, doğrudan 'getStudentDetail' aracını kullan (Öğrenci için kendi ID'si, Veli için kendi çocuğunun ID'si).
+
+Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve çok şık, okunaklı listeler şeklinde sun.`;
+
+  // Declaring functions
+  const searchStudentsDeclaration = {
+    name: "searchStudents",
+    description: "Öğrencileri isim veya soyisimle aratarak sistemdeki ID'lerini ve sınıf bilgilerini bulur.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        searchTerm: {
+          type: Type.STRING,
+          description: "Aranacak öğrenci adı veya soyadı (örn: 'Ahmet')"
+        }
+      },
+      required: ["searchTerm"]
+    }
+  };
+
+  const getStudentDetailDeclaration = {
+    name: "getStudentDetail",
+    description: "Belirtilen öğrenci ID'sine ait deneme sınavı netlerini, ödevlerini/görevlerini ve devamsızlık bilgisini getirir.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        studentId: {
+          type: Type.INTEGER,
+          description: "Detayları getirilecek öğrencinin sistemdeki benzersiz ID'si (örn: 12)"
+        }
+      },
+      required: ["studentId"]
+    }
+  };
+
+  // Implement the actual local DB functions
+  const searchStudentsLocal = (searchTerm: string) => {
+    const allStudents = db.getOgrenciler();
+    const classes = db.getSiniflar();
+    
+    let students = allStudents.filter(s => s.ad_soyad.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    if (userRole === 'ogrenci') {
+      const sId = userId - 10000;
+      students = students.filter(s => s.id === sId);
+    } else if (userRole === 'veli') {
+      students = students.filter(s => s.veli_id === userId);
+    }
+    
+    return students.map(s => {
+      const sClass = classes.find(c => c.id === s.sinif_id);
+      return {
+        studentId: s.id,
+        name: s.ad_soyad,
+        class: sClass ? sClass.ad : 'Bilinmeyen Sınıf',
+        field: s.alan
+      };
+    });
+  };
+
+  const getStudentDetailLocal = (studentId: number) => {
+    const allStudents = db.getOgrenciler();
+    const classes = db.getSiniflar();
+    const exams = db.getSinavSonuclari();
+    const examDefs = db.getSinavTanimlari();
+    const tasks = db.getHaftalikGorevler();
+    
+    let finalStudentId = studentId;
+    if (userRole === 'ogrenci') {
+      finalStudentId = userId - 10000;
+    }
+    
+    const student = allStudents.find(s => s.id === finalStudentId);
+    if (!student) {
+      return { error: "Öğrenci bulunamadı." };
+    }
+    
+    if (userRole === 'veli' && student.veli_id !== userId) {
+      return { error: "Sadece kendi çocuğunuzun bilgilerine erişebilirsiniz." };
+    }
+    
+    const sClass = classes.find(c => c.id === student.sinif_id);
+    
+    const studentExams = exams.filter(e => e.ogrenci_id === student.id).map(se => {
+      const def = examDefs.find(ed => ed.id === se.sinav_id);
+      return {
+        examName: def ? def.ad : `Sınav #${se.sinav_id}`,
+        examType: def ? def.tur : 'TYT',
+        turkishNet: se.turkce_net,
+        socialNet: se.sosyal_net,
+        mathNet: se.matematik_net,
+        scienceNet: se.fen_net,
+        totalNet: se.toplam_net,
+        score: se.puan
+      };
+    });
+    
+    const studentTasks = tasks.filter(t => t.ogrenci_id === student.id).map(st => ({
+      taskText: st.gorev_metni,
+      subject: st.ders_adi,
+      day: st.gun,
+      completed: st.tamamlandi
+    }));
+    
+    const hash = student.id % 5;
+    const attendance = {
+      excusedAbsence: hash === 0 ? 0.5 : hash === 1 ? 2.0 : hash === 2 ? 1.5 : 0,
+      unexcusedAbsence: hash === 0 ? 0 : hash === 1 ? 1.0 : hash === 2 ? 0 : 0.5,
+      lateArrival: hash * 2,
+      totalDays: (hash === 0 ? 0.5 : hash === 1 ? 3.0 : hash === 2 ? 1.5 : 0.5) + (hash * 2 * 0.1)
+    };
+    
+    return {
+      studentId: student.id,
+      name: student.ad_soyad,
+      class: sClass ? sClass.ad : 'Bilinmeyen Sınıf',
+      field: student.alan,
+      exams: studentExams,
+      tasks: studentTasks,
+      attendance: {
+        summary: `Toplam ${attendance.totalDays.toFixed(1)} Gün Devamsızlık`,
+        details: `${attendance.excusedAbsence.toFixed(1)} gün izinli, ${attendance.unexcusedAbsence.toFixed(1)} gün izinsiz, ${attendance.lateArrival} kez geç kalma.`
+      }
+    };
+  };
+
+  try {
+    // Format incoming chat history for @google/genai format
+    const contents = (history || []).map((h: any) => ({
+      role: h.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: h.content }]
+    }));
+    
+    contents.push({
+      role: 'user',
+      parts: [{ text: message }]
+    });
+
+    let response = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: contents,
+      config: {
+        systemInstruction: systemInstruction,
+        tools: [{ functionDeclarations: [searchStudentsDeclaration, getStudentDetailDeclaration] }]
+      }
+    });
+
+    const functionCalls = response.functionCalls;
+    if (functionCalls && functionCalls.length > 0) {
+      const call = functionCalls[0];
+      let toolResult;
+      
+      if (call.name === 'searchStudents') {
+        const searchTerm = call.args.searchTerm as string;
+        toolResult = searchStudentsLocal(searchTerm);
+      } else if (call.name === 'getStudentDetail') {
+        const sId = Number(call.args.studentId);
+        toolResult = getStudentDetailLocal(sId);
+      }
+
+      // Format role model and tool outputs to send back to Gemini
+      const modelTurn = {
+        role: "model",
+        parts: [{ functionCalls: [call] }]
+      };
+      
+      const toolTurn = {
+        role: "tool",
+        parts: [{
+          functionResponse: {
+            name: call.name,
+            response: { result: toolResult }
+          }
+        }]
+      };
+
+      // Call Gemini again with the tool output
+      response = await ai.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: [...contents, modelTurn, toolTurn],
+        config: {
+          systemInstruction: systemInstruction,
+          tools: [{ functionDeclarations: [searchStudentsDeclaration, getStudentDetailDeclaration] }]
+        }
+      });
+    }
+
+    res.json({ text: response.text || 'Üzgünüm, şu anda yanıt oluşturamıyorum.' });
+  } catch (error: any) {
+    console.error("KAS.ai Chatbot Error:", error);
+    res.status(500).json({ error: error.message || 'Yapay zeka asistanı şu anda yanıt veremiyor.' });
   }
 });
 

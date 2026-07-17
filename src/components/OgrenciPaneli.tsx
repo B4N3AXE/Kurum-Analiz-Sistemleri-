@@ -155,18 +155,18 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
           'Content-Type': 'application/json',
           'Authorization': token
         },
-        body: JSON.stringify({ konu_key: topicKey, tamamlandi: newStatus })
+        body: JSON.stringify({ konu_key: topicKey.toLowerCase(), tamamlandi: newStatus })
       });
       if (res.ok) {
         setDetailData(prev => {
           if (!prev) return null;
           const existingList = prev.konu_takip || [];
-          const exists = existingList.some(kt => kt.konu_key === topicKey);
+          const exists = existingList.some(kt => kt.konu_key?.toLowerCase() === topicKey.toLowerCase());
           let newList;
           if (exists) {
-            newList = existingList.map(kt => kt.konu_key === topicKey ? { ...kt, tamamlandi: newStatus, tarih: new Date().toISOString() } : kt);
+            newList = existingList.map(kt => kt.konu_key?.toLowerCase() === topicKey.toLowerCase() ? { ...kt, tamamlandi: newStatus, tarih: new Date().toISOString() } : kt);
           } else {
-            newList = [...existingList, { id: Date.now(), ogrenci_id: prev.student.id, konu_key: topicKey, tamamlandi: newStatus, tarih: new Date().toISOString() }];
+            newList = [...existingList, { id: Date.now(), ogrenci_id: prev.student.id, konu_key: topicKey.toLowerCase(), tamamlandi: newStatus, tarih: new Date().toISOString() }];
           }
           return {
             ...prev,
@@ -869,8 +869,8 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                             )}
                           </button>
                         </td>
-                        <td className="p-3.5 text-right pr-4">
-                          <div className="flex justify-end gap-1.5">
+                        <td className="p-3.5 text-right pr-4 whitespace-nowrap">
+                          <div className="flex justify-end gap-1.5 whitespace-nowrap">
                             <button
                               onClick={() => loadStudentDetail(s.id)}
                               className="p-1 bg-slate-850 hover:bg-slate-850 text-blue-400 rounded transition"
@@ -1747,22 +1747,24 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                   );
                 })()}
 
-                {/* Task Assigner Form (Coach assigns tasks) */}
+                 {/* Task Assigner Form (Coach assigns tasks) */}
                 <div className="bg-slate-950/30 border border-slate-850 p-4 rounded-xl space-y-3">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Yeni Ödev / Görev Atama</span>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      placeholder="Görev/ödev detayını yazın... (Örn: 150 Soru Paragraf)"
-                      value={newTaskText}
-                      onChange={e => setNewTaskText(e.target.value)}
-                      className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 placeholder-slate-600"
-                    />
-                    <div className="flex gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-1 xl:grid-cols-12 gap-2">
+                    <div className="xl:col-span-6">
+                      <input
+                        type="text"
+                        placeholder="Görev/ödev detayını yazın... (Örn: 150 Soru Paragraf)"
+                        value={newTaskText}
+                        onChange={e => setNewTaskText(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 placeholder-slate-600"
+                      />
+                    </div>
+                    <div className="xl:col-span-3">
                       <select
                         value={newTaskSubject}
                         onChange={e => setNewTaskSubject(e.target.value)}
-                        className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-2.5 py-2 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+                        className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-2.5 py-2 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
                       >
                         <option value="Matematik">Matematik</option>
                         <option value="Türkçe">Türkçe</option>
@@ -1774,10 +1776,12 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                         <option value="Felsefe">Felsefe</option>
                         <option value="Genel Rehberlik">Rehberlik</option>
                       </select>
+                    </div>
+                    <div className="xl:col-span-2">
                       <select
                         value={newTaskDay}
                         onChange={e => setNewTaskDay(e.target.value)}
-                        className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-2.5 py-2 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+                        className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-2.5 py-2 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
                       >
                         <option value="Pazartesi">Pzt</option>
                         <option value="Salı">Salı</option>
@@ -1787,10 +1791,12 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                         <option value="Cumartesi">Cmt</option>
                         <option value="Pazar">Paz</option>
                       </select>
+                    </div>
+                    <div className="xl:col-span-1">
                       <button
                         type="button"
                         onClick={handleCreateWeeklyTask}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1 shrink-0"
+                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer"
                       >
                         <Plus size={13} /> Ata
                       </button>
@@ -1881,42 +1887,49 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                   );
                 })()}
 
-                {/* Manual Log Adder */}
+                 {/* Manual Log Adder */}
                 <div className="bg-slate-950/30 border border-slate-850 p-4 rounded-xl space-y-3">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Manuel Çalışma Süresi Girişi (Koç Ekler)</span>
-                  <div className="flex gap-2">
-                    <select
-                      value={manualSessionSubject}
-                      onChange={e => setManualSessionSubject(e.target.value)}
-                      className="flex-1 bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500 font-medium cursor-pointer"
-                    >
-                      <option value="Matematik">Matematik</option>
-                      <option value="Türkçe">Türkçe</option>
-                      <option value="Fizik">Fizik</option>
-                      <option value="Kimya">Kimya</option>
-                      <option value="Biyoloji">Biyoloji</option>
-                      <option value="Tarih">Tarih</option>
-                      <option value="Coğrafya">Coğrafya</option>
-                      <option value="Felsefe">Felsefe</option>
-                    </select>
-                    <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-xl px-2">
-                      <input
-                        type="number"
-                        min="5"
-                        max="300"
-                        value={manualSessionDuration}
-                        onChange={e => setManualSessionDuration(Number(e.target.value))}
-                        className="w-12 bg-transparent border-none text-xs text-slate-100 font-bold font-mono focus:outline-none text-center"
-                      />
-                      <span className="text-[10px] text-slate-500 font-bold">dakika</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-1 xl:grid-cols-12 gap-2">
+                    <div className="xl:col-span-5">
+                      <select
+                        value={manualSessionSubject}
+                        onChange={e => setManualSessionSubject(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500 font-medium cursor-pointer"
+                      >
+                        <option value="Matematik">Matematik</option>
+                        <option value="Türkçe">Türkçe</option>
+                        <option value="Fizik">Fizik</option>
+                        <option value="Kimya">Kimya</option>
+                        <option value="Biyoloji">Biyoloji</option>
+                        <option value="Tarih">Tarih</option>
+                        <option value="Coğrafya">Coğrafya</option>
+                        <option value="Felsefe">Felsefe</option>
+                      </select>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleCreateStudySession}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1 shrink-0"
-                    >
-                      <Plus size={13} /> Kaydet
-                    </button>
+                    <div className="xl:col-span-4 flex items-center justify-between sm:justify-between xl:justify-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 min-h-[34px]">
+                      <span className="text-[10px] text-slate-500 font-bold xl:hidden uppercase">Süre:</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="5"
+                          max="300"
+                          value={manualSessionDuration}
+                          onChange={e => setManualSessionDuration(Number(e.target.value))}
+                          className="w-12 bg-transparent border-none text-xs text-slate-100 font-bold font-mono focus:outline-none text-center"
+                        />
+                        <span className="text-[10px] text-slate-500 font-bold">dakika</span>
+                      </div>
+                    </div>
+                    <div className="xl:col-span-3">
+                      <button
+                        type="button"
+                        onClick={handleCreateStudySession}
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
+                      >
+                        <Plus size={13} /> Kaydet
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -1965,7 +1978,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                   const subjMap = isLgs ? LGS_SUBJECT_TOPICS : TYT_SUBJECT_TOPICS;
                   const studentDoneKeys = (detailData.konu_takip || [])
                     .filter((kt: any) => kt.tamamlandi)
-                    .map((kt: any) => kt.konu_key);
+                    .map((kt: any) => kt.konu_key?.toLowerCase());
 
                   return (
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-slate-950/30 p-4 border border-slate-850 rounded-xl">
@@ -2001,7 +2014,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                     const subjMap = isLgs ? LGS_SUBJECT_TOPICS : TYT_SUBJECT_TOPICS;
                     const studentDoneKeys = (detailData.konu_takip || [])
                       .filter((kt: any) => kt.tamamlandi)
-                      .map((kt: any) => kt.konu_key);
+                      .map((kt: any) => kt.konu_key?.toLowerCase());
 
                     return Object.keys(subjMap).map((subjKey) => {
                       const topics = (subjMap as any)[subjKey] || [];
@@ -2031,7 +2044,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                           </button>
 
                           {isOpen && (
-                            <div className="p-3 bg-slate-950/30 border-t border-slate-900/80 space-y-1.5 max-h-80 overflow-y-auto">
+                            <div className="p-3 bg-slate-950/30 border-t border-slate-900/80 space-y-1.5">
                               {topics.map((topic: any, idx: number) => {
                                 const uniqueKey = `${subjKey}_${topic.ad}`.toLowerCase();
                                 const isDone = studentDoneKeys.includes(uniqueKey);
@@ -2159,14 +2172,14 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                   </span>
                 </h4>
 
-                {/* Add Teacher Advice Form (Only Admin, Teacher, Counselor can add) */}
+                 {/* Add Teacher Advice Form (Only Admin, Teacher, Counselor can add) */}
                 {(user.rol === 'admin' || user.rol === 'ogretmen' || user.rol === 'rehber') && (
                   <form onSubmit={handleAddTavsiye} className="space-y-2">
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <select
                         value={newTavsiyeCourse}
                         onChange={e => setNewTavsiyeCourse(e.target.value)}
-                        className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none w-[100px]"
+                        className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none w-full sm:w-[100px] shrink-0"
                       >
                         <option value="Matematik">Matematik</option>
                         <option value="Geometri">Geometri</option>
@@ -2179,19 +2192,21 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                         <option value="Felsefe">Felsefe</option>
                         <option value="Rehberlik">Rehberlik</option>
                       </select>
-                      <input
-                        type="text"
-                        placeholder="Özel ders tavsiyesi ekleyin..."
-                        value={newTavsiyeText}
-                        onChange={e => setNewTavsiyeText(e.target.value)}
-                        className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
-                      />
-                      <button
-                        type="submit"
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
-                      >
-                        <Send size={11} />
-                      </button>
+                      <div className="flex-1 flex gap-2 w-full">
+                        <input
+                          type="text"
+                          placeholder="Özel ders tavsiyesi ekleyin..."
+                          value={newTavsiyeText}
+                          onChange={e => setNewTavsiyeText(e.target.value)}
+                          className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 min-w-0"
+                        />
+                        <button
+                          type="submit"
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition shrink-0 cursor-pointer"
+                        >
+                          <Send size={11} />
+                        </button>
+                      </div>
                     </div>
                   </form>
                 )}
