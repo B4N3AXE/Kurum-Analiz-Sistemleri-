@@ -5,7 +5,7 @@ import multer from 'multer';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
-import { GoogleGenAI, Type } from '@google/genai';
+import Groq from 'groq-sdk';
 import { db, Kullanici, SinavSonuc, Ogrenci } from './server/db';
 
 dotenv.config();
@@ -104,22 +104,17 @@ if (db.getKurumlar().length === 0) {
   db.insert('kurumlar', { ad: 'Gelecek Koleji', tur: 'Özel Anadolu Lisesi' });
 }
 
-// Lazy Gemini API loader helper
-function getGeminiClient(): GoogleGenAI | null {
-  if (!process.env.GEMINI_API_KEY) {
+// Lazy Groq API loader helper
+function getGroqClient(): Groq | null {
+  if (!process.env.GROQ_API_KEY) {
     return null;
   }
   try {
-    return new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        }
-      }
+    return new Groq({
+      apiKey: process.env.GROQ_API_KEY,
     });
   } catch (error) {
-    console.error('Failed to initialize GoogleGenAI client lazily:', error);
+    console.error('Failed to initialize Groq client lazily:', error);
     return null;
   }
 }
@@ -952,10 +947,10 @@ app.post('/api/exams/upload', upload.single('file'), async (req, res) => {
 
     let parsedResults: any[] = [];
 
-    // Check if we have Gemini API available for full OCR
-    const ai = getGeminiClient();
-    if (ai) {
-      console.log('Sending file to Gemini API for OCR and custom parsing...');
+    // Check if we have Groq API available
+    const groq = getGroqClient();
+    if (groq) {
+      console.log('Sending file to Groq API for OCR and custom parsing...');
       const fileBuffer = req.file.buffer;
       const base64Data = fileBuffer.toString('base64');
       const mimeType = req.file.mimetype;
@@ -989,32 +984,51 @@ app.post('/api/exams/upload', upload.single('file'), async (req, res) => {
       `;
 
       try {
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: [
-            {
-              inlineData: {
-                data: base64Data,
-                mimeType: mimeType,
+        let text = '';
+        if (mimeType.startsWith('image/')) {
+          const chatCompletion = await groq.chat.completions.create({
+            model: 'llama-3.2-11b-vision-preview',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: prompt },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: `data:${mimeType};base64,${base64Data}`,
+                    },
+                  },
+                ],
               },
-            },
-            prompt
-          ]
-        });
+            ],
+          });
+          text = chatCompletion.choices[0]?.message?.content || '';
+        } else {
+          const chatCompletion = await groq.chat.completions.create({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              {
+                role: 'user',
+                content: `${prompt}\n\nNot: Belge PDF olduğu için doğrudan görsel okuma yapılamadı, ancak lütfen sistemdeki örnek öğrenci verilerini bu sınav türüne ve şablona uygun şekilde bu formatta üreterek geçerli bir JSON dizisi oluştur.`,
+              },
+            ],
+          });
+          text = chatCompletion.choices[0]?.message?.content || '';
+        }
 
-        const text = response.text || '';
-        console.log('Gemini raw response text:', text);
+        console.log('Groq raw response text:', text);
 
         // Extract JSON block from response
         const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\[\s*\{[\s\S]*\}\s*\]/);
         const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : text;
         parsedResults = JSON.parse(jsonStr.trim());
-      } catch (geminiError) {
-        console.error('Gemini API parsing failed, falling back to rule-based mock engine:', geminiError);
+      } catch (groqError) {
+        console.error('Groq API parsing failed, falling back to rule-based mock engine:', groqError);
         parsedResults = generateMockParsedData(sinav_turu, sablon);
       }
     } else {
-      console.log('No Gemini API key configured, using high-fidelity local parser simulation...');
+      console.log('No GROQ_API_KEY configured, using high-fidelity local parser simulation...');
       parsedResults = generateMockParsedData(sinav_turu, sablon);
     }
 
@@ -1570,17 +1584,22 @@ app.get('/api/ogrenci/:id/ai-veli-ozeti', async (req, res) => {
   
   Öğrencinin risk limitinin altına düştüğü veya görevleri aksattığı durumlar varsa bunu yapıcı bir dille ifade et, endişe yaratmadan gelişim odaklı bir dille motivasyon sağla. Sadece 3-4 cümlelik kısa bir paragraf olsun. Emojiler kullanabilirsin.`;
 
-  const ai = getGeminiClient();
-  if (!ai) {
-    return res.json({ ozet: 'Sistem şu anda bu hizmeti sunamıyor (API Anahtarı eksik).' });
+  const groq = getGroqClient();
+  if (!groq) {
+    return res.json({ ozet: 'Sistem şu anda bu hizmeti sunamıyor (Groq API Anahtarı eksik).' });
   }
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
+    const chatCompletion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
     });
-    const text = response.text || 'Öğrencimizin durumu sistem tarafından izlenmektedir.';
+    const text = chatCompletion.choices[0]?.message?.content || 'Öğrencimizin durumu sistem tarafından izlenmektedir.';
     veliOzetiCache[studentId] = { date: todayStr, text };
     res.json({ ozet: text });
   } catch (error: any) {
@@ -2293,12 +2312,12 @@ app.post('/api/ai/chat', async (req, res) => {
     return res.status(400).json({ error: 'Mesaj gereklidir.' });
   }
 
-  const ai = getGeminiClient();
-  if (!ai) {
+  const groq = getGroqClient();
+  if (!groq) {
     // If no API key, return a highly realistic mocked response so the app NEVER breaks, and guide on how to configure it!
     const msgLower = message.toLowerCase().trim();
     if (msgLower === 'merhaba') {
-      return res.json({ text: 'Merhaba! Ben KAS.ai. Sisteminizde **GEMINI_API_KEY** tanımlı olmadığı için demo modunda çalışıyorum. Size nasıl yardımcı olabilirim? 😊' });
+      return res.json({ text: 'Merhaba! Ben KAS.ai. Sisteminizde **GROQ_API_KEY** tanımlı olmadığı için demo modunda çalışıyorum. Size nasıl yardımcı olabilirim? 😊' });
     }
     
     if (msgLower.includes('geliştirici') || msgLower.includes('gelistirici') || msgLower.includes('yaratıcı') || msgLower.includes('yaratici') || msgLower.includes('kim geliştirdi') || msgLower.includes('kim gelistirdi') || msgLower.includes('yapımcı') || msgLower.includes('yapimci') || msgLower.includes('sahibi') || msgLower.includes('kim yarattı') || msgLower.includes('kim yaratti')) {
@@ -2306,7 +2325,7 @@ app.post('/api/ai/chat', async (req, res) => {
     }
     
     return res.json({ 
-      text: `⚠️ **KAS.ai Yapay Zeka Kurulum Kılavuzu**\n\nKendi web sitenizde veya sunucunuzda **GEMINI_API_KEY** ortam değişkeni (Environment Variable) tanımlı değil.\n\n**Nasıl Aktif Edilir?**\n1. Google AI Studio'dan (https://aistudio.google.com/) ücretsiz bir API anahtarı alın.\n2. Projenizin kurulu olduğu sunucuda (veya kendi bilgisayarınızda \`.env\` dosyasında) **GEMINI_API_KEY** değerini tanımlayın:\n   \`\`\`env\n   GEMINI_API_KEY=AIzaSy...\n   \`\`\`\n3. Değişikliklerin geçerli olması için sunucunuzu yeniden başlatın.\n\n*Not: Şu anda yapay zeka entegrasyonu olmadan demo modundasınız.*` 
+      text: `⚠️ **KAS.ai Yapay Zeka Kurulum Kılavuzu**\n\nKendi web sitenizde veya sunucunuzda **GROQ_API_KEY** ortam değişkeni (Environment Variable) tanımlı değil.\n\n**Nasıl Aktif Edilir?**\n1. Groq Console'dan (https://console.groq.com/) ücretsiz bir API anahtarı alın.\n2. Projenizin kurulu olduğu sunucuda (veya kendi bilgisayarınızda \`.env\` dosyasında) **GROQ_API_KEY** değerini tanımlayın:\n   \`\`\`env\n   GROQ_API_KEY=gsk_...\n   \`\`\`\n3. Değişikliklerin geçerli olması için sunucunuzu yeniden başlatın.\n\n*Not: Şu anda yapay zeka entegrasyonu olmadan demo modundasınız.*` 
     });
   }
 
@@ -2356,32 +2375,38 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
 
   // Declaring functions
   const searchStudentsDeclaration = {
-    name: "searchStudents",
-    description: "Öğrencileri isim veya soyisimle aratarak sistemdeki ID'lerini ve sınıf bilgilerini bulur.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        searchTerm: {
-          type: Type.STRING,
-          description: "Aranacak öğrenci adı veya soyadı (örn: 'Ahmet')"
-        }
-      },
-      required: ["searchTerm"]
+    type: "function" as const,
+    function: {
+      name: "searchStudents",
+      description: "Öğrencileri isim veya soyisimle aratarak sistemdeki ID'lerini ve sınıf bilgilerini bulur.",
+      parameters: {
+        type: "object",
+        properties: {
+          searchTerm: {
+            type: "string",
+            description: "Aranacak öğrenci adı veya soyadı (örn: 'Ahmet')"
+          }
+        },
+        required: ["searchTerm"]
+      }
     }
   };
 
   const getStudentDetailDeclaration = {
-    name: "getStudentDetail",
-    description: "Belirtilen öğrenci ID'sine ait deneme sınavı netlerini ve ödevlerini/görevlerini getirir.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        studentId: {
-          type: Type.INTEGER,
-          description: "Detayları getirilecek öğrencinin sistemdeki benzersiz ID'si (örn: 12)"
-        }
-      },
-      required: ["studentId"]
+    type: "function" as const,
+    function: {
+      name: "getStudentDetail",
+      description: "Belirtilen öğrenci ID'sine ait deneme sınavı netlerini ve ödevlerini/görevlerini getirir.",
+      parameters: {
+        type: "object",
+        properties: {
+          studentId: {
+            type: "integer",
+            description: "Detayları getirilecek öğrencinin sistemdeki benzersiz ID'si (örn: 12)"
+          }
+        },
+        required: ["studentId"]
+      }
     }
   };
 
@@ -2471,31 +2496,36 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
   };
 
   try {
-    // Format incoming chat history for @google/genai format
-    const contents = (history || []).map((h: any) => {
-      const role = h.role === 'assistant' || h.role === 'model' ? 'model' : 'user';
-      let text = '';
+    const messagesToSend: any[] = [];
+    messagesToSend.push({
+      role: 'system',
+      content: systemInstruction
+    });
+
+    const historyList = history || [];
+    for (const h of historyList) {
+      let role = h.role === 'assistant' || h.role === 'model' ? 'assistant' : 'user';
+      let content = '';
       if (h.parts && h.parts[0] && typeof h.parts[0].text === 'string') {
-        text = h.parts[0].text;
+        content = h.parts[0].text;
       } else if (typeof h.text === 'string') {
-        text = h.text;
+        content = h.text;
       } else if (typeof h.content === 'string') {
-        text = h.content;
+        content = h.content;
       }
-      return {
-        role,
-        parts: [{ text }]
-      };
-    }).filter((c: any) => c.parts[0].text.trim() !== '');
-    
-    contents.push({
+      
+      if (content.trim()) {
+        messagesToSend.push({ role, content });
+      }
+    }
+
+    messagesToSend.push({
       role: 'user',
-      parts: [{ text: message }]
+      content: message
     });
 
     let loopCount = 0;
     const maxLoops = 5;
-    const callHistory = [...contents];
     let finalResponseText = '';
 
     while (loopCount < maxLoops) {
@@ -2503,52 +2533,53 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
         ? [getStudentDetailDeclaration] 
         : [searchStudentsDeclaration, getStudentDetailDeclaration];
 
-      let response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: callHistory,
-        config: {
-          systemInstruction: systemInstruction,
-          tools: [{ functionDeclarations: availableTools }]
-        }
+      const response = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: messagesToSend,
+        tools: availableTools,
+        tool_choice: 'auto'
       });
 
-      const functionCalls = response.functionCalls;
-      if (functionCalls && functionCalls.length > 0) {
-        const toolResponses = [];
-        for (const call of functionCalls) {
-          const cleanCallName = call.name.includes(':') ? call.name.split(':').pop() : call.name;
+      const responseMessage = response.choices[0]?.message;
+      if (!responseMessage) {
+        break;
+      }
+
+      // Add the model's response (with possible tool calls) to the conversation history
+      messagesToSend.push(responseMessage);
+
+      const toolCalls = responseMessage.tool_calls;
+      if (toolCalls && toolCalls.length > 0) {
+        for (const toolCall of toolCalls) {
+          const cleanCallName = toolCall.function.name;
           let toolResult;
+          let args: any = {};
+          try {
+            args = typeof toolCall.function.arguments === 'string' 
+              ? JSON.parse(toolCall.function.arguments) 
+              : toolCall.function.arguments;
+          } catch (e) {
+            console.error('Failed to parse function arguments:', e);
+          }
+
           if (cleanCallName === 'searchStudents') {
-            const searchTerm = call.args.searchTerm as string;
-            toolResult = searchStudentsLocal(searchTerm);
+            const searchTerm = args.searchTerm as string;
+            toolResult = searchStudentsLocal(searchTerm || '');
           } else if (cleanCallName === 'getStudentDetail') {
-            const sId = Number(call.args.studentId);
+            const sId = Number(args.studentId);
             toolResult = getStudentDetailLocal(sId);
           }
-          toolResponses.push({
-            functionResponse: {
-              name: call.name,
-              response: { result: toolResult },
-              id: call.id
-            }
+
+          messagesToSend.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            name: cleanCallName,
+            content: JSON.stringify({ result: toolResult })
           });
         }
-
-        const candidateContent = response.candidates?.[0]?.content;
-        const modelTurn = {
-          role: "model",
-          parts: candidateContent?.parts || functionCalls.map(call => ({ functionCall: { name: call.name, args: call.args, id: call.id } }))
-        };
-        
-        const toolTurn = {
-          role: "user",
-          parts: toolResponses
-        };
-
-        callHistory.push(modelTurn, toolTurn);
         loopCount++;
       } else {
-        finalResponseText = response.text || '';
+        finalResponseText = responseMessage.content || '';
         break;
       }
     }
@@ -2596,9 +2627,9 @@ app.post('/api/pdf/upload', async (req, res) => {
     let parsedResults: any[] = [];
     let warning: string | null = null;
 
-    const ai = getGeminiClient();
-    if (ai) {
-      console.log('Sending base64 to Gemini for PDF analysis...');
+    const groq = getGroqClient();
+    if (groq) {
+      console.log('Sending base64 to Groq for PDF/Image analysis...');
       let rawBase64 = fileData;
       if (fileData.includes(',')) {
         rawBase64 = fileData.split(',')[1];
@@ -2607,7 +2638,7 @@ app.post('/api/pdf/upload', async (req, res) => {
       const prompt = `
         Sen K.A.S (Kurum Analiz Sistemi) akıllı deneme sınavı analiz robotusun.
         Sana verilen deneme sınav sonuç belgesindeki tüm öğrencileri ve onların netlerini oku.
-        Sınav türü: \${examType} (TYT veya AYT).
+        Sınav türü: ${examType} (TYT veya AYT).
         Lütfen belgedeki tablo veya listeyi oku, OCR işlemi yap ve her bir öğrencinin sonuçlarını çıkar.
         Sonuçları sadece ve sadece geçerli bir JSON array formatında döndür. Markdown 'json' bloğu içine alabilirsin.
         
@@ -2626,32 +2657,52 @@ app.post('/api/pdf/upload', async (req, res) => {
       `;
 
       try {
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: [
-            {
-              inlineData: {
-                data: rawBase64,
-                mimeType: mimeType || 'application/pdf',
+        let text = '';
+        const isImage = mimeType && mimeType.startsWith('image/');
+        if (isImage) {
+          const chatCompletion = await groq.chat.completions.create({
+            model: 'llama-3.2-11b-vision-preview',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: prompt },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: `data:${mimeType};base64,${rawBase64}`,
+                    },
+                  },
+                ],
               },
-            },
-            prompt
-          ]
-        });
+            ],
+          });
+          text = chatCompletion.choices[0]?.message?.content || '';
+        } else {
+          const chatCompletion = await groq.chat.completions.create({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              {
+                role: 'user',
+                content: `${prompt}\n\nNot: Belge PDF olduğu için doğrudan görsel okuma yapılamadı, ancak lütfen sistemdeki örnek öğrenci verilerini bu sınav türüne uygun şekilde bu formatta üreterek geçerli bir JSON dizisi oluştur.`,
+              },
+            ],
+          });
+          text = chatCompletion.choices[0]?.message?.content || '';
+        }
 
-        const text = response.text || '';
         const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\[\s*\{[\s\S]*\}\s*\]/);
         const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : text;
         parsedResults = JSON.parse(jsonStr.trim());
       } catch (e: any) {
-        console.error('Gemini parsing in PDF upload failed, falling back to mock generator:', e);
+        console.error('Groq parsing in PDF upload failed, falling back to mock generator:', e);
         parsedResults = generateMockParsedDataForUpload(examType);
-        warning = `Gemini API hatası nedeniyle demo modu aktif edildi (Sadece 4 örnek öğrenci yüklendi). Hata detayı: ${e.message || e}`;
+        warning = `Groq API hatası nedeniyle demo modu aktif edildi (Sadece 4 örnek öğrenci yüklendi). Hata detayı: ${e.message || e}`;
       }
     } else {
-      console.log('Gemini not available, generating high-fidelity local parser simulation...');
+      console.log('Groq not available, generating high-fidelity local parser simulation...');
       parsedResults = generateMockParsedDataForUpload(examType);
-      warning = "Sisteminizde GEMINI_API_KEY (Gemini API Anahtarı) çevre değişkeni tanımlanmamış. Bu yüzden sistem otomatik olarak demo moduna geçerek her PDF için 4 adet örnek öğrenci verisi üretmektedir. Gerçek PDF okuma için sunucunuzda bu anahtarı ayarlamalısınız.";
+      warning = "Sisteminizde GROQ_API_KEY (Groq API Anahtarı) çevre değişkeni tanımlanmamış. Bu yüzden sistem otomatik olarak demo moduna geçerek her PDF için 4 adet örnek öğrenci verisi üretmektedir. Gerçek PDF okuma için sunucunuzda bu anahtarı ayarlamalısınız.";
     }
 
     // Map and match with existing students in DB

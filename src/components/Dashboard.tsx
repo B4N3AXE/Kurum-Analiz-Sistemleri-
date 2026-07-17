@@ -453,8 +453,13 @@ export default function Dashboard({ user, token }: DashboardProps) {
           headers: { 'Authorization': token }
         });
         if (res.ok) {
-          const data = await res.json();
-          setStats(data);
+          const contentType = res.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await res.json();
+            setStats(data);
+          } else {
+            console.warn("Expected JSON response for stats, but received: ", contentType);
+          }
         }
       } catch (err) {
         console.error("Stats fetching error:", err);
