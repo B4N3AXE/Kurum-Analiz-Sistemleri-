@@ -2980,9 +2980,10 @@ app.post('/api/paytr/token', async (req, res) => {
       user_phone = '05555555555';
     }
     
-    // Sistem yönlendirme adresleri (PayTR canlı modda sabit güvenli https://kurumanaliz.com domainine kilitlendi)
-    const merchant_ok_url = "https://kurumanaliz.com/api/paytr/ok";
-    const merchant_fail_url = "https://kurumanaliz.com/api/paytr/fail";
+    // Sistem yönlendirme adresleri (PayTR için dinamik veya APP_URL kullanılarak, yoksa kurumanaliz.com)
+    const appUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    const merchant_ok_url = `${appUrl}/api/paytr/ok`;
+    const merchant_fail_url = `${appUrl}/api/paytr/fail`;
 
     // Sepet Ürünleri: [[Ürün Adı, Fiyatı, Adedi]]
     // Fiyat formatı TL cinsinden nokta ile ayrılmış string olmalıdır (Örn: "10.00")
@@ -3182,8 +3183,9 @@ PAYTR_MERCHANT_SALT=salt_buraya
       .update(hash_str)
       .digest('base64');
 
-    const merchant_ok_url = "https://kurumanaliz.com/api/paytr/ok";
-    const merchant_fail_url = "https://kurumanaliz.com/api/paytr/fail";
+    const appUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    const merchant_ok_url = `${appUrl}/api/paytr/ok`;
+    const merchant_fail_url = `${appUrl}/api/paytr/fail`;
 
     // PayTR API token alımı
     const formData = new URLSearchParams({
