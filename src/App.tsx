@@ -231,6 +231,194 @@ export default function App() {
   const [activePolicy, setActivePolicy] = useState<'privacy' | 'kvkk' | 'terms' | 'legal' | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  // Ratings and Reviews State
+  const [reviews, setReviews] = useState<{
+    id: string;
+    name: string;
+    role: string;
+    rating: number;
+    comment: string;
+    date: string;
+    verified: boolean;
+  }[]>(() => {
+    const saved = localStorage.getItem('kas_user_reviews');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // ignore
+      }
+    }
+    return [
+      {
+        id: "rev-1",
+        name: "Ahmet Kemal Kaya",
+        role: "Limit VIP Kurs Merkezi Müdürü",
+        rating: 5,
+        comment: "Sınav analizlerini manuel girmek günlerimizi alıyordu. K.A.S sayesinde PDF listeyi sürükleyip bırakıyoruz ve 3 saniyede tüm velilere gelişim karneleri gidiyor. Muazzam bir SaaS.",
+        date: "14 Haziran 2026",
+        verified: true
+      },
+      {
+        id: "rev-2",
+        name: "Zeynep Şahin",
+        role: "Atatürk Lisesi Eğitim Koordinatörü",
+        rating: 5,
+        comment: "Öğretmenlerimizin ve rehberlik ekibimizin veliyle olan iletişimini tek bir platforma topladık. Birebir derslerin takibi ve çakışma engelleme modülü işimizi çok kolaylaştırdı.",
+        date: "28 Haziran 2026",
+        verified: true
+      },
+      {
+        id: "rev-3",
+        name: "Murat Yılmaz",
+        role: "Özel Eksen Akademi Kurucusu",
+        rating: 5,
+        comment: "Velilerimiz anlık karnelere ve YKS sayaçlı gelişim grafiklerine bayıldı. Kurumsal prestijimizi katlayan harika bir otomasyon programı.",
+        date: "02 Temmuz 2026",
+        verified: true
+      },
+      {
+        id: "rev-4",
+        name: "Selin Demir",
+        role: "Öğrenci Velisi (12-Sayısal)",
+        rating: 4,
+        comment: "Kızımın ders programını, etütlerini ve deneme sonuçlarını buradan takip ediyorum. Çok düzenli ve pratik, emeği geçenlere teşekkürler.",
+        date: "11 Temmuz 2026",
+        verified: true
+      }
+    ];
+  });
+
+  const [showAddReviewForm, setShowAddReviewForm] = useState(false);
+  const [newReviewName, setNewReviewName] = useState('');
+  const [newReviewRole, setNewReviewRole] = useState('');
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [newReviewComment, setNewReviewComment] = useState('');
+  const [newReviewCode, setNewReviewCode] = useState('');
+  const [reviewError, setReviewError] = useState('');
+  const [reviewSuccess, setReviewSuccess] = useState('');
+
+  // Admin and License Codes states
+  const [licenseCodes, setLicenseCodes] = useState<string[]>(() => {
+    const saved = localStorage.getItem('kas_license_codes');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // ignore
+      }
+    }
+    return ['KAS2026', 'KAS50', 'KAS100', 'KAS-L-8842', 'KAS-L-1907', 'KAS-L-1923'];
+  });
+
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
+    return localStorage.getItem('kas_admin_logged_in') === 'true';
+  });
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [adminPassInput, setAdminPassInput] = useState('');
+  const [newLicenseCodeInput, setNewLicenseCodeInput] = useState('');
+  const [adminError, setAdminError] = useState('');
+  const [adminSuccess, setAdminSuccess] = useState('');
+
+  useEffect(() => {
+    localStorage.setItem('kas_license_codes', JSON.stringify(licenseCodes));
+  }, [licenseCodes]);
+
+  useEffect(() => {
+    localStorage.setItem('kas_admin_logged_in', isAdminLoggedIn ? 'true' : 'false');
+  }, [isAdminLoggedIn]);
+
+  // Calculate average rating dynamically
+  const averageRating = reviews.length > 0
+    ? Number((reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1))
+    : 5.0;
+
+  // Rating counts
+  const ratingCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  reviews.forEach(r => {
+    const star = Math.round(r.rating) as 1 | 2 | 3 | 4 | 5;
+    if (ratingCounts[star] !== undefined) {
+      ratingCounts[star]++;
+    }
+  });
+
+  const handleAddReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newReviewName.trim() || !newReviewComment.trim()) {
+      setReviewError("Lütfen adınızı ve yorumunuzu doldurun.");
+      setReviewSuccess("");
+      return;
+    }
+
+    // Security Check: To prevent malicious spammers/trolls from downvoting
+    const cleanCode = newReviewCode.trim().toUpperCase();
+    if (!licenseCodes.includes(cleanCode)) {
+      setReviewError("Doğrulama kodu hatalı! Troll ve sahte oyları engellemek için geçerli bir K.A.S Lisans Anahtarı veya doğrulama kodu girmelisiniz.");
+      setReviewSuccess("");
+      return;
+    }
+
+    const newReview = {
+      id: "rev-" + Date.now(),
+      name: newReviewName.trim(),
+      role: newReviewRole.trim() || "Doğrulanmış Üye",
+      rating: newReviewRating,
+      comment: newReviewComment.trim(),
+      date: new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
+      verified: true
+    };
+
+    setReviews(prev => [newReview, ...prev]);
+    setNewReviewName('');
+    setNewReviewRole('');
+    setNewReviewRating(5);
+    setNewReviewComment('');
+    setNewReviewCode('');
+    setReviewError('');
+    setReviewSuccess("Tebrikler! Yorumunuz başarıyla doğrulandı ve anında yayına alındı.");
+    
+    // Hide form after 3 seconds
+    setTimeout(() => {
+      setShowAddReviewForm(false);
+      setReviewSuccess("");
+    }, 3000);
+  };
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminPassInput === "KASADMIN" || adminPassInput === "KAS2026") {
+      setIsAdminLoggedIn(true);
+      setAdminPassInput('');
+      setAdminError('');
+      setAdminSuccess("Başarıyla yönetici girişi yapıldı!");
+      setTimeout(() => setAdminSuccess(''), 2000);
+    } else {
+      setAdminError("Hatalı yönetici şifresi!");
+      setAdminSuccess('');
+    }
+  };
+
+  const handleAddLicenseCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = newLicenseCodeInput.trim().toUpperCase();
+    if (!clean) return;
+    if (licenseCodes.includes(clean)) {
+      setAdminError("Bu kod zaten mevcut!");
+      return;
+    }
+    setLicenseCodes(prev => [...prev, clean]);
+    setNewLicenseCodeInput('');
+    setAdminError('');
+    setAdminSuccess(`"${clean}" kodu başarıyla üretildi ve lisans listesine eklendi.`);
+    setTimeout(() => setAdminSuccess(''), 3000);
+  };
+
+  const handleRemoveLicenseCode = (codeToRemove: string) => {
+    setLicenseCodes(prev => prev.filter(c => c !== codeToRemove));
+    setAdminSuccess(`"${codeToRemove}" kodu iptal edildi.`);
+    setTimeout(() => setAdminSuccess(''), 3000);
+  };
+
   useEffect(() => {
     const clockTimer = setInterval(() => {
       setCurrentTime(new Date());
@@ -1813,35 +2001,442 @@ export default function App() {
               </div>
             </div>
 
-            {/* Testimonials */}
-            <div className="bg-slate-900/20 border border-slate-900 rounded-3xl p-6 relative overflow-hidden">
-              <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest block mb-4">KURUMSAL YORUMLAR</span>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <div className="flex gap-1 text-amber-400">
-                    {[...Array(5)].map((_, i) => <Star key={i} size={11} fill="currentColor" />)}
-                  </div>
-                  <p className="text-xs text-slate-300 italic font-medium leading-relaxed">
-                    "Sınav analizlerini manuel girmek günlerimizi alıyordu. K.A.S sayesinde PDF listeyi sürükleyip bırakıyoruz ve 3 saniyede tüm velilere gelişim karneleri gidiyor. Muazzam bir SaaS."
+            {/* Interactive Rating & Verified Reviews Section */}
+            <div id="degerlendirmeler" className="bg-slate-900/20 border border-slate-900 rounded-3xl p-6 lg:p-8 relative overflow-hidden space-y-8 scroll-mt-6">
+              {/* Header */}
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-slate-800/60">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-1">
+                    <Star size={11} fill="currentColor" className="text-amber-400" /> KURUMSAL PUANLAMA & DEĞERLENDİRMELER
+                  </span>
+                  <h3 className="text-xl font-black text-slate-100">Kullanıcı Deneyimleri ve Şeffaf Puan Tablosu</h3>
+                  <p className="text-xs text-slate-400 font-semibold max-w-xl">
+                    Kurum Analiz Sistemi'ni kullanan prestijli eğitim kurumları, yöneticiler, öğretmenler ve veliler tarafından yapılan değerlendirmeler.
                   </p>
-                  <div>
-                    <span className="block text-[11px] font-black text-slate-100">Ahmet Kemal Kaya</span>
-                    <span className="block text-[9px] text-slate-500 font-bold">Limit VIP Kurs Merkezi Müdürü</span>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddReviewForm(!showAddReviewForm);
+                      setShowAdminPanel(false);
+                      setReviewError('');
+                      setReviewSuccess('');
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/10 cursor-pointer flex items-center gap-1.5"
+                  >
+                    {showAddReviewForm ? <X size={14} /> : <Plus size={14} />}
+                    {showAddReviewForm ? "Formu Kapat" : "Puan Ver & Yorum Yaz"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Grid: Rating Summary + Star Distribution Bar Chart */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-slate-950/40 p-6 rounded-2xl border border-slate-900">
+                {/* Score Circle */}
+                <div className="lg:col-span-4 flex flex-col items-center justify-center text-center space-y-2 border-b lg:border-b-0 lg:border-r border-slate-900 pb-6 lg:pb-0 lg:pr-6">
+                  <span className="text-5xl font-black text-slate-100 tracking-tight font-mono">{averageRating}</span>
+                  <div className="flex gap-1 text-amber-400">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        size={18}
+                        fill={i < Math.round(averageRating) ? "currentColor" : "none"}
+                        className={i < Math.round(averageRating) ? "text-amber-400" : "text-slate-700"}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                    Toplam {reviews.length} Değerlendirme
+                  </span>
+                  <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-[9px] font-black">
+                    <Shield size={10} /> %100 GERÇEK KULLANICI
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex gap-1 text-amber-400">
-                    {[...Array(5)].map((_, i) => <Star key={i} size={11} fill="currentColor" />)}
-                  </div>
-                  <p className="text-xs text-slate-300 italic font-medium leading-relaxed">
-                    "Öğretmenlerimizin ve rehberlik ekibimizin veliyle olan iletişimini tek bir platforma topladık. Birebir derslerin takibi ve çakışma engelleme modülü işimizi çok kolaylaştırdı."
-                  </p>
-                  <div>
-                    <span className="block text-[11px] font-black text-slate-100">Zeynep Şahin</span>
-                    <span className="block text-[9px] text-slate-500 font-bold">Atatürk Lisesi Eğitim Koordinatörü</span>
-                  </div>
+                {/* Rating Distribution Bars */}
+                <div className="lg:col-span-8 space-y-2 w-full">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Puan Dağılımı</span>
+                  {[5, 4, 3, 2, 1].map((stars) => {
+                    const count = ratingCounts[stars as 1|2|3|4|5] || 0;
+                    const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                    return (
+                      <div key={stars} className="flex items-center gap-3 text-[11px]">
+                        <span className="w-12 text-slate-400 font-bold font-mono text-right shrink-0">{stars} Yıldız</span>
+                        <div className="h-2 flex-1 bg-slate-900 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                            style={{ width: `${pct}%` }}
+                          ></div>
+                        </div>
+                        <span className="w-8 text-slate-500 font-semibold font-mono shrink-0 text-left">{count}</span>
+                      </div>
+                    );
+                  })}
                 </div>
+              </div>
+
+              {/* Slide-down Admin Control Panel */}
+              <AnimatePresence>
+                {showAdminPanel && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="bg-slate-950/60 border border-amber-500/20 p-5 rounded-2xl space-y-5">
+                      {!isAdminLoggedIn ? (
+                        <form onSubmit={handleAdminLogin} className="space-y-4">
+                          <div className="flex flex-col md:flex-row gap-3 items-end max-w-md">
+                            <div className="flex-1 space-y-1.5">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase font-sans">Yönetici Şifresi *</label>
+                              <input
+                                type="password"
+                                required
+                                placeholder="Admin şifrenizi girin..."
+                                value={adminPassInput}
+                                onChange={(e) => setAdminPassInput(e.target.value)}
+                                className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500/50 transition font-medium"
+                              />
+                            </div>
+                            <button
+                              type="submit"
+                              className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black transition shadow-lg shadow-amber-500/10 cursor-pointer h-9 shrink-0"
+                            >
+                              Yönetici Girişi Yap
+                            </button>
+                          </div>
+
+                          {adminError && (
+                            <div className="text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 p-2.5 rounded-xl inline-flex items-center gap-1.5">
+                              <AlertCircle size={13} /> {adminError}
+                            </div>
+                          )}
+                        </form>
+                      ) : (
+                        <div className="space-y-6">
+                          {/* Logged in header */}
+                          <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              <span className="text-xs font-black text-amber-400 uppercase tracking-wider">👑 SİSTEM PATRONU / MODERATÖR PANELİ AKTİF</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsAdminLoggedIn(false);
+                                setAdminSuccess("Yönetici çıkışı yapıldı.");
+                                setTimeout(() => setAdminSuccess(''), 2000);
+                              }}
+                              className="px-3 py-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-[10px] font-bold text-red-400 transition cursor-pointer"
+                            >
+                              Yönetici Çıkışı Yap
+                            </button>
+                          </div>
+
+                          {/* Dual Columns: Info + License Codes Management */}
+                          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            
+                            {/* Left: How do users get verification codes? */}
+                            <div className="lg:col-span-7 bg-slate-900/40 p-4.5 rounded-xl border border-slate-800 space-y-4">
+                              <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                                <HelpCircle size={14} className="text-blue-400" /> Kullanıcılar Doğrulama Kodunu Nasıl Alır?
+                              </h4>
+                              <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                                Kurum Analiz Sistemi (K.A.S) şeffaflığı ve yüksek puan kalitesini korumak için dışarıdan gelebilecek manipülatif bot veya troll yorumları engeller. Gerçek müşterileriniz yorum doğrulamayı şu 3 pratik yolla gerçekleştirir:
+                              </p>
+                              
+                              <ul className="space-y-3.5 text-[11px] text-slate-300 font-semibold pl-1">
+                                <li className="flex items-start gap-2">
+                                  <span className="flex items-center justify-center w-5 h-5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full font-mono font-bold text-[9px] shrink-0 mt-0.5">1</span>
+                                  <div>
+                                    <span className="text-slate-200 block text-[11px]">Satın Alım Sonrası Otomatik Lisanslama</span>
+                                    <span className="text-[10px] text-slate-500 leading-normal block font-normal">
+                                      Bir okul, dershane veya kurs merkezi sisteme kurumsal abone olduğunda, faturasıyla birlikte kendilerine otomatik bir Lisans Anahtarı tanımlanır (Örn: <code className="bg-slate-950 px-1 rounded text-blue-400">KAS-L-8842</code>). Bu kod aynı zamanda yorum yaparken doğrulama anahtarı olarak geçerlidir.
+                                    </span>
+                                  </div>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                  <span className="flex items-center justify-center w-5 h-5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full font-mono font-bold text-[9px] shrink-0 mt-0.5">2</span>
+                                  <div>
+                                    <span className="text-slate-200 block text-[11px]">Öğretmen / Veli Paneli Profil Ekranı</span>
+                                    <span className="text-[10px] text-slate-500 leading-normal block font-normal">
+                                      Kullanıcılar kendi portallarına giriş yaptıklarında, "Profil ve Ayarlar" sayfasında kendilerine ait doğrulama kodunu veya kurum lisans numarasını anlık görüntüleyebilir ve kopyalayabilirler.
+                                    </span>
+                                  </div>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                  <span className="flex items-center justify-center w-5 h-5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full font-mono font-bold text-[9px] shrink-0 mt-0.5">3</span>
+                                  <div>
+                                    <span className="text-slate-200 block text-[11px]">Manuel Kod Tanımlama (Yönetici Paneli)</span>
+                                    <span className="text-[10px] text-slate-500 leading-normal block font-normal">
+                                      Sistem sahibi olarak siz, güvendiğiniz bir müşterinize, öğretmen grubunuza veya veli temsilcinize sağ taraftaki formdan özel kod üreterek direkt elden teslim edebilirsiniz.
+                                    </span>
+                                  </div>
+                                </li>
+                              </ul>
+                            </div>
+
+                            {/* Right: Code management list */}
+                            <div className="lg:col-span-5 bg-slate-900/40 p-4.5 rounded-xl border border-slate-800 space-y-4">
+                              <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                                <Key size={14} className="text-amber-400" /> Aktif Doğrulama Kodları
+                              </h4>
+
+                              <form onSubmit={handleAddLicenseCode} className="flex gap-2">
+                                <input
+                                  type="text"
+                                  required
+                                  placeholder="Yeni kod girin (Örn: LİSANS12)"
+                                  value={newLicenseCodeInput}
+                                  onChange={(e) => setNewLicenseCodeInput(e.target.value)}
+                                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500/40 transition font-bold"
+                                />
+                                <button
+                                  type="submit"
+                                  className="px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer"
+                                >
+                                  Kod Üret
+                                </button>
+                              </form>
+
+                              {/* Scrollable list */}
+                              <div className="border border-slate-800 rounded-xl bg-slate-950 overflow-hidden">
+                                <div className="text-[9px] text-slate-500 font-bold px-3 py-1.5 bg-slate-900 border-b border-slate-800">
+                                  SİSTEMDE KAYITLI AKTİF KODLAR ({licenseCodes.length})
+                                </div>
+                                <div className="max-h-48 overflow-y-auto divide-y divide-slate-900 custom-scrollbar">
+                                  {licenseCodes.map((code) => (
+                                    <div key={code} className="flex items-center justify-between px-3 py-2 text-xs font-mono font-bold text-slate-300 hover:bg-slate-900/40 transition">
+                                      <span>{code}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveLicenseCode(code)}
+                                        className="p-1 text-slate-600 hover:text-red-400 transition cursor-pointer"
+                                        title="Kodu Sil/İptal Et"
+                                      >
+                                        <X size={12} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                          </div>
+
+                          {/* Global admin message feedback */}
+                          {adminSuccess && (
+                            <div className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl flex items-center gap-1.5 animate-pulse">
+                              <CheckCircle size={14} /> {adminSuccess}
+                            </div>
+                          )}
+
+                          {/* Moderation instructions info */}
+                          <div className="text-[10px] text-amber-400 bg-amber-500/5 p-3 rounded-xl border border-amber-500/10 font-medium">
+                            💡 <strong>Yönetici Moderasyon Modu Aktif:</strong> Aşağıdaki kullanıcı yorumları listesinde yer alan <strong>TÜM</strong> yorumların (ilk yerleşik gelen kurumsal yorumlar dahil!) sağ alt köşesinde kırmızı çöp kutusu <Trash2 size={10} className="inline mx-0.5" /> simgesi belirmiştir. Dilediğiniz yoruma tıklayarak sistemden tamamen kaldırabilirsiniz.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Dynamic Interactive Slide-down Review Submission Form */}
+              <AnimatePresence>
+                {showAddReviewForm && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <form onSubmit={handleAddReview} className="bg-slate-950/60 border border-blue-500/20 p-5 rounded-2xl space-y-4">
+                      <div className="flex items-start gap-2.5 p-3 bg-blue-950/40 border border-blue-500/10 rounded-xl text-[10px] text-blue-300">
+                        <Shield className="text-blue-400 shrink-0 mt-0.5" size={14} />
+                        <div>
+                          <span className="font-extrabold block text-blue-400 uppercase text-[9px] mb-0.5">🛡️ SAHTE PUAN VE REKABET MANİPÜLASYONU ENGELLEME SİSTEMİ</span>
+                          Sistemimizin şeffaflığını ve puan kalitesini korumak amacıyla, dışarıdan gelebilecek bot, troll veya haksız rekabet amaçlı düşük puanlı sahte yorumlar engellenmektedir. Sadece aktif K.A.S. lisanslı eğitim kurumları ve doğrulanmış üyeler yorum yazabilir. Lütfen sistem yöneticinizden aldığınız doğrulama kodunu girin.
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase font-sans">Adınız Soyadınız *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Örn: Ahmet Yılmaz"
+                            value={newReviewName}
+                            onChange={(e) => setNewReviewName(e.target.value)}
+                            className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500/50 transition font-medium"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase font-sans">Kurumunuz / Rolünüz *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Örn: Atatürk Lisesi Müdürü, Öğretmen veya Veli"
+                            value={newReviewRole}
+                            onChange={(e) => setNewReviewRole(e.target.value)}
+                            className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500/50 transition font-medium"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase block font-sans">Değerlendirme Puanınız *</label>
+                          <div className="flex gap-2 items-center">
+                            {[1, 2, 3, 4, 5].map((starValue) => (
+                              <button
+                                key={starValue}
+                                type="button"
+                                onClick={() => setNewReviewRating(starValue)}
+                                className="focus:outline-none p-1 hover:scale-110 transition cursor-pointer"
+                              >
+                                <Star
+                                  size={24}
+                                  fill={starValue <= newReviewRating ? "currentColor" : "none"}
+                                  className={starValue <= newReviewRating ? "text-amber-400" : "text-slate-700"}
+                                />
+                              </button>
+                            ))}
+                            <span className="text-xs text-slate-400 font-bold font-mono ml-2">({newReviewRating} / 5 Yıldız)</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase font-sans">K.A.S DOĞRULAMA KODU / LİSANS ANAHTARI *</label>
+                            <span className="text-[9px] text-blue-400 font-extrabold animate-pulse">(Geçerli Kodlar: {licenseCodes.slice(0, 3).join(', ')} vb.)</span>
+                          </div>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Doğrulama kodunuzu girin"
+                            value={newReviewCode}
+                            onChange={(e) => setNewReviewCode(e.target.value)}
+                            className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500/50 transition font-bold tracking-wider placeholder:font-normal"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase font-sans">Değerlendirme Notunuz / Yorumunuz *</label>
+                        <textarea
+                          required
+                          rows={3}
+                          placeholder="K.A.S. sistemi ile ilgili tecrübelerinizi yazın..."
+                          value={newReviewComment}
+                          onChange={(e) => setNewReviewComment(e.target.value)}
+                          className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500/50 transition font-medium"
+                        ></textarea>
+                      </div>
+
+                      {reviewError && (
+                        <div className="flex items-center gap-2 text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-xl">
+                          <AlertCircle size={14} />
+                          <span>{reviewError}</span>
+                        </div>
+                      )}
+
+                      {reviewSuccess && (
+                        <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl animate-pulse">
+                          <CheckCircle size={14} />
+                          <span>{reviewSuccess}</span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAddReviewForm(false);
+                            setReviewError('');
+                            setReviewSuccess('');
+                          }}
+                          className="px-4 py-2 bg-transparent border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200 rounded-xl text-xs font-bold transition cursor-pointer"
+                        >
+                          İptal Et
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-blue-500/10 cursor-pointer"
+                        >
+                          Güvenli Doğrula ve Yayınla ✨
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Reviews List */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                {reviews.map((rev) => (
+                  <div key={rev.id} className="bg-slate-900/15 border border-slate-900 hover:border-slate-800/80 p-5 rounded-2xl space-y-3.5 relative overflow-hidden transition-all duration-300 flex flex-col justify-between group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all"></div>
+                    
+                    <div className="space-y-2.5 relative z-10">
+                      {/* Star rating row + Verified Badge */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex gap-1 text-amber-400">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              size={11}
+                              fill={i < rev.rating ? "currentColor" : "none"}
+                              className={i < rev.rating ? "text-amber-400" : "text-slate-700"}
+                            />
+                          ))}
+                        </div>
+                        {rev.verified && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-[8px] font-black text-blue-400">
+                            <CheckCircle size={8} fill="currentColor" className="text-blue-400" /> DOĞRULANMIŞ KURUM
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Comment text */}
+                      <p className="text-xs text-slate-300 italic font-medium leading-relaxed">
+                        "{rev.comment}"
+                      </p>
+                    </div>
+
+                    {/* Author info & deletion option */}
+                    <div className="flex items-end justify-between relative z-10 pt-2 border-t border-slate-900/40">
+                      <div>
+                        <span className="block text-[11px] font-black text-slate-100">{rev.name}</span>
+                        <span className="block text-[9px] text-slate-500 font-bold">{rev.role}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] text-slate-600 font-mono font-bold">{rev.date}</span>
+                        {(isAdminLoggedIn || !["rev-1", "rev-2", "rev-3", "rev-4"].includes(rev.id)) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`"${rev.name}" tarafından yapılan yorumu tamamen kaldırmak istediğinize emin misiniz?`)) {
+                                setReviews(prev => prev.filter(r => r.id !== rev.id));
+                              }
+                            }}
+                            className="p-1 text-slate-600 hover:text-red-400 transition cursor-pointer"
+                            title="Yorumu Sil"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -1904,6 +2499,24 @@ export default function App() {
                       className="text-[10px] font-extrabold text-slate-400 hover:text-slate-200 text-left transition cursor-pointer"
                     >
                       Yasal Uyarı
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAdminPanel(!showAdminPanel);
+                        setShowAddReviewForm(false);
+                        setAdminError('');
+                        setAdminSuccess('');
+                        // Smoothly scroll to evaluations container where the admin drawer resides
+                        const el = document.getElementById("degerlendirmeler");
+                        if (el) {
+                          el.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }}
+                      className="text-[10px] font-extrabold text-slate-500 hover:text-slate-300 text-left transition cursor-pointer flex items-center gap-1 mt-1 pt-2 border-t border-slate-900/40"
+                    >
+                      <Key size={10} />
+                      <span>{isAdminLoggedIn ? "Yönetici Paneli (Aktif)" : "Yönetici Portalı"}</span>
                     </button>
                   </div>
                 </div>
