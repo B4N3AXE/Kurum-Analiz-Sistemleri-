@@ -64,12 +64,70 @@ export default function App() {
   // Intro Animation State
   const [isIntroComplete, setIsIntroComplete] = useState(false);
 
+  // PWA & Installation States
+  const [pwaPrompt, setPwaPrompt] = useState<any>(null);
+  const [showPwaBanner, setShowPwaBanner] = useState<boolean>(false);
+  const [isIos, setIsIos] = useState<boolean>(false);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsIntroComplete(true);
     }, 2600); // 2.6 seconds centered intro, then slide into place!
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    // Check if running as standalone PWA
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    if (isStandalone) {
+      return;
+    }
+
+    // Detect iOS devices
+    const isIosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIos(isIosDevice);
+
+    if (isIosDevice) {
+      const dismissed = localStorage.getItem('pwa-ios-dismissed');
+      if (!dismissed) {
+        const timer = setTimeout(() => setShowPwaBanner(true), 6000);
+        return () => clearTimeout(timer);
+      }
+    } else {
+      const handleBeforeInstallPrompt = (e: Event) => {
+        e.preventDefault();
+        setPwaPrompt(e);
+        const dismissed = localStorage.getItem('pwa-android-dismissed');
+        if (!dismissed) {
+          const timer = setTimeout(() => setShowPwaBanner(true), 6000);
+          return () => clearTimeout(timer);
+        }
+      };
+
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      return () => {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      };
+    }
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!pwaPrompt) return;
+    pwaPrompt.prompt();
+    const { outcome } = await pwaPrompt.userChoice;
+    console.log(`K.A.S. Kurulum tercihi: ${outcome}`);
+    setPwaPrompt(null);
+    setShowPwaBanner(false);
+  };
+
+  const handleDismissPwa = () => {
+    if (isIos) {
+      localStorage.setItem('pwa-ios-dismissed', 'true');
+    } else {
+      localStorage.setItem('pwa-android-dismissed', 'true');
+    }
+    setShowPwaBanner(false);
+  };
 
   // Form Fields
   const [email, setEmail] = useState('');
@@ -2643,6 +2701,24 @@ export default function App() {
                     </div>
                   )}
 
+                  {/* Permanent PWA install triggers in mobile drawer */}
+                  {(pwaPrompt || isIos) && (
+                    <div className="bg-slate-900/50 border border-blue-500/10 p-3 rounded-2xl flex items-center justify-between">
+                      <div>
+                        <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block">Uygulama Sürümü</span>
+                        <span className="text-[10px] text-blue-400 font-extrabold flex items-center gap-1">
+                          📱 Mobil Uygulamayı Yükle
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => { setShowPwaBanner(true); setIsMobileMenuOpen(false); }}
+                        className="text-[9px] bg-blue-600 hover:bg-blue-500 text-white font-extrabold px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition"
+                      >
+                        <Zap size={10} /> Yükle
+                      </button>
+                    </div>
+                  )}
+
                   {/* Profile & Logout */}
                   <div className="flex items-center justify-between bg-slate-900/30 p-2.5 rounded-2xl border border-slate-900">
                     <div className="flex items-center gap-2">
@@ -2932,6 +3008,22 @@ export default function App() {
                       Şimdi Paketini Yükselt ⚡
                     </button>
                   )}
+                </div>
+              )}
+
+              {/* Permanent PWA install triggers in desktop sidebar */}
+              {(pwaPrompt || isIos) && (
+                <div className="bg-gradient-to-tr from-slate-950/60 to-slate-900/40 border border-blue-500/10 p-3.5 rounded-2xl space-y-2 mt-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-400">📱</span>
+                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider block">K.A.S. Mobil Uygulaması</span>
+                  </div>
+                  <button
+                    onClick={() => setShowPwaBanner(true)}
+                    className="text-[10px] w-full bg-blue-600/10 hover:bg-blue-600/25 border border-blue-500/20 text-blue-400 font-extrabold py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Zap size={10} /> Uygulamayı Yükle
+                  </button>
                 </div>
               )}
 
@@ -5093,6 +5185,66 @@ export default function App() {
           </motion.button>
         </div>
       )}
+
+      {/* PWA Install Banner */}
+      <AnimatePresence>
+        {showPwaBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: 0.3 }}
+            className="fixed bottom-24 md:bottom-8 right-4 left-4 md:left-auto md:w-96 bg-slate-900/98 backdrop-blur-md border border-slate-800 p-5 rounded-2xl shadow-2xl shadow-blue-500/5 z-50 flex flex-col gap-4"
+          >
+            <div className="flex justify-between items-start">
+              <div className="flex gap-3">
+                <div className="p-2.5 bg-blue-600/10 text-blue-400 rounded-xl border border-blue-500/15 flex items-center justify-center shrink-0">
+                  <GraduationCap size={24} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-100">K.A.S Uygulamasını Yükleyin</h3>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    Kurum Analiz portalını telefonunuza veya bilgisayarınıza bir uygulama gibi yükleyerek anında erişim sağlayın.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleDismissPwa}
+                className="p-1 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg cursor-pointer transition shrink-0"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {isIos ? (
+              <div className="bg-slate-950/50 rounded-xl p-3 border border-slate-800 text-xs text-slate-300 space-y-1.5 leading-relaxed">
+                <p className="font-bold text-blue-400">iOS (Safari) Kurulum Adımları:</p>
+                <ol className="list-decimal list-inside space-y-1 text-slate-400">
+                  <li>Tarayıcı altındaki <span className="font-bold text-slate-200">"Paylaş" (Share)</span> butonuna tıklayın.</li>
+                  <li>Açılan menüden <span className="font-bold text-slate-200">"Ana Ekrana Ekle" (Add to Home Screen)</span> seçeneğini seçin.</li>
+                  <li>Sağ üstteki <span className="font-bold text-slate-200">"Ekle"</span> butonuna tıklayarak işlemi tamamlayın.</li>
+                </ol>
+              </div>
+            ) : (
+              <div className="flex gap-2.5">
+                <button
+                  onClick={handleInstallClick}
+                  disabled={!pwaPrompt}
+                  className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-black rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-blue-600/20"
+                >
+                  <Zap size={14} /> Şimdi Yükle
+                </button>
+                <button
+                  onClick={handleDismissPwa}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-bold rounded-xl transition cursor-pointer"
+                >
+                  Daha Sonra
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {!isLoggedIn && <AiChatWidget
         isOpen={isAiChatOpen}

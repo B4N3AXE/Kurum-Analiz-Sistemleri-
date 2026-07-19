@@ -26,6 +26,13 @@
     <meta name="twitter:title" content="Kurum Analiz Sistemleri" />
     <meta name="twitter:description" content="Yapay zeka destekli Kurum Analiz platformu ile öğrenci sınav sonuçlarını ve PDF'lerini saniyeler içinde analiz edin." />
 
+    <!-- Mobil PWA ve iOS Uyumluluk Etiketleri -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Kurum Analiz" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
     <!-- Google Arama Botları İçin Yapısal Veri (Structured Data - JSON-LD) -->
     <!-- Bu kod Google'a 'kurumanaliz' kelimesinin bir yazım hatası olmadığını, tescilli bir marka ismi ve resmi site adı olduğunu bildirir. -->
     <script type="application/ld+json">
@@ -65,6 +72,19 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => {
+              console.log('K.A.S. Service Worker başarıyla kaydedildi:', reg.scope);
+            })
+            .catch(err => {
+              console.error('K.A.S. Service Worker kaydı başarısız:', err);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
 
