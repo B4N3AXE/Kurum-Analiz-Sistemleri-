@@ -2028,7 +2028,7 @@ app.post('/api/ogrenci/:id/ai-karne-analizi', async (req, res) => {
     ${JSON.stringify(topicAnalysisData)}
 
     Öğrencinin karnesini incele, DERS DERS (TÜRKÇE, MATEMATİK, SOSYAL BİLGİLER, FEN BİLİMLERİ) değerlendirerek; başarısı zayıf olan ya da yanlışı fazla olan konuları tespit et. 
-    Öğrenciye hitaben "bu konuda şu sıkıntın var" (örneğin: "şurada dikkat hatası yapıyorsun", "şurada temel bilgi eksiğin var", "yeni nesil sorularda zorlanıyorsun") şeklinde son derece nokta atışı, dürüst ama yapıcı, samimi ve motive edici bir dille teşhis koy ve somut bir çözüm önerisi yaz.
+    Öğrenciye hitaben detaylı, derinlemesine ve stratejik teşhisler yap. Analizin yüzeysel kalmamalı; öğrencinin zayıf olduğu konularda kapsamlı, net ve adım adım uygulanabilir çözüm önerileri sun. (Örneğin, sadece "daha çok test çöz" demek yerine "şu soru tarzlarına yönel, şu tekniklerle konuyu tekrar et, zaman yönetiminde şu yöntemi uygula" gibi nokta atışı tavsiyelerde bulun). Dilin samimi, yapıcı ve profesyonel olsun.
 
     Lütfen çıktıyı KESİNLİKLE şu JSON şemasına uygun olarak üret:
     {

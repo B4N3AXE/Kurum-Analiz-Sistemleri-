@@ -1759,7 +1759,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                         className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 disabled:from-slate-800 disabled:to-slate-800 text-slate-100 font-bold py-3 px-4 rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                       >
                         <Sparkles size={16} className={aiKarneLoading ? "animate-spin" : "animate-pulse"} />
-                        {aiKarneLoading ? "KAS.ai Karneni Ders Ders Analiz Ediyor, Lütfen Bekle..." : "Yapay Zeka Karnemi Ders Ders İncelesin"}
+                        {aiKarneLoading ? "KAS.ai Karneni Ders Ders Analiz Ediyor, Lütfen Bekle..." : "KAS.ai Önerileri"}
                       </button>
 
                       {aiKarneError && (

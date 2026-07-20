@@ -5893,6 +5893,43 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Floating Student Timer */}
+      {isLoggedIn && user?.rol === 'ogrenci' && (
+        <div className="fixed bottom-6 left-6 md:left-[280px] z-40 flex flex-col items-start gap-2 shadow-2xl">
+           <div className="bg-slate-900/90 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-3 shadow-lg shadow-indigo-500/10 flex items-center gap-4">
+              <div className="flex flex-col min-w-[90px]">
+                 <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest leading-none mb-1">
+                   {timerSubject} {timerIsRunning ? 'Çalışıyor' : 'Beklemede'}
+                 </span>
+                 <span className="text-xl font-black text-slate-100 font-mono tracking-widest leading-none">
+                   {Math.floor(timerSeconds / 60).toString().padStart(2, '0')}:{(timerSeconds % 60).toString().padStart(2, '0')}
+                 </span>
+              </div>
+              <div className="flex gap-1.5 border-l border-slate-700/50 pl-3">
+                 <button 
+                   onClick={() => setTimerIsRunning(!timerIsRunning)} 
+                   className={`p-2 rounded-lg text-white font-bold transition flex items-center justify-center cursor-pointer ${timerIsRunning ? 'bg-amber-600 hover:bg-amber-500 shadow-lg shadow-amber-500/20' : 'bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-500/20'}`}
+                   title={timerIsRunning ? 'Duraklat' : 'Başlat'}
+                 >
+                    {timerIsRunning ? <Pause size={14} /> : <Play size={14} />}
+                 </button>
+                 <button 
+                   onClick={() => {
+                     const calculatedSecs = timerMode === 'pomodoro' ? (pomodoroMinutes * 60 - timerSeconds) : timerSeconds;
+                     const mins = Math.max(1, Math.round(calculatedSecs / 60));
+                     handleSaveTimerSession(timerSubject, mins);
+                   }} 
+                   disabled={timerSeconds === (timerMode === 'pomodoro' ? pomodoroMinutes * 60 : 0)}
+                   className="p-2 rounded-lg text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 disabled:hover:bg-emerald-500/10 font-bold transition flex items-center justify-center cursor-pointer border border-emerald-500/20"
+                   title="Seansı Kaydet"
+                 >
+                    <Zap size={14} />
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
+
       {!isLoggedIn && <AiChatWidget
         isOpen={isAiChatOpen}
         onClose={() => setIsAiChatOpen(false)}
