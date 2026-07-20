@@ -103,6 +103,9 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
 
   // Selected exam for detailed topic analysis / report card
   const [selectedKarneExamId, setSelectedKarneExamId] = useState<number | null>(null);
+  const [aiKarneAnalysis, setAiKarneAnalysis] = useState<any>(null);
+  const [aiKarneLoading, setAiKarneLoading] = useState(false);
+  const [aiKarneError, setAiKarneError] = useState<string | null>(null);
 
   // Note text input
   const [newNote, setNewNote] = useState('');
@@ -355,6 +358,8 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
           setTargetNetInput(data.student.hedef_net ? String(data.student.hedef_net) : '95');
           setSelectedStudentId(id);
           setSelectedKarneExamId(null);
+          setAiKarneAnalysis(null);
+          setAiKarneError(null);
           setView('detail');
         }
       }
@@ -362,6 +367,50 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
       console.error("Error loading student detail:", err);
     } finally {
       if (!isBackground) setLoading(false);
+    }
+  };
+
+  // Reset AI Karne analysis whenever selected exam changes
+  useEffect(() => {
+    setAiKarneAnalysis(null);
+    setAiKarneError(null);
+  }, [selectedKarneExamId]);
+
+  const handleTriggerAiKarneAnalysis = async (examId: number, examType: string, topicAnalysisData: any) => {
+    if (!detailData) return;
+    setAiKarneLoading(true);
+    setAiKarneError(null);
+    setAiKarneAnalysis(null);
+    try {
+      const res = await fetch(`/api/ogrenci/${detailData.student.id}/ai-karne-analizi`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          examId,
+          examType,
+          topicAnalysisData
+        })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.analysis) {
+          setAiKarneAnalysis(data.analysis);
+        } else {
+          setAiKarneError('Yapay zeka analiz sonuçları alınamadı.');
+        }
+      } else {
+        const err = await res.json();
+        setAiKarneError(err.error || 'Yapay zeka analizi başarısız oldu.');
+      }
+    } catch (err: any) {
+      console.error("AI karne analysis error:", err);
+      setAiKarneError('Bağlantı hatası oluştu.');
+    } finally {
+      setAiKarneLoading(false);
     }
   };
 
@@ -1696,6 +1745,108 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                         <span className="text-slate-500 block uppercase tracking-wider text-[9px] font-black">Sınav Türü</span>
                         <span className="text-indigo-400 font-black block mt-0.5">{activeExamResult.tur || (activeExamResult as any).sinav_turu || 'TYT'}</span>
                       </div>
+                    </div>
+
+                    {/* YAPAY ZEKA DERS DERS ANALIZ ALANI */}
+                    <div className="space-y-4 pt-1">
+                      <button
+                        onClick={() => handleTriggerAiKarneAnalysis(
+                          activeExamResult.id,
+                          activeExamResult.tur || (activeExamResult as any).sinav_turu || 'TYT',
+                          topicAnalysis
+                        )}
+                        disabled={aiKarneLoading}
+                        className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 disabled:from-slate-800 disabled:to-slate-800 text-slate-100 font-bold py-3 px-4 rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        <Sparkles size={16} className={aiKarneLoading ? "animate-spin" : "animate-pulse"} />
+                        {aiKarneLoading ? "KAS.ai Karneni Ders Ders Analiz Ediyor, Lütfen Bekle..." : "Yapay Zeka Karnemi Ders Ders İncelesin"}
+                      </button>
+
+                      {aiKarneError && (
+                        <div className="bg-rose-950/20 border border-rose-900/40 text-rose-400 p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
+                          <span className="text-sm">⚠️</span>
+                          <span>{aiKarneError}</span>
+                        </div>
+                      )}
+
+                      {aiKarneAnalysis && (
+                        <div className="bg-slate-950/40 border border-indigo-900/40 rounded-2xl p-4 sm:p-5 space-y-4 animate-fade-in">
+                          <div className="flex items-center gap-2.5 border-b border-indigo-950/80 pb-3">
+                            <div className="p-1.5 bg-indigo-950 text-indigo-400 rounded-lg">
+                              <Sparkles size={18} />
+                            </div>
+                            <div>
+                              <h5 className="text-xs font-black text-slate-100 uppercase tracking-tight">KAS.ai Yapay Zeka Karne Teşhis Raporu</h5>
+                              <p className="text-[10px] text-indigo-400 font-bold block mt-0.5">Ders ve Konu Odaklı Bireysel Teşhisler • "Bu konuda şu sıkıntın var"</p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {aiKarneAnalysis.map((subj: any, sIdx: number) => {
+                              const isDanger = subj.status === 'danger';
+                              const isWarning = subj.status === 'warning';
+                              
+                              let statusBg = "bg-emerald-950/20 border-emerald-900/40 text-emerald-400";
+                              let statusText = "Başarılı Seviye";
+                              if (isDanger) {
+                                statusBg = "bg-rose-950/20 border-rose-900/40 text-rose-400";
+                                statusText = "Kritik Dikkat";
+                              } else if (isWarning) {
+                                statusBg = "bg-amber-950/20 border-amber-900/40 text-amber-400";
+                                statusText = "Geliştirilmeli";
+                              }
+
+                              return (
+                                <div key={sIdx} className="bg-slate-900/40 border border-slate-850 rounded-xl p-4 space-y-3 hover:border-slate-800 transition flex flex-col justify-between">
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between gap-2 border-b border-slate-850/80 pb-2">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-black text-slate-100 uppercase tracking-wider">{subj.subject}</span>
+                                        <span className="text-[10px] font-mono font-bold text-slate-500">({subj.net} Net)</span>
+                                      </div>
+                                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${statusBg}`}>
+                                        {statusText}
+                                      </span>
+                                    </div>
+
+                                    <p className="text-[10.5px] text-slate-300 font-medium italic leading-relaxed">
+                                      "{subj.general_comment}"
+                                    </p>
+
+                                    {subj.topics_issues && subj.topics_issues.length > 0 ? (
+                                      <div className="space-y-2 pt-1">
+                                        {subj.topics_issues.map((issue: any, iIdx: number) => (
+                                          <div key={iIdx} className="bg-slate-950/40 border border-slate-900 rounded-lg p-2.5 space-y-1.5">
+                                            <div className="flex items-center justify-between gap-2">
+                                              <span className="text-[10px] font-bold text-slate-200">{issue.topic_name}</span>
+                                              <span className="text-[9px] font-bold text-slate-500">Başarı Oranı: %{issue.success_rate}</span>
+                                            </div>
+                                            
+                                            <div className="space-y-1 font-semibold">
+                                              <div className="text-[9.5px] text-rose-300 leading-relaxed flex items-start gap-1">
+                                                <span className="text-rose-500 font-bold block">⚠️</span>
+                                                <span><strong>Sıkıntı:</strong> {issue.issue}</span>
+                                              </div>
+                                              <div className="text-[9.5px] text-emerald-300 leading-relaxed flex items-start gap-1">
+                                                <span className="text-emerald-500 font-bold block">💡</span>
+                                                <span><strong>Tavsiye:</strong> {issue.solution}</span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="text-[9.5px] text-emerald-400 font-bold bg-emerald-950/10 border border-emerald-950/30 p-2 rounded-lg flex items-center gap-1.5 mt-2">
+                                        ✨ Kritik konu eksiği bulunmuyor. Süpersin!
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-1">

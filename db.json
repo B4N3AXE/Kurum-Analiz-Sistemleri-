@@ -28,8 +28,204 @@
       "telefon": "0555 222 3344"
     }
   ],
-  "siniflar": [],
-  "ogrenciler": [],
+  "siniflar": [
+    {
+      "id": 1,
+      "ad": "12-A",
+      "seviye": "12",
+      "kurum_id": 1,
+      "alan": "Sayısal"
+    },
+    {
+      "id": 2,
+      "ad": "Mezun",
+      "seviye": "Mezun",
+      "kurum_id": 1,
+      "alan": "Eşit Ağırlık"
+    }
+  ],
+  "ogrenciler": [
+    {
+      "id": 1,
+      "ad_soyad": "ZEHRA ÖZBOZTEPE",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 2,
+      "ad_soyad": "MERYEM BALKAN",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 3,
+      "ad_soyad": "YASE",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 4,
+      "ad_soyad": "ARDA GÜRBÜZ",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 5,
+      "ad_soyad": "ARŞIN ALTİNTAŞ",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 6,
+      "ad_soyad": "ARDA TUTKUN",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 7,
+      "ad_soyad": "BURAK SEVER",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 8,
+      "ad_soyad": "ELİF BAYRAK",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 9,
+      "ad_soyad": "HABİBE",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 10,
+      "ad_soyad": "BATIN",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 11,
+      "ad_soyad": "BİLAL",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 12,
+      "ad_soyad": "IRMAK MUTLU",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 13,
+      "ad_soyad": "BEGÜM INDIR",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 14,
+      "ad_soyad": "DURU",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 15,
+      "ad_soyad": "ÇAĞRI",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 16,
+      "ad_soyad": "ŞEVVAL DOĞAN",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 17,
+      "ad_soyad": "EMİRHAN GÜLER",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 18,
+      "ad_soyad": "ZEHRA ERMİŞ",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 19,
+      "ad_soyad": "MUHAMMED SÖYLEMEZ",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 20,
+      "ad_soyad": "SELİ ÜNSAL",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    }
+  ],
   "sinav_tanimlari": [],
   "sinav_sonuclari": [],
   "ogretmen_sinif": [],
@@ -79,5 +275,7 @@
   ],
   "konu_takip": [],
   "calisma_seanslari": [],
-  "haftalik_gorevler": []
+  "haftalik_gorevler": [],
+  "user_pdfs": [],
+  "pdf_annotations": []
 }

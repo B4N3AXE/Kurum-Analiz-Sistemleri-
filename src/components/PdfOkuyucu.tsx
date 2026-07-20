@@ -140,7 +140,7 @@ export default function PdfOkuyucu({ user, token }: PdfOkuyucuProps) {
     }, 2200);
 
     try {
-      const res = await fetch('/api/pdf/upload', {
+      const res = await fetch('/api/pdf-parser/upload', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

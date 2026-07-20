@@ -6,6 +6,16 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import Groq from 'groq-sdk';
+import { GoogleGenAI, Type } from '@google/genai';
+import { createRequire } from 'module';
+const getRequire = () => {
+  if (typeof require !== 'undefined') {
+    return require;
+  }
+  return createRequire(import.meta.url);
+};
+const requireFn = getRequire();
+const pdfParse = requireFn('pdf-parse');
 import { db, Kullanici, SinavSonuc, Ogrenci } from './server/db';
 
 dotenv.config();
@@ -115,6 +125,26 @@ function getGroqClient(): Groq | null {
     });
   } catch (error) {
     console.error('Failed to initialize Groq client lazily:', error);
+    return null;
+  }
+}
+
+// Lazy Gemini API loader helper
+function getGeminiClient(): GoogleGenAI | null {
+  if (!process.env.GEMINI_API_KEY) {
+    return null;
+  }
+  try {
+    return new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Failed to initialize Gemini client lazily:', error);
     return null;
   }
 }
@@ -1406,12 +1436,43 @@ app.get('/api/export/csv', (req, res) => {
 
 // Helper for Turkish PDF Upload mock parsing
 function generateMockParsedDataForUpload(type: 'TYT' | 'AYT'): any[] {
-  const baseStudents = [
-    { name: "Canberk Aksoy", math: 31.50, tr: 29.25, sos: 13.00, fen: 14.50 },
-    { name: "Selin Öztürk", math: 14.00, tr: 26.50, sos: 16.25, fen: 0.00 },
-    { name: "Eren Demir", math: 38.50, tr: 35.00, sos: 14.00, fen: 17.50 },
-    { name: "Seda Soylu", math: 22.00, tr: 28.50, sos: 15.00, fen: 8.50 }
+  const realStudents = db.getOgrenciler();
+  let baseStudents: { name: string; math: number; tr: number; sos: number; fen: number }[] = [];
+
+  // Her zaman sisteme kayıtlı olmayan (eşleşmemiş) örnek öğrenciler de ekleyelim ki kullanıcı eşleştirme yapabilsin
+  const unregisteredStudents = [
+    { name: "Kerem Şahin", math: 28.50, tr: 32.25, sos: 14.50, fen: 12.00 },
+    { name: "Buse Kaya", math: 18.00, tr: 27.50, sos: 11.25, fen: 6.50 },
+    { name: "Arda Öztürk", math: 34.00, tr: 31.00, sos: 13.00, fen: 15.50 }
   ];
+
+  if (realStudents && realStudents.length > 0) {
+    // En fazla 3 gerçek kayıtlı öğrenci alalım
+    const realSlice = realStudents.slice(0, 3).map((student, idx) => {
+      const math = parseFloat((15 + (idx * 4.2) % 25).toFixed(2));
+      const tr = parseFloat((20 + (idx * 3.1) % 19).toFixed(2));
+      const sos = parseFloat((8 + (idx * 1.8) % 12).toFixed(2));
+      const fen = parseFloat((6 + (idx * 2.5) % 14).toFixed(2));
+      return {
+        name: student.ad_soyad,
+        math,
+        tr,
+        sos,
+        fen
+      };
+    });
+    baseStudents = [...realSlice, ...unregisteredStudents];
+  } else {
+    // Eğer DB boşsa varsayılan liste
+    baseStudents = [
+      { name: "Canberk Aksoy", math: 31.50, tr: 29.25, sos: 13.00, fen: 14.50 },
+      { name: "Selin Öztürk", math: 14.00, tr: 26.50, sos: 16.25, fen: 0.00 },
+      { name: "Eren Demir", math: 38.50, tr: 35.00, sos: 14.00, fen: 17.50 },
+      { name: "Seda Soylu", math: 22.00, tr: 28.50, sos: 15.00, fen: 8.50 },
+      ...unregisteredStudents
+    ];
+  }
+
   return baseStudents.map(s => {
     const isTyt = type === 'TYT';
     const total = s.math + s.tr + s.sos + (isTyt ? s.fen : (s.fen * 0.5));
@@ -1422,8 +1483,8 @@ function generateMockParsedDataForUpload(type: 'TYT' | 'AYT'): any[] {
       sosyal_net: s.sos,
       matematik_net: s.math,
       fen_net: s.fen,
-      toplam_net: total,
-      puan: rawPuan
+      toplam_net: parseFloat(total.toFixed(2)),
+      puan: parseFloat(rawPuan.toFixed(2))
     };
   });
 }
@@ -1450,7 +1511,7 @@ app.get('/api/ogrenci', (req, res) => {
     // Teachers, advisors, and admins can see students in their institution
     students = students.filter(s => {
       const cls = db.getSiniflar().find(c => c.id === s.sinif_id);
-      return cls && cls.kurum_id === requester.kurum_id;
+      return cls ? cls.kurum_id === requester.kurum_id : requester.kurum_id === 1;
     });
   } else {
     return res.status(403).json({ error: 'Bu veriye erişim yetkiniz bulunmamaktadır.' });
@@ -1732,6 +1793,301 @@ app.get('/api/ogrenci/:id/ai-veli-ozeti', async (req, res) => {
   } catch (error: any) {
     console.error("AI Veli Özeti hatası:", error);
     res.json({ ozet: 'Öğrencimizin durumu rehberlik birimimiz tarafından takip edilmektedir. Daha fazla bilgi için rehber öğretmeninizle iletişime geçebilirsiniz.' });
+  }
+});
+
+// --- HELPER FOR DYNAMIC FALLBACK REPORT CARD ANALYSIS ---
+function generateDynamicFallbackAnalysis(student: any, examResult: any, topicAnalysisData: any) {
+  const subjectsList = [
+    { key: 'turkce', name: 'TÜRKÇE', net: examResult.turkce_net },
+    { key: 'matematik', name: 'MATEMATİK', net: examResult.matematik_net },
+    { key: 'sosyal', name: 'SOSYAL BİLGİLER', net: examResult.sosyal_net },
+    { key: 'fen', name: 'FEN BİLİMLERİ', net: examResult.fen_net }
+  ];
+
+  return subjectsList.map(subj => {
+    const net = subj.net || 0;
+    let status = 'success';
+    let generalComment = '';
+    
+    if (subj.key === 'turkce') {
+      if (net < 20) {
+        status = 'danger';
+        generalComment = `${student.ad_soyad}, Türkçe dersinde ${net} net seviyesindeyiz. Dil bilgisi ve paragrafta odaklanmayı acilen geliştirmeliyiz.`;
+      } else if (net < 32) {
+        status = 'warning';
+        generalComment = `Türkçe dersindeki ${net} net sonucun fena değil, ancak odaklanma kayıplarını çözerek netleri daha da yukarı çekebilirsin.`;
+      } else {
+        status = 'success';
+        generalComment = `Harika bir Türkçe performansı! ${net} net ile çok güçlü ve başarılı durumdasın.`;
+      }
+    } else if (subj.key === 'matematik') {
+      if (net < 12) {
+        status = 'danger';
+        generalComment = `Matematikte ${net} net seviyesindeyiz. Temel kavramlar ve denklem kurma mantığında bazı kritik boşluklar var.`;
+      } else if (net < 26) {
+        status = 'warning';
+        generalComment = `Matematik dersindeki ${net} net sonucun orta düzeyde. Yeni nesil problemlere ve geometride şekil görme pratiklerine yoğunlaşmalıyız.`;
+      } else {
+        status = 'success';
+        generalComment = `Mükemmel Matematik başarısı! ${net} net ile zirvedesin. Hedefimiz tam net olmalı.`;
+      }
+    } else if (subj.key === 'sosyal') {
+      if (net < 8) {
+        status = 'danger';
+        generalComment = `Sosyal Bilgilerde ${net} net seviyesi, kavram ve terim tekrarlarına ihtiyacın olduğunu gösteriyor.`;
+      } else if (net < 14) {
+        status = 'warning';
+        generalComment = `Sosyal Bilgiler dersindeki ${net} net seviyen gayet iyi. Sadece birkaç bilgi eksiğin kalmış.`;
+      } else {
+        status = 'success';
+        generalComment = `Harika bir Sosyal performansı! ${net} net ile çok başarılısın, tebrikler.`;
+      }
+    } else { // fen
+      if (net < 7) {
+        status = 'danger';
+        generalComment = `Fen Bilimlerinde ${net} net seviyesi, temel fizik-kimya formüllerinde veya biyoloji konularında eksiklerin olduğunu gösteriyor.`;
+      } else if (net < 13) {
+        status = 'warning';
+        generalComment = `Fen Bilimleri dersindeki ${net} net seviyen potansiyelini gösteriyor. Grafik ve deney yorumlama pratiklerini artırmalısın.`;
+      } else {
+        status = 'success';
+        generalComment = `Müthiş Fen performansı! ${net} net ile fen bilimlerinde çok güçlüsün.`;
+      }
+    }
+
+    const topics = (topicAnalysisData && topicAnalysisData[subj.key]) || [];
+    const topicsWithIssues = topics
+      .map((t: any) => {
+        const total = t.soru || 1;
+        const correct = t.d || 0;
+        const wrong = t.y || 0;
+        const successRate = Math.round((correct / total) * 100);
+        return {
+          topic_name: t.ad,
+          soru: t.soru,
+          d: t.d,
+          y: t.y,
+          b: t.b,
+          success_rate: successRate
+        };
+      })
+      .filter((t: any) => t.success_rate < 85)
+      .sort((a: any, b: any) => a.success_rate - b.success_rate);
+
+    const worstTopics = topicsWithIssues.slice(0, 2);
+
+    const topics_issues = worstTopics.map((t: any) => {
+      let issue = `Bu konuda toplam ${t.soru} soruda ${t.d} doğru, ${t.y} yanlış yaptın. `;
+      let solution = `Bu konudaki eksiklerini gidermek için `;
+
+      const tName = t.topic_name.toLowerCase();
+      if (subj.key === 'turkce') {
+        if (tName.includes('yazım')) {
+          issue += `Yazım kuralları sorularında özellikle birleşik sözcükler ve büyük harflerin kullanımı konularında dikkatsizlik veya bilgi eksikliği görülmektedir.`;
+          solution += `Haftalık 50 yazım kuralı sorusu çözülmeli ve TDK'nin güncel kuralları şema halinde incelenmelidir.`;
+        } else if (tName.includes('paragraf') || tName.includes('anlam') || tName.includes('yorum')) {
+          issue += `Uzun paragraf sorularında sonlara doğru odaklanma kaybı yaşandığı ve ana düşünceyi yakalamakta zorlandığın anlaşılmaktadır.`;
+          solution += `Her gün en az 20 paragraf sorusu süreli olarak çözülmeli ve odaklanma egzersizleri yapılmalıdır.`;
+        } else if (tName.includes('noktalama')) {
+          issue += `Noktalama işaretlerinde virgül ve noktalı virgül kurallarında kafa karışıklığı yaşıyorsun.`;
+          solution += `Noktalama kuralları özet tablosunu inceleyip 30 soru çözerek pratik yapmalısın.`;
+        } else {
+          issue += `Bu konudaki sorularda çeldirici şıklara düşüyorsun ve konu detaylarında bazı soru işaretlerin bulunuyor.`;
+          solution += `Öğretmenine hatalı sorularını çözdürüp, konu hakkında 40 soruluk bir yaprak test tamamlamalısın.`;
+        }
+      } else if (subj.key === 'matematik') {
+        if (tName.includes('problem')) {
+          issue += `Denklem kurma ve yeni nesil problem sorularında mantıksal geçişleri kurmakta zorluk yaşandığı ve yavaş kalındığı tespit edilmiştir.`;
+          solution += `Oran-orantı ve temel denklem kurma konuları hızlıca tekrar edilip, günde 15 farklı tipte problem çözülmelidir.`;
+        } else if (tName.includes('geometri') || tName.includes('üçgen') || tName.includes('açı') || tName.includes('çokgen') || tName.includes('cisim')) {
+          issue += `Üçgende açılar, benzerlik veya şekil özelliklerini soru üzerinde görmekte ve ek çizgiler çizmekte eksikliklerin var.`;
+          solution += `Temel geometri formülleri için özet kartları hazırlanmalı, her gün en az 10 geometri sorusunda yardımcı çizim çalışmaları yapılmalıdır.`;
+        } else if (tName.includes('sayı') || tName.includes('rasyonel')) {
+          issue += `Temel kavramlarda veya sayılar arası bağıntılarda işlem hatası yapma eğilimin yüksek.`;
+          solution += `Soruları kağıt üzerinde yazarak ve işlem adımlarını kontrol ederek yavaş ama hatasız çözmelisin.`;
+        } else {
+          issue += `Bu konuda kural ezberi yerine mantığı oturtamadığın için soru çözerken tıkandığını görüyoruz.`;
+          solution += `Öğretmeninden konunun püf noktalarını dinleyip, kolay düzeyde 40 soru çözümü gerçekleştirmelisin.`;
+        }
+      } else if (subj.key === 'sosyal') {
+        if (tName.includes('tarih') || tName.includes('osmanlı') || tName.includes('milli')) {
+          issue += `Tarihsel olayların kronolojik sıralamasını ve neden-sonuç ilişkilerini kavramakta zorlandığın için soru kaçırıyorsun.`;
+          solution += `Tarih konuları için bir zaman çizelgesi çıkarmalı ve her hafta sonu 10 dakika bu çizelgeyi incelemelisin.`;
+        } else if (tName.includes('coğrafya') || tName.includes('harita') || tName.includes('sistem')) {
+          issue += `Coğrafyada harita okuma becerilerinde ve iklim-bölge kavramlarında bazı bilgi boşlukların var.`;
+          solution += `Dilsiz harita çalışmaları yapmalı, önemli rüzgar, iklim ve yer şekilleri haritalarını çalışma masana asmalısın.`;
+        } else {
+          issue += `Bu sosyal bilimler konusunda kavram ve terim düzeyinde eksikliğin bulunduğu için çelişkili şıklar arasında kalıyorsun.`;
+          solution += `Kısa konu özetleri okuyarak küçük kavram haritaları hazırlamalı, önemli terimleri haftada bir tekrar etmelisin.`;
+        }
+      } else if (subj.key === 'fen') {
+        if (tName.includes('fizik') || tName.includes('basınç') || tName.includes('elektrik') || tName.includes('kuvvet')) {
+          issue += `Fizik formüllerinin sözel yorumlanmasında ve temel kanunları soruya uygulamakta zorlanıyorsun.`;
+          solution += `Fizik konularının temel mantığını çalışıp, her gün 15 fizik yorum sorusu çözerek kendini geliştirmelisin.`;
+        } else if (tName.includes('kimya') || tName.includes('atom') || tName.includes('periyodik') || tName.includes('tür')) {
+          issue += `Kimyasal türler veya periyodik özellikler konularında sınıflandırmaları aklında tutmakta güçlük çekiyorsun.`;
+          solution += `Konuyla ilgili renkli şemalar hazırlamalı ve 30 pekiştirici soru çözmelisin.`;
+        } else if (tName.includes('biyoloji') || tName.includes('hücre') || tName.includes('kalıtım') || tName.includes('canlı')) {
+          issue += `Biyolojideki ezber bilgi gerektiren kısımlarda ve hücre yapısı gibi görsel konularda eksiklerin var.`;
+          solution += `Biyoloji konularını çizimler yaparak çalışmalı, her gün 15 biyoloji sorusu çözerek hafızanı taze tutmalısın.`;
+        } else {
+          issue += `Fendeki bu konuda temel formül veya kavram karmaşası nedeniyle yanlışların bulunuyor.`;
+          solution += `Özet konu anlatımını okuduktan sonra 30 temel düzey pekiştirme sorusu çözmelisin.`;
+        }
+      }
+
+      return {
+        topic_name: t.topic_name,
+        success_rate: t.success_rate,
+        issue,
+        solution
+      };
+    });
+
+    return {
+      subject: subj.name,
+      net,
+      status,
+      general_comment: generalComment,
+      topics_issues
+    };
+  });
+}
+
+// --- AI KARNE ANALIZI ENDPOINT (LESSON BY LESSON REPORT CARD ASSESSMENT) ---
+app.post('/api/ogrenci/:id/ai-karne-analizi', async (req, res) => {
+  const studentId = Number(req.params.id);
+  const { examId, examType, topicAnalysisData } = req.body;
+
+  const access = checkStudentAccess(req, studentId);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
+
+  const student = db.getOgrenciler().find(s => s.id === studentId);
+  if (!student) return res.status(404).json({ error: 'Öğrenci bulunamadı.' });
+
+  // Get active exam result details
+  const examResult = db.getSinavSonuclari().find(r => r.id === examId && r.ogrenci_id === studentId);
+  if (!examResult) {
+    return res.status(404).json({ error: 'Sınav sonucu bulunamadı.' });
+  }
+
+  const examDef = db.getSinavTanimlari().find(e => e.id === examResult.sinav_id);
+  const sinavAdi = examDef ? examDef.ad : 'Sınav';
+
+  // Attempt using Gemini, if missing or fails try Groq, and if both unavailable use dynamic fallback
+  const ai = getGeminiClient();
+  const groq = getGroqClient();
+
+  if (!ai && !groq) {
+    // Return a fully dynamic fallback that analyzes the student's actual topic answers mathematically
+    const dynamicAnalysis = generateDynamicFallbackAnalysis(student, examResult, topicAnalysisData);
+    return res.json({ analysis: dynamicAnalysis, is_mocked: false, is_fallback: true });
+  }
+
+  try {
+    const prompt = `Sen KAS.ai eğitim asistanısın. Öğrencinin adı: ${student.ad_soyad}. 
+    Sınav adı: ${sinavAdi}, Sınav Türü: ${examType}.
+    Öğrencinin ders netleri: 
+    - Türkçe: ${examResult.turkce_net} Net
+    - Matematik: ${examResult.matematik_net} Net
+    - Sosyal Bilgiler: ${examResult.sosyal_net} Net
+    - Fen Bilimleri: ${examResult.fen_net} Net
+
+    Ayrıca öğrencinin konu detaylı analiz verileri (doğru/yanlış/soru sayıları):
+    ${JSON.stringify(topicAnalysisData)}
+
+    Öğrencinin karnesini incele, DERS DERS (TÜRKÇE, MATEMATİK, SOSYAL BİLGİLER, FEN BİLİMLERİ) değerlendirerek; başarısı zayıf olan ya da yanlışı fazla olan konuları tespit et. 
+    Öğrenciye hitaben "bu konuda şu sıkıntın var" (örneğin: "şurada dikkat hatası yapıyorsun", "şurada temel bilgi eksiğin var", "yeni nesil sorularda zorlanıyorsun") şeklinde son derece nokta atışı, dürüst ama yapıcı, samimi ve motive edici bir dille teşhis koy ve somut bir çözüm önerisi yaz.
+
+    Lütfen çıktıyı KESİNLİKLE şu JSON şemasına uygun olarak üret:
+    {
+      "analysis": [
+        {
+          "subject": "TÜRKÇE",
+          "net": number,
+          "status": "success" | "warning" | "danger",
+          "general_comment": "Genel Türkçe ders yorumu...",
+          "topics_issues": [
+            {
+              "topic_name": "Konu Başlığı",
+              "success_rate": number,
+              "issue": "Karnedeki veriye dayanarak nokta atışı teşhis ('bu konuda şu sıkıntın var' şeklinde)",
+              "solution": "Öğrenciye özel, yapıcı çözüm tavsiyesi"
+            }
+          ]
+        }
+      ]
+    }
+    
+    Status değerlerini netlere göre belirle: Çok iyiyse success, ortaysa warning, zayıfsa danger ver.
+    Cevabı SADECE ham JSON olarak dön, markdown blokları (\`\`\`json) İÇERMESİN.`;
+
+    if (ai) {
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              analysis: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    subject: { type: Type.STRING },
+                    net: { type: Type.NUMBER },
+                    status: { type: Type.STRING, description: "success, warning or danger" },
+                    general_comment: { type: Type.STRING },
+                    topics_issues: {
+                      type: Type.ARRAY,
+                      items: {
+                        type: Type.OBJECT,
+                        properties: {
+                          topic_name: { type: Type.STRING },
+                          success_rate: { type: Type.NUMBER },
+                          issue: { type: Type.STRING },
+                          solution: { type: Type.STRING }
+                        },
+                        required: ["topic_name", "success_rate", "issue", "solution"]
+                      }
+                    }
+                  },
+                  required: ["subject", "net", "status", "general_comment", "topics_issues"]
+                }
+              }
+            },
+            required: ["analysis"]
+          }
+        }
+      });
+
+      const text = response.text || '{}';
+      const parsed = JSON.parse(text);
+      return res.json(parsed);
+    } else if (groq) {
+      const chatCompletion = await groq.chat.completions.create({
+        messages: [{ role: 'user', content: prompt }],
+        model: 'llama-3.3-70b-specdec',
+        response_format: { type: 'json_object' }
+      });
+      const text = chatCompletion.choices[0]?.message?.content || '{}';
+      const parsed = JSON.parse(text);
+      return res.json(parsed);
+    }
+  } catch (error: any) {
+    console.error("AI karne analizi hatası:", error);
+    // Silent fail-safe: fall back to our high quality dynamic generator
+    try {
+      const dynamicAnalysis = generateDynamicFallbackAnalysis(student, examResult, topicAnalysisData);
+      return res.json({ analysis: dynamicAnalysis, is_mocked: false, is_fallback: true });
+    } catch (fallbackErr) {
+      res.status(500).json({ error: "Yapay zeka analiz yaparken bir hata oluştu.", details: error.message });
+    }
   }
 });
 
@@ -2433,6 +2789,10 @@ app.put('/api/sinif/:id', (req, res) => {
 
 app.delete('/api/sinif/:id', (req, res) => {
   const id = Number(req.params.id);
+  const studentsInClass = db.getOgrenciler().filter(s => s.sinif_id === id);
+  if (studentsInClass.length > 0) {
+    return res.status(400).json({ error: 'Bu sınıfa kayıtlı öğrenciler bulunmaktadır. Lütfen önce öğrencileri başka bir sınıfa taşıyın veya silin.' });
+  }
   const success = db.delete('siniflar', id);
   if (success) {
     res.json({ message: 'Sınıf silindi.' });
@@ -2903,6 +3263,8 @@ Sana sorulan öğrenci netlerini ve ödevleri/görevleri bulmak için araçları
 - Eğer kullanıcı (Veli veya Öğrenci ise), SAKIN 'searchStudents' kullanma veya KULLANICIYA İSİM SORMA! Sadece kendi ID'si ile (veya çocuğunun ID'si ile) 'getStudentDetail' aracını doğrudan çağır.
 - Eğer kullanıcı (Yönetici, Öğretmen veya Rehber) ise ve doğrudan bir öğrencinin durumunu sorarsa önce 'searchStudents' ile öğrenciyi ara. ID'sini bulduktan sonra 'getStudentDetail' aracını çağırarak detaylı verilerini getir.
 
+KRİTİK KURAL: Araç/Fonksiyon çağırırken kesinlikle metin içerisine \`<function=...>\` şeklinde XML kodları YAZMA! Araç (tool) çağrılarını sistemin sağladığı JSON tool calling API üzerinden yap. Kullanıcıya "Şu fonksiyonu kullanmak gerekli" GİBİ METİNLER YAZMA, doğrudan fonksiyonu arka planda çağır!
+
 Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve çok şık, okunaklı listeler şeklinde sun.`;
 
   // Declaring functions
@@ -3080,7 +3442,39 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
       // Add the model's response (with possible tool calls) to the conversation history
       messagesToSend.push(responseMessage);
 
-      const toolCalls = responseMessage.tool_calls;
+      let toolCalls = responseMessage.tool_calls;
+
+      // Fallback for Llama 3 leaking function calls in content
+      if (!toolCalls && typeof responseMessage.content === 'string') {
+        const funcMatch = responseMessage.content.match(/<function=(\w+)(.*?)><\/function>/);
+        if (funcMatch) {
+          const funcName = funcMatch[1];
+          let funcArgs = {};
+          try {
+            if (funcMatch[2] && funcMatch[2].trim()) {
+              funcArgs = JSON.parse(funcMatch[2].trim());
+            }
+          } catch (e) {
+            console.warn('Failed to parse leaked tool call arguments:', e);
+          }
+          
+          toolCalls = [{
+            id: 'call_' + Date.now(),
+            type: 'function',
+            function: {
+              name: funcName,
+              arguments: JSON.stringify(funcArgs)
+            }
+          }];
+          
+          // Clean the content so it doesn't show to user if the loop breaks
+          responseMessage.content = responseMessage.content.replace(/<function=.*?><\/function>/g, '').trim();
+          
+          // Re-update the history item
+          messagesToSend[messagesToSend.length - 1] = responseMessage;
+        }
+      }
+
       if (toolCalls && toolCalls.length > 0) {
         for (const toolCall of toolCalls) {
           const cleanCallName = toolCall.function.name;
@@ -3149,7 +3543,7 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
 });
 
 // 8. PDF PARSER UPLOAD & SAVE ALIAS ENDPOINTS
-app.post('/api/pdf/upload', async (req, res) => {
+app.post('/api/pdf-parser/upload', async (req, res) => {
   try {
     const { fileData, fileName, mimeType, publisher, examType, examDate } = req.body;
     if (!fileData) {
@@ -3159,9 +3553,9 @@ app.post('/api/pdf/upload', async (req, res) => {
     let parsedResults: any[] = [];
     let warning: string | null = null;
 
-    const groq = getGroqClient();
-    if (groq) {
-      console.log('Sending base64 to Groq for PDF/Image analysis...');
+    const ai = getGeminiClient();
+    if (ai) {
+      console.log('Sending to Gemini for PDF/Image analysis...');
       let rawBase64 = fileData;
       if (fileData.includes(',')) {
         rawBase64 = fileData.split(',')[1];
@@ -3172,7 +3566,7 @@ app.post('/api/pdf/upload', async (req, res) => {
         Sana verilen deneme sınav sonuç belgesindeki tüm öğrencileri ve onların netlerini oku.
         Sınav türü: ${examType} (TYT veya AYT).
         Lütfen belgedeki tablo veya listeyi oku, OCR işlemi yap ve her bir öğrencinin sonuçlarını çıkar.
-        Sonuçları sadece ve sadece geçerli bir JSON array formatında döndür. Markdown 'json' bloğu içine alabilirsin.
+        Sonuçları sadece ve sadece geçerli bir JSON array formatında döndür. Markdown 'json' bloğu veya doğrudan JSON array döndürebilirsin.
         
         Çıktı yapısı tam olarak şu olmalı:
         [
@@ -3189,52 +3583,47 @@ app.post('/api/pdf/upload', async (req, res) => {
       `;
 
       try {
-        let text = '';
-        const isImage = mimeType && mimeType.startsWith('image/');
-        if (isImage) {
-          const chatCompletion = await groq.chat.completions.create({
-            model: 'llama-3.2-11b-vision-preview',
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: prompt },
-                  {
-                    type: 'image_url',
-                    image_url: {
-                      url: `data:${mimeType};base64,${rawBase64}`,
-                    },
-                  },
-                ],
-              },
-            ],
+        const documentPart = {
+          inlineData: {
+            mimeType: mimeType || 'application/pdf',
+            data: rawBase64,
+          },
+        };
+        const textPart = {
+          text: prompt,
+        };
+        
+        let response;
+        try {
+          response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: { parts: [documentPart, textPart] },
+            config: {
+              responseMimeType: 'application/json',
+            }
           });
-          text = chatCompletion.choices[0]?.message?.content || '';
-        } else {
-          const chatCompletion = await groq.chat.completions.create({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
-              {
-                role: 'user',
-                content: `${prompt}\n\nNot: Belge PDF olduğu için doğrudan görsel okuma yapılamadı, ancak lütfen sistemdeki örnek öğrenci verilerini bu sınav türüne uygun şekilde bu formatta üreterek geçerli bir JSON dizisi oluştur.`,
-              },
-            ],
+        } catch (geminiErr: any) {
+          console.warn('gemini-2.5-flash failed, trying gemini-1.5-flash fallback:', geminiErr.message);
+          response = await ai.models.generateContent({
+            model: 'gemini-1.5-flash',
+            contents: { parts: [documentPart, textPart] },
+            config: {
+              responseMimeType: 'application/json',
+            }
           });
-          text = chatCompletion.choices[0]?.message?.content || '';
         }
+        const text = response.text || '';
 
         const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\[\s*\{[\s\S]*\}\s*\]/);
         const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : text;
         parsedResults = JSON.parse(jsonStr.trim());
       } catch (e: any) {
-        console.error('Groq parsing in PDF upload failed, falling back to mock generator:', e);
-        parsedResults = generateMockParsedDataForUpload(examType);
-        warning = `Groq API hatası nedeniyle demo modu aktif edildi (Sadece 4 örnek öğrenci yüklendi). Hata detayı: ${e.message || e}`;
+        console.error('Gemini parsing in PDF upload failed:', e);
+        return res.status(500).json({ error: `Dosya analiz edilemedi veya yapay zeka servisi şu an yoğun. Lütfen tekrar deneyin. Hata detayı: ${e.message || e}` });
       }
     } else {
-      console.log('Groq not available, generating high-fidelity local parser simulation...');
-      parsedResults = generateMockParsedDataForUpload(examType);
-      warning = "Sisteminizde GROQ_API_KEY (Groq API Anahtarı) çevre değişkeni tanımlanmamış. Bu yüzden sistem otomatik olarak demo moduna geçerek her PDF için 4 adet örnek öğrenci verisi üretmektedir. Gerçek PDF okuma için sunucunuzda bu anahtarı ayarlamalısınız.";
+      console.log('Gemini not available, rejecting upload.');
+      return res.status(500).json({ error: "Sisteminizde GEMINI_API_KEY (Gemini API Anahtarı) tanımlanmadığı için dosya okuma işlemi yapılamıyor." });
     }
 
     // Map and match with existing students in DB
