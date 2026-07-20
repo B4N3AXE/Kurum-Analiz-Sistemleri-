@@ -8,6 +8,7 @@ import Tanimlar from './components/Tanimlar';
 import Abonelik from './components/Abonelik';
 import RiskLimitleri from './components/RiskLimitleri';
 import AiChatWidget from './components/AiChatWidget';
+import Kitapligim from './components/Kitapligim';
 import { Home, Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key, Target, Eye, Send, Trash2, Play, Pause, RotateCcw, Plus, Square, CheckSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -3171,6 +3172,20 @@ export default function App() {
                       </button>
                     )}
 
+                    {/* Tab: Kitaplığım (PDF Not Alma ve Çalışma Alanı) */}
+                    {(user.rol === 'admin' || user.rol === 'ogretmen' || user.rol === 'rehber' || user.rol === 'ogrenci') && (
+                      <button
+                        onClick={() => { setCurrentTab('kitapligim'); setIsMobileMenuOpen(false); }}
+                        className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
+                          currentTab === 'kitapligim'
+                            ? "bg-blue-600 text-white shadow"
+                            : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
+                        }`}
+                      >
+                        <BookOpen size={14} /> Kitaplığım (Çalışma Alanı)
+                      </button>
+                    )}
+
                     {/* Tab: Mesajlaşma */}
                     <button
                       onClick={() => { setCurrentTab('mesaj'); setIsMobileMenuOpen(false); }}
@@ -3439,6 +3454,20 @@ export default function App() {
                   }`}
                 >
                   <Sparkles size={15} /> PDF Sınav Okuyucu
+                </button>
+              )}
+
+              {/* Tab: Kitaplığım (PDF Not Alma ve Çalışma Alanı) */}
+              {(user.rol === 'admin' || user.rol === 'ogretmen' || user.rol === 'rehber' || user.rol === 'ogrenci') && (
+                <button
+                  onClick={() => setCurrentTab('kitapligim')}
+                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                    currentTab === 'kitapligim'
+                      ? "bg-blue-600 text-white shadow shadow-blue-500/10"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                  }`}
+                >
+                  <BookOpen size={15} /> Kitaplığım
                 </button>
               )}
 
@@ -3726,6 +3755,11 @@ export default function App() {
                 {/* MOUNT VIEW: Messenger Hub */}
                 {currentTab === 'mesaj' && (
                   <Mesajlar user={user} token={token} />
+                )}
+
+                {/* MOUNT VIEW: Kitaplığım */}
+                {currentTab === 'kitapligim' && (
+                  <Kitapligim user={user} token={token} />
                 )}
 
                 {/* MOUNT VIEW: Configurations & Staff management */}

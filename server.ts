@@ -68,7 +68,7 @@ const getStudentActiveSession = (studentId: number) => {
 
 // Multer upload config for parsing deneme results
 const upload = multer({
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB limit
 });
 
 // Helper for brute force check
@@ -2063,6 +2063,337 @@ app.delete('/api/ogrenci/:id/haftalik-gorevler/:gorevId', (req, res) => {
     res.json({ success: true });
   } else {
     res.status(404).json({ error: 'Görev bulunamadı.' });
+  }
+});
+
+// PDF & "KİTAPLIĞIM" ENDPOINTS
+app.get('/api/pdf', (req, res) => {
+  const requester = getRequesterFromToken(req);
+  if (!requester) {
+    return res.status(401).json({ error: 'Kimlik doğrulaması başarısız. Lütfen tekrar giriş yapın.' });
+  }
+
+  const targetStudentId = req.query.studentId ? Number(req.query.studentId) : null;
+  let pdfs = db.getUserPDFs();
+
+  if (targetStudentId) {
+    const access = checkStudentAccess(req, targetStudentId);
+    if (!access.allowed) {
+      return res.status(access.status || 403).json({ error: access.error });
+    }
+    pdfs = pdfs.filter(p => p.userId === targetStudentId || p.userId === targetStudentId + 10000);
+  } else if (requester.rol === 'ogrenci') {
+    pdfs = pdfs.filter(p => p.userId === requester.id || p.userId === requester.id + 10000);
+  } else {
+    pdfs = pdfs.filter(p => p.userId === requester.id);
+  }
+
+  res.json(pdfs);
+});
+
+app.post('/api/pdf/upload', upload.single('file'), (req, res) => {
+  const requester = getRequesterFromToken(req);
+  if (!requester) {
+    return res.status(401).json({ error: 'Kimlik doğrulaması başarısız. Lütfen tekrar giriş yapın.' });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'Lütfen bir PDF dosyası yükleyin.' });
+  }
+
+  const ext = path.extname(req.file.originalname).toLowerCase();
+  if (ext !== '.pdf') {
+    return res.status(400).json({ error: 'Yalnızca PDF dosyaları yüklenebilir.' });
+  }
+
+  // Handle target student context for uploads (by teacher/admin)
+  const targetStudentId = req.query.studentId ? Number(req.query.studentId) : null;
+  let targetUserId = requester.id;
+
+  if (targetStudentId) {
+    const access = checkStudentAccess(req, targetStudentId);
+    if (!access.allowed) {
+      return res.status(access.status || 403).json({ error: access.error });
+    }
+    targetUserId = targetStudentId + 10000;
+  }
+
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    try {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    } catch (err) {
+      console.error('Uploads dir creation error:', err);
+    }
+  }
+
+  const sanitizedOriginal = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const filename = `${Date.now()}-${sanitizedOriginal}`;
+  const filePath = path.join(uploadsDir, filename);
+
+  try {
+    fs.writeFileSync(filePath, req.file.buffer);
+  } catch (err) {
+    console.error('File write error:', err);
+    return res.status(500).json({ error: 'Dosya sunucuya kaydedilemedi.' });
+  }
+
+  const newPdf = db.insert('user_pdfs', {
+    userId: targetUserId,
+    title: req.file.originalname,
+    fileUrl: `/api/pdf/serve/${filename}`,
+    createdAt: new Date().toISOString()
+  });
+
+  res.json(newPdf);
+});
+
+app.get('/api/pdf/serve/:filename', (req, res) => {
+  let authHeader = req.headers['authorization'];
+  if (!authHeader && req.query.token) {
+    authHeader = String(req.query.token);
+  }
+
+  let requester: any = null;
+  if (authHeader) {
+    try {
+      const decoded = Buffer.from(authHeader, 'base64').toString('utf-8');
+      const parsed = JSON.parse(decoded);
+      if (parsed && typeof parsed === 'object') {
+        requester = {
+          id: Number(parsed.id),
+          rol: parsed.rol,
+          kurum_id: Number(parsed.kurum_id)
+        };
+      }
+    } catch (e) {
+      // Fail silently
+    }
+  }
+
+  if (!requester) {
+    return res.status(401).send('Yetkisiz erişim. Lütfen tekrar giriş yapın.');
+  }
+
+  const filename = req.params.filename;
+  const pdfs = db.getUserPDFs();
+  const pdfEntry = pdfs.find(p => p.fileUrl.endsWith(filename));
+
+  if (!pdfEntry) {
+    return res.status(404).send('Dosya bulunamadı.');
+  }
+
+  let allowed = false;
+  if (pdfEntry.userId === requester.id) {
+    allowed = true;
+  } else {
+    const studentId = pdfEntry.userId - 10000;
+    const student = db.getOgrenciler().find(s => s.id === studentId);
+    if (student) {
+      if (requester.rol === 'admin') {
+        allowed = true;
+      } else if (requester.rol === 'veli' && student.veli_id === requester.id) {
+        allowed = true;
+      } else if (requester.rol === 'ogrenci' && student.id === requester.id) {
+        allowed = true;
+      } else if (requester.rol === 'ogretmen' || requester.rol === 'rehber') {
+        if (student.danisman_id === requester.id) {
+          allowed = true;
+        }
+        const studentClass = db.getSiniflar().find(c => c.id === student.sinif_id);
+        if (studentClass && studentClass.kurum_id === requester.kurum_id) {
+          allowed = true;
+        }
+      }
+    }
+  }
+
+  if (!allowed) {
+    return res.status(403).send('Bu dosyaya erişim yetkiniz bulunmamaktadır.');
+  }
+
+  const filePath = path.join(process.cwd(), 'uploads', filename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).send('Dosya sunucuda bulunamadı.');
+  }
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.sendFile(filePath);
+});
+
+app.delete('/api/pdf/:id', (req, res) => {
+  const requester = getRequesterFromToken(req);
+  if (!requester) {
+    return res.status(401).json({ error: 'Kimlik doğrulaması başarısız.' });
+  }
+
+  const pdfId = Number(req.params.id);
+  const pdf = db.getUserPDFs().find(p => p.id === pdfId);
+
+  if (!pdf) {
+    return res.status(404).json({ error: 'Dosya bulunamadı.' });
+  }
+
+  // Determine if requester is allowed to delete this PDF
+  let allowed = false;
+  if (requester.rol === 'admin') {
+    allowed = true;
+  } else if (pdf.userId === requester.id) {
+    allowed = true;
+  } else if (pdf.userId >= 10000) {
+    const studentId = pdf.userId - 10000;
+    const student = db.getOgrenciler().find(s => s.id === studentId);
+    if (student) {
+      if (requester.rol === 'veli' && student.veli_id === requester.id) {
+        allowed = true;
+      } else if (requester.rol === 'ogrenci' && student.id === requester.id) {
+        allowed = true;
+      } else if (requester.rol === 'ogretmen' || requester.rol === 'rehber') {
+        if (student.danisman_id === requester.id) {
+          allowed = true;
+        }
+        const studentClass = db.getSiniflar().find(c => c.id === student.sinif_id);
+        if (studentClass && studentClass.kurum_id === requester.kurum_id) {
+          allowed = true;
+        }
+      }
+    }
+  }
+
+  if (!allowed) {
+    return res.status(403).json({ error: 'Bu dosyayı silme yetkiniz bulunmamaktadır.' });
+  }
+
+  const filename = pdf.fileUrl.split('/').pop();
+  if (filename) {
+    const filePath = path.join(process.cwd(), 'uploads', filename);
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch (err) {
+        console.error('File unlink error:', err);
+      }
+    }
+  }
+
+  db.delete('user_pdfs', pdfId);
+
+  const annotations = db.getPDFAnnotations().filter(a => a.pdfId === pdfId);
+  for (const ann of annotations) {
+    db.delete('pdf_annotations', ann.id);
+  }
+
+  res.json({ success: true });
+});
+
+app.get('/api/pdf/:pdfId/annotations', (req, res) => {
+  const requester = getRequesterFromToken(req);
+  if (!requester) {
+    return res.status(401).json({ error: 'Kimlik doğrulaması başarısız.' });
+  }
+
+  const pdfId = Number(req.params.pdfId);
+  const pdf = db.getUserPDFs().find(p => p.id === pdfId);
+  if (!pdf) {
+    return res.status(404).json({ error: 'Dosya bulunamadı.' });
+  }
+
+  let allowed = false;
+  if (requester.rol === 'admin') {
+    allowed = true;
+  } else if (pdf.userId === requester.id) {
+    allowed = true;
+  } else if (pdf.userId >= 10000) {
+    const studentId = pdf.userId - 10000;
+    const student = db.getOgrenciler().find(s => s.id === studentId);
+    if (student) {
+      if (requester.rol === 'veli' && student.veli_id === requester.id) {
+        allowed = true;
+      } else if (requester.rol === 'ogrenci' && student.id === requester.id) {
+        allowed = true;
+      } else if (requester.rol === 'ogretmen' || requester.rol === 'rehber') {
+        if (student.danisman_id === requester.id) {
+          allowed = true;
+        }
+        const studentClass = db.getSiniflar().find(c => c.id === student.sinif_id);
+        if (studentClass && studentClass.kurum_id === requester.kurum_id) {
+          allowed = true;
+        }
+      }
+    }
+  }
+
+  if (!allowed) {
+    return res.status(403).json({ error: 'Bu dosyanın çizim verilerine erişim yetkiniz bulunmamaktadır.' });
+  }
+
+  const annotations = db.getPDFAnnotations().filter(a => a.pdfId === pdfId);
+  res.json(annotations);
+});
+
+app.post('/api/pdf/:pdfId/annotations', (req, res) => {
+  const requester = getRequesterFromToken(req);
+  if (!requester) {
+    return res.status(401).json({ error: 'Kimlik doğrulaması başarısız.' });
+  }
+
+  const pdfId = Number(req.params.pdfId);
+  const pdf = db.getUserPDFs().find(p => p.id === pdfId);
+  if (!pdf) {
+    return res.status(404).json({ error: 'Dosya bulunamadı.' });
+  }
+
+  let allowed = false;
+  if (requester.rol === 'admin') {
+    allowed = true;
+  } else if (pdf.userId === requester.id) {
+    allowed = true;
+  } else if (pdf.userId >= 10000) {
+    const studentId = pdf.userId - 10000;
+    const student = db.getOgrenciler().find(s => s.id === studentId);
+    if (student) {
+      if (requester.rol === 'veli' && student.veli_id === requester.id) {
+        allowed = true;
+      } else if (requester.rol === 'ogrenci' && student.id === requester.id) {
+        allowed = true;
+      } else if (requester.rol === 'ogretmen' || requester.rol === 'rehber') {
+        if (student.danisman_id === requester.id) {
+          allowed = true;
+        }
+        const studentClass = db.getSiniflar().find(c => c.id === student.sinif_id);
+        if (studentClass && studentClass.kurum_id === requester.kurum_id) {
+          allowed = true;
+        }
+      }
+    }
+  }
+
+  if (!allowed) {
+    return res.status(403).json({ error: 'Bu dosyaya çizim kaydetme yetkiniz bulunmamaktadır.' });
+  }
+
+  const { pageNumber, annotationData } = req.body;
+  if (typeof pageNumber !== 'number' || annotationData === undefined) {
+    return res.status(400).json({ error: 'pageNumber ve annotationData alanları zorunludur.' });
+  }
+
+  const existing = db.getPDFAnnotations().find(a => a.pdfId === pdfId && a.pageNumber === pageNumber && a.userId === requester.id);
+
+  if (existing) {
+    db.update('pdf_annotations', existing.id, {
+      annotationData: typeof annotationData === 'string' ? annotationData : JSON.stringify(annotationData),
+      updatedAt: new Date().toISOString()
+    });
+    res.json({ success: true, message: 'Çizim güncellendi.' });
+  } else {
+    const newAnn = db.insert('pdf_annotations', {
+      pdfId,
+      userId: requester.id,
+      pageNumber,
+      annotationData: typeof annotationData === 'string' ? annotationData : JSON.stringify(annotationData),
+      updatedAt: new Date().toISOString()
+    });
+    res.json({ success: true, message: 'Çizim kaydedildi.', annotation: newAnn });
   }
 });
 

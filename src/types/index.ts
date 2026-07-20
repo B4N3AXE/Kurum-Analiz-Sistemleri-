@@ -129,3 +129,20 @@ export interface VeliNotu {
   not_metni: string;
   tarih: string;
 }
+
+export interface UserPDF {
+  id: number;
+  userId: number;
+  title: string;
+  fileUrl: string;
+  createdAt: string;
+}
+
+export interface PDFAnnotation {
+  id: number;
+  pdfId: number;
+  userId: number;
+  pageNumber: number;
+  annotationData: string;
+  updatedAt: string;
+}

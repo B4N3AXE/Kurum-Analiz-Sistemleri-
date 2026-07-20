@@ -149,6 +149,23 @@ export interface HaftalikGorev {
   tarih?: string;
 }
 
+export interface UserPDF {
+  id: number;
+  userId: number;
+  title: string;
+  fileUrl: string;
+  createdAt: string;
+}
+
+export interface PDFAnnotation {
+  id: number;
+  pdfId: number;
+  userId: number;
+  pageNumber: number;
+  annotationData: string;
+  updatedAt: string;
+}
+
 export interface DatabaseSchema {
   kullanicilar: Kullanici[];
   kurumlar: Kurum[];
@@ -167,6 +184,8 @@ export interface DatabaseSchema {
   konu_takip?: KonuTakip[];
   calisma_seanslari?: CalismaSeansi[];
   haftalik_gorevler?: HaftalikGorev[];
+  user_pdfs?: UserPDF[];
+  pdf_annotations?: PDFAnnotation[];
 }
 
 export interface DersProgrami {
@@ -209,7 +228,9 @@ const initialData: DatabaseSchema = {
   ],
   konu_takip: [],
   calisma_seanslari: [],
-  haftalik_gorevler: []
+  haftalik_gorevler: [],
+  user_pdfs: [],
+  pdf_annotations: []
 };
 
 export class Database {
@@ -284,7 +305,9 @@ export class Database {
           coupons: parsed.coupons || initialData.coupons,
           konu_takip: parsed.konu_takip || [],
           calisma_seanslari: parsed.calisma_seanslari || [],
-          haftalik_gorevler: parsed.haftalik_gorevler || []
+          haftalik_gorevler: parsed.haftalik_gorevler || [],
+          user_pdfs: parsed.user_pdfs || [],
+          pdf_annotations: parsed.pdf_annotations || []
         };
 
         // Always save back to keep db.json perfectly seeded and up to date
@@ -323,6 +346,8 @@ export class Database {
   public getKonuTakip() { return this.data.konu_takip || []; }
   public getCalismaSeanslari() { return this.data.calisma_seanslari || []; }
   public getHaftalikGorevler() { return this.data.haftalik_gorevler || []; }
+  public getUserPDFs() { return this.data.user_pdfs || []; }
+  public getPDFAnnotations() { return this.data.pdf_annotations || []; }
 
   // Mutation helper wrapper to auto-save after calls
   public insert<K extends keyof DatabaseSchema>(table: K, item: any): any {
