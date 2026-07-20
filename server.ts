@@ -1,4 +1,8 @@
 import express from 'express';
+
+import http from 'http';
+import { Server as SocketIOServer } from 'socket.io';
+
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
@@ -20,7 +24,18 @@ import { db, Kullanici, SinavSonuc, Ogrenci } from './server/db';
 
 dotenv.config();
 
+
 const app = express();
+const httpServer = http.createServer(app);
+const io = new SocketIOServer(httpServer, { cors: { origin: '*' } });
+app.set('io', io);
+
+io.on('connection', (socket) => {
+  socket.on('join_kurum', (kurumId) => {
+    socket.join(`kurum_${kurumId}`);
+  });
+});
+
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
 // Setup JSON and multipart body parsing
@@ -2367,17 +2382,35 @@ app.post('/api/ogrenci/:id/aktif-seans', (req, res) => {
   if (!access.allowed) {
     return res.status(access.status || 403).json({ error: access.error });
   }
+
   const { ders_adi, mod, kalan_sure, toplam_sure, calisiyor } = req.body;
   
   activeSessions[studentId] = {
     ders_adi: ders_adi || 'Genel Çalışma',
     mod: mod || 'pomodoro',
     kalan_sure: typeof kalan_sure === 'number' ? kalan_sure : 0,
-    toplam_sure: typeof toplam_sure === 'number' ? toplam_sure : 1500, // default 25 min
+    toplam_sure: typeof toplam_sure === 'number' ? toplam_sure : 1500,
     calisiyor: Boolean(calisiyor),
     son_guncelleme: new Date().toISOString()
   };
   
+  // Real-time broadcast to dashboard
+  const student = db.getOgrenciler().find(s => s.id === studentId);
+  if (student) {
+    const ioInstance = req.app.get('io');
+    const studentClass = db.getSiniflar().find(c => c.id === student.sinif_id);
+    ioInstance.to(`kurum_${studentClass ? studentClass.kurum_id : 1}`).emit('session_update', {
+      id: student.id,
+      ad_soyad: student.ad_soyad,
+      sinif_adi: studentClass?.ad || 'Sınıf Yok',
+      ders_adi: activeSessions[studentId].ders_adi,
+      mod: activeSessions[studentId].mod,
+      kalan_sure: activeSessions[studentId].kalan_sure,
+      toplam_sure: activeSessions[studentId].toplam_sure,
+      calisiyor: activeSessions[studentId].calisiyor
+    });
+  }
+
   res.json({ success: true, activeSession: activeSessions[studentId] });
 });
 
@@ -4363,6 +4396,8 @@ app.get('/api/paytr/fail', (req, res) => {
 });
 
 async function startServer() {
+  await db.loadFromFirestore();
+
   // Serve frontend SPA in development or production
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
@@ -4381,7 +4416,7 @@ async function startServer() {
   }
 
   // Start Server on configured port
-  app.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Server started on http://0.0.0.0:${PORT} under NODE_ENV=${process.env.NODE_ENV}`);
   });
 }

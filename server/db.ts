@@ -199,6 +199,23 @@ export interface DersProgrami {
 
 const DB_FILE_PATH = path.resolve('db.json');
 
+import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+
+const firebaseConfigPath = path.resolve('firebase-applet-config.json');
+let dbFirestore: any = null;
+if (fs.existsSync(firebaseConfigPath)) {
+  try {
+    const firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, 'utf8'));
+    const app = initializeApp(firebaseConfig);
+    dbFirestore = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+    console.log("Firebase Firestore initialized for persistent DB sync.");
+  } catch (e) {
+    console.error("Firebase config error:", e);
+  }
+}
+
+
 // Initial seeded data for rich visual rendering and realistic flows
 const initialData: DatabaseSchema = {
   kurumlar: [
@@ -241,11 +258,24 @@ export class Database {
     this.load();
   }
 
+  
   private load() {
     try {
       if (fs.existsSync(DB_FILE_PATH)) {
         const fileContent = fs.readFileSync(DB_FILE_PATH, 'utf-8');
         const parsed = JSON.parse(fileContent);
+        this.mergeParsedData(parsed);
+      } else {
+        this.save();
+      }
+    } catch (e) {
+      console.error('Error loading database file, using in-memory fallback:', e);
+    }
+  }
+
+  private mergeParsedData(parsed: any) {
+    try {
+      
         
         // Seed risk thresholds if not exists in parsed file or incomplete
         if (!parsed.risk_thresholds || parsed.risk_thresholds.length === 0) {
@@ -310,23 +340,55 @@ export class Database {
           pdf_annotations: parsed.pdf_annotations || []
         };
 
-        // Always save back to keep db.json perfectly seeded and up to date
-        this.save();
-      } else {
-        this.save();
-      }
+        
+      this.saveLocal();
     } catch (e) {
-      console.error('Error loading database file, using in-memory fallback:', e);
+      console.error("Error in mergeParsedData:", e);
+    }
+  }
+
+  public async loadFromFirestore() {
+     if (!dbFirestore) return;
+     try {
+       console.log("Syncing database from Firestore...");
+       const snapshot = await getDoc(doc(dbFirestore, 'system', 'database'));
+       if (snapshot.exists()) {
+          const docData = snapshot.data();
+          if (docData && docData.data) {
+             const parsed = JSON.parse(docData.data);
+             this.mergeParsedData(parsed);
+             console.log("Successfully synced database from Firestore.");
+          }
+       }
+     } catch (e) {
+        console.error("Error loading from Firestore:", e);
+     }
+  }
+
+  private saveLocal() {
+    try {
+      fs.writeFileSync(DB_FILE_PATH, JSON.stringify(this.data, null, 2), 'utf-8');
+    } catch (e) {
+      console.error('Error saving local database file:', e);
     }
   }
 
   public save() {
+    this.saveLocal();
     try {
-      fs.writeFileSync(DB_FILE_PATH, JSON.stringify(this.data, null, 2), 'utf-8');
+      if (dbFirestore) {
+         setDoc(doc(dbFirestore, 'system', 'database'), { 
+            data: JSON.stringify(this.data),
+            updatedAt: new Date().toISOString()
+         }).catch(e => console.error("Firestore background sync error", e));
+      }
     } catch (e) {
-      console.error('Error saving database file:', e);
+      console.error('Error triggering Firestore sync:', e);
     }
   }
+
+
+  
 
   // Generic Query Helpers
   public getCoupons() { return this.data.coupons || []; }

@@ -1,3 +1,6 @@
+
+import { io } from 'socket.io-client';
+
 import React, { useState, useEffect } from 'react';
 import { User, SinavTanim } from '../types';
 import { 
@@ -453,13 +456,8 @@ export default function Dashboard({ user, token }: DashboardProps) {
           headers: { 'Authorization': token }
         });
         if (res.ok) {
-          const contentType = res.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const data = await res.json();
-            setStats(data);
-          } else {
-            console.warn("Expected JSON response for stats, but received: ", contentType);
-          }
+          const data = await res.json();
+          setStats(data);
         }
       } catch (err) {
         console.error("Stats fetching error:", err);
@@ -470,12 +468,39 @@ export default function Dashboard({ user, token }: DashboardProps) {
     
     fetchStats(false);
     
-    // Live background polling for real-time dashboard updates (Features 1, 2, 4)
+    // Fallback polling
     const interval = setInterval(() => {
       fetchStats(true);
-    }, 10000); // Polling interval increased slightly for performance
+    }, 15000); 
     
-    return () => clearInterval(interval);
+    // Real-time socket connection
+    const socket = io(); // Connects to the same host
+    socket.emit('join_kurum', user.kurum_id);
+    
+    socket.on('session_update', (newSession) => {
+       setStats((prev: any) => {
+          if (!prev) return prev;
+          let students = prev.activeStudyingStudents ? [...prev.activeStudyingStudents] : [];
+          const idx = students.findIndex((s: any) => s.id === newSession.id);
+          
+          if (!newSession.calisiyor) {
+             if (idx !== -1) students.splice(idx, 1);
+          } else {
+             if (idx !== -1) {
+                students[idx] = newSession;
+             } else {
+                students.push(newSession);
+             }
+          }
+          
+          return { ...prev, activeStudyingStudents: students, activeStudyingCount: students.length };
+       });
+    });
+
+    return () => {
+       clearInterval(interval);
+       socket.disconnect();
+    };
   }, [user.kurum_id, user.rol, user.id, token]);
 
   // Live timer tick for active studying students
