@@ -1549,6 +1549,22 @@ app.get('/api/ogrenci', (req, res) => {
     // Get current active transient timer status if any
     const aktif_seans = getStudentActiveSession(s.id);
 
+    const studentExams = db.getSinavSonuclari().filter(r => r.ogrenci_id === s.id);
+    let son_net: number | string = "-";
+    let son_puan: number | string = "-";
+    if (studentExams.length > 0) {
+      const examsWithDates = studentExams.map(r => {
+        const examDef = db.getSinavTanimlari().find(e => e.id === r.sinav_id);
+        return {
+          ...r,
+          tarih: examDef ? examDef.tarih : ''
+        }
+      });
+      examsWithDates.sort((a, b) => new Date(b.tarih).getTime() - new Date(a.tarih).getTime());
+      son_net = examsWithDates[0].toplam_net;
+      son_puan = examsWithDates[0].puan;
+    }
+
     return {
       ...s,
       sinif_adi: cls ? cls.ad : 'Sınıfsız',
@@ -1557,7 +1573,9 @@ app.get('/api/ogrenci', (req, res) => {
       veli_telefon: parent ? parent.telefon : '',
       danisman_adi: danisman ? danisman.ad_soyad : 'Atanmamış',
       bugun_calisma_suresi,
-      aktif_seans
+      aktif_seans,
+      son_net,
+      son_puan
     };
   });
 
@@ -1709,6 +1727,14 @@ app.get('/api/ogrenci/:id', (req, res) => {
 
     // Get current active transient timer status if any
     const aktif_seans = getStudentActiveSession(studentId);
+    
+    let son_net: number | string = "-";
+    let son_puan: number | string = "-";
+    if (joinedResults.length > 0) {
+      const sortedResults = [...joinedResults].sort((a, b) => new Date(b.tarih).getTime() - new Date(a.tarih).getTime());
+      son_net = sortedResults[0].toplam_net;
+      son_puan = sortedResults[0].puan;
+    }
 
     res.json({
       student: {
@@ -1718,7 +1744,9 @@ app.get('/api/ogrenci/:id', (req, res) => {
         veli_telefon: parent ? parent.telefon : '',
         danisman_adi: danisman ? danisman.ad_soyad : 'Atanmamış',
         bugun_calisma_suresi,
-        aktif_seans
+        aktif_seans,
+        son_net,
+        son_puan
       },
       sonuclar: joinedResults,
       notlar: joinedNotes,
