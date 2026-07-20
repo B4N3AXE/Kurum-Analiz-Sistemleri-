@@ -92,7 +92,7 @@ export default function Kitapligim({ user, token }: KitapligimProps) {
   const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [pageNum, setPageNum] = useState(1);
   const [numPages, setNumPages] = useState(0);
-  const [scale, setScale] = useState(1.25);
+  const [scale, setScale] = useState(window.innerWidth < 768 ? 0.6 : 1.25);
   const [loadingPdf, setLoadingPdf] = useState(false);
 
   // Drawing canvas states

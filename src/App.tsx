@@ -455,7 +455,8 @@ export default function App() {
 
     const reportActiveSession = async () => {
       try {
-        await fetch(`/api/ogrenci/${user.id}/aktif-seans`, {
+        const actualStudentId = user.id >= 10000 ? user.id - 10000 : user.id;
+        await fetch(`/api/ogrenci/${actualStudentId}/aktif-seans`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -5791,8 +5792,8 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Floating KAS.ai Assistant Trigger for Landing Page */}
-      {!isLoggedIn && !isAiChatOpen && (
+      {/* Floating KAS.ai Assistant Trigger for All Users */}
+      {!isAiChatOpen && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 pointer-events-none">
           {/* Greeting Speech Bubble */}
           <motion.div
@@ -5800,7 +5801,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay: 1.5, duration: 0.5 }}
             onClick={() => setIsAiChatOpen(true)}
-            className="bg-slate-900/95 text-slate-100 px-4 py-3 rounded-2xl border border-indigo-500/30 shadow-2xl shadow-indigo-500/10 text-xs font-semibold max-w-[240px] leading-relaxed relative pointer-events-auto cursor-pointer select-none group hover:border-indigo-400 transition-all"
+            className="bg-slate-900/95 text-slate-100 px-4 py-3 rounded-2xl border border-indigo-500/30 shadow-2xl shadow-indigo-500/10 text-xs font-semibold max-w-[240px] leading-relaxed relative pointer-events-auto cursor-pointer select-none group hover:border-indigo-400 transition-all hidden md:block"
           >
             {/* Pulsing indicator */}
             <span className="flex h-2 w-2 absolute top-2 right-2">
@@ -5808,8 +5809,8 @@ export default function App() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
             </span>
             <div className="pr-2">
-              <span className="text-indigo-400 font-extrabold block text-[10px] uppercase tracking-wider mb-0.5">KAS.ai Yapay Zeka:</span>
-              <span className="text-slate-200">Merhaba! Size nasıl yardımcı olabilirim?</span>
+              <span className="text-indigo-400 font-extrabold block text-[10px] uppercase tracking-wider mb-0.5">KAS.ai Asistanı</span>
+              <span className="text-slate-200">Merhaba! K.A.S. ile yapay zeka destekli analiz hakkında sorularınızı bana iletebilirsiniz.</span>
             </div>
             {/* Arrow */}
             <div className="absolute right-5 -bottom-1.5 w-3 h-3 bg-slate-900 border-r border-b border-indigo-500/30 rotate-45"></div>
@@ -5930,12 +5931,12 @@ export default function App() {
         </div>
       )}
 
-      {!isLoggedIn && <AiChatWidget
+      <AiChatWidget
         isOpen={isAiChatOpen}
         onClose={() => setIsAiChatOpen(false)}
         user={user}
         token={token}
-      />}
+      />
     </div>
   );
 }

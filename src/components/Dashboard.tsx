@@ -473,10 +473,37 @@ export default function Dashboard({ user, token }: DashboardProps) {
     // Live background polling for real-time dashboard updates (Features 1, 2, 4)
     const interval = setInterval(() => {
       fetchStats(true);
-    }, 5000);
+    }, 10000); // Polling interval increased slightly for performance
     
     return () => clearInterval(interval);
   }, [user.kurum_id, user.rol, user.id, token]);
+
+  // Live timer tick for active studying students
+  useEffect(() => {
+    if (!stats.activeStudyingStudents || stats.activeStudyingStudents.length === 0) return;
+    
+    const tickInterval = setInterval(() => {
+      setStats(prev => {
+        if (!prev.activeStudyingStudents) return prev;
+        
+        const updatedStudents = prev.activeStudyingStudents.map((stud: any) => {
+          if (!stud.calisiyor) return stud;
+          
+          let newKalan = stud.kalan_sure;
+          if (stud.mod === 'pomodoro') {
+             newKalan = Math.max(0, newKalan - 1);
+          } else {
+             newKalan = newKalan + 1; // stopwatch mode actually increments
+          }
+          return { ...stud, kalan_sure: newKalan };
+        });
+        
+        return { ...prev, activeStudyingStudents: updatedStudents };
+      });
+    }, 1000);
+    
+    return () => clearInterval(tickInterval);
+  }, [stats.activeStudyingStudents?.length]);
 
   const renderCalendar = () => {
     const today = new Date();
@@ -1011,7 +1038,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
             </span>
             <h3 className="text-sm font-extrabold text-slate-100 flex items-center gap-1.5">
-              Canlı Çalışma Kronometreleri (Öğretmen & Rehberlik Takip)
+              Aktif Çalışma Odası (Canlı Takip)
             </h3>
           </div>
           <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/10 px-2.5 py-0.5 rounded-full font-bold uppercase animate-pulse">
