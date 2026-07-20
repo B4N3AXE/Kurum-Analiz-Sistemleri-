@@ -119,6 +119,74 @@ function getGroqClient(): Groq | null {
   }
 }
 
+// Helper to parse base64 authorization token
+function getRequesterFromToken(req: express.Request) {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) return null;
+  
+  try {
+    const decoded = Buffer.from(authHeader, 'base64').toString('utf-8');
+    const parsed = JSON.parse(decoded);
+    if (parsed && typeof parsed === 'object') {
+      return {
+        id: Number(parsed.id),
+        rol: parsed.rol as 'admin' | 'ogretmen' | 'rehber' | 'veli' | 'ogrenci',
+        kurum_id: Number(parsed.kurum_id),
+        studentId: parsed.studentId ? Number(parsed.studentId) : null
+      };
+    }
+  } catch (e) {
+    // Fail silently
+  }
+  return null;
+}
+
+// Helper to check if requester can access a student's data
+function checkStudentAccess(req: express.Request, studentId: number): { allowed: boolean; error?: string; status?: number } {
+  const requester = getRequesterFromToken(req);
+  if (!requester) {
+    return { allowed: false, error: 'Kimlik doğrulaması başarısız. Lütfen tekrar giriş yapın.', status: 401 };
+  }
+
+  const student = db.getOgrenciler().find(s => s.id === studentId);
+  if (!student) {
+    return { allowed: false, error: 'Öğrenci bulunamadı.', status: 404 };
+  }
+
+  // 1. Admin always allowed
+  if (requester.rol === 'admin') {
+    return { allowed: true };
+  }
+
+  // 2. Student themselves allowed
+  if (requester.rol === 'ogrenci') {
+    const resolvedStudentId = requester.studentId || (requester.id - 10000);
+    if (student.id === resolvedStudentId) {
+      return { allowed: true };
+    }
+  }
+
+  // 3. Parent (veli) allowed if it's their child
+  if (requester.rol === 'veli') {
+    if (student.veli_id === requester.id) {
+      return { allowed: true };
+    }
+  }
+
+  // 4. Teacher/Rehber (ogretmen, rehber) allowed if they are in the same kurum/institution or is advisor
+  if (requester.rol === 'ogretmen' || requester.rol === 'rehber') {
+    if (student.danisman_id === requester.id) {
+      return { allowed: true };
+    }
+    const studentClass = db.getSiniflar().find(c => c.id === student.sinif_id);
+    if (studentClass && studentClass.kurum_id === requester.kurum_id) {
+      return { allowed: true };
+    }
+  }
+
+  return { allowed: false, error: 'Bu öğrencinin verilerine erişim yetkiniz bulunmamaktadır.', status: 403 };
+}
+
 // Auth API Routes
 app.post('/api/auth/login', (req, res) => {
   const { email, sifre } = req.body;
@@ -148,7 +216,10 @@ app.post('/api/auth/login', (req, res) => {
         const institution = db.getKurumlar().find(k => k.id === institutionId);
         
         registerLoginAttempt(email, true);
+        const tokenPayload = { id: student.id + 10000, rol: 'ogrenci', kurum_id: institutionId, studentId: student.id };
+        const token = Buffer.from(JSON.stringify(tokenPayload)).toString('base64');
         return res.json({
+          token,
           user: {
             id: student.id + 10000, // Unique client-side ID space
             ad_soyad: student.ad_soyad,
@@ -172,7 +243,10 @@ app.post('/api/auth/login', (req, res) => {
   registerLoginAttempt(email, true);
   
   const institution = db.getKurumlar().find(k => k.id === user.kurum_id);
+  const tokenPayload = { id: user.id, rol: user.rol, kurum_id: user.kurum_id };
+  const token = Buffer.from(JSON.stringify(tokenPayload)).toString('base64');
   res.json({
+    token,
     user: {
       id: user.id,
       ad_soyad: user.ad_soyad,
@@ -1356,8 +1430,32 @@ function generateMockParsedDataForUpload(type: 'TYT' | 'AYT'): any[] {
 
 // 1. OGRENCI (STUDENTS) ENDPOINTS
 app.get('/api/ogrenci', (req, res) => {
+  const requester = getRequesterFromToken(req);
+  if (!requester) {
+    return res.status(401).json({ error: 'Kimlik doğrulaması başarısız. Lütfen tekrar giriş yapın.' });
+  }
+
   const { sinif_id, alan, aktif, search } = req.query;
   let students = db.getOgrenciler();
+
+  // Enforce privacy filtering based on requester's role:
+  if (requester.rol === 'veli') {
+    // Parent can only see their own children
+    students = students.filter(s => s.veli_id === requester.id);
+  } else if (requester.rol === 'ogrenci') {
+    // Student can only see themselves
+    const resolvedStudentId = requester.studentId || (requester.id - 10000);
+    students = students.filter(s => s.id === resolvedStudentId);
+  } else if (requester.rol === 'ogretmen' || requester.rol === 'rehber' || requester.rol === 'admin') {
+    // Teachers, advisors, and admins can see students in their institution
+    students = students.filter(s => {
+      const cls = db.getSiniflar().find(c => c.id === s.sinif_id);
+      return cls && cls.kurum_id === requester.kurum_id;
+    });
+  } else {
+    return res.status(403).json({ error: 'Bu veriye erişim yetkiniz bulunmamaktadır.' });
+  }
+
   const classes = db.getSiniflar();
   const parents = db.getKullanicilar().filter(u => u.rol === 'veli');
   const counselorsAndTeachers = db.getKullanicilar().filter(u => u.rol === 'rehber' || u.rol === 'ogretmen');
@@ -1435,6 +1533,12 @@ app.post('/api/ogrenci', (req, res) => {
 
 app.put('/api/ogrenci/:id', (req, res) => {
   const id = Number(req.params.id);
+
+  const access = checkStudentAccess(req, id);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
+
   const { ad_soyad, tc_no, sinif_id, veli_id, alan, aktif, hedef_net, danisman_id, sifre } = req.body;
 
   if (tc_no && tc_no.trim() !== '') {
@@ -1466,6 +1570,16 @@ app.put('/api/ogrenci/:id', (req, res) => {
 
 app.delete('/api/ogrenci/:id', (req, res) => {
   const id = Number(req.params.id);
+  const requester = getRequesterFromToken(req);
+  if (!requester || (requester.rol !== 'admin' && requester.rol !== 'ogretmen' && requester.rol !== 'rehber')) {
+    return res.status(403).json({ error: 'Öğrenci silme yetkiniz bulunmamaktadır.' });
+  }
+
+  const access = checkStudentAccess(req, id);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
+
   const success = db.delete('ogrenciler', id);
   if (success) {
     const results = db.getSinavSonuclari().filter(r => r.ogrenci_id === id);
@@ -1484,6 +1598,13 @@ app.get('/api/ogrenci/:id', (req, res) => {
     if (isNaN(studentId)) {
       return res.status(400).json({ error: 'Geçersiz öğrenci kimliği.' });
     }
+
+    // Check access permissions for privacy and confidentiality
+    const access = checkStudentAccess(req, studentId);
+    if (!access.allowed) {
+      return res.status(access.status || 403).json({ error: access.error });
+    }
+
     const student = db.getOgrenciler().find(s => s.id === studentId);
     if (!student) {
       return res.status(404).json({ error: 'Öğrenci bulunamadı.' });
@@ -1559,6 +1680,12 @@ const veliOzetiCache: Record<number, { date: string, text: string }> = {};
 
 app.get('/api/ogrenci/:id/ai-veli-ozeti', async (req, res) => {
   const studentId = Number(req.params.id);
+
+  const access = checkStudentAccess(req, studentId);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
+
   const student = db.getOgrenciler().find(s => s.id === studentId);
   if (!student) return res.status(404).json({ error: 'Öğrenci bulunamadı.' });
 
@@ -1611,6 +1738,10 @@ app.get('/api/ogrenci/:id/ai-veli-ozeti', async (req, res) => {
 // Teacher recommendations
 app.post('/api/ogrenci/:id/tavsiye', (req, res) => {
   const ogrenci_id = Number(req.params.id);
+  const access = checkStudentAccess(req, ogrenci_id);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const { ogretmen_id, ogretmen_adi, ders_adi, tavsiye_metni } = req.body;
   if (!tavsiye_metni || !ders_adi) {
     return res.status(400).json({ error: 'Ders adı ve tavsiye metni alanları gereklidir.' });
@@ -1627,6 +1758,11 @@ app.post('/api/ogrenci/:id/tavsiye', (req, res) => {
 });
 
 app.delete('/api/ogrenci/:id/tavsiye/:tavsiyeId', (req, res) => {
+  const ogrenci_id = Number(req.params.id);
+  const access = checkStudentAccess(req, ogrenci_id);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const tavsiyeId = Number(req.params.tavsiyeId);
   const success = db.delete('ogretmen_tavsiyeleri', tavsiyeId);
   if (success) {
@@ -1639,6 +1775,10 @@ app.delete('/api/ogrenci/:id/tavsiye/:tavsiyeId', (req, res) => {
 // Parent feedback notes
 app.post('/api/ogrenci/:id/veli-not', (req, res) => {
   const ogrenci_id = Number(req.params.id);
+  const access = checkStudentAccess(req, ogrenci_id);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const { veli_id, veli_adi, not_metni } = req.body;
   if (!not_metni) {
     return res.status(400).json({ error: 'Geri bildirim notu boş bırakılamaz.' });
@@ -1654,6 +1794,11 @@ app.post('/api/ogrenci/:id/veli-not', (req, res) => {
 });
 
 app.delete('/api/ogrenci/:id/veli-not/:noteId', (req, res) => {
+  const ogrenci_id = Number(req.params.id);
+  const access = checkStudentAccess(req, ogrenci_id);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const noteId = Number(req.params.noteId);
   const success = db.delete('veli_notlari', noteId);
   if (success) {
@@ -1666,6 +1811,10 @@ app.delete('/api/ogrenci/:id/veli-not/:noteId', (req, res) => {
 // Student guidance notes
 app.post('/api/ogrenci/:id/not', (req, res) => {
   const ogrenci_id = Number(req.params.id);
+  const access = checkStudentAccess(req, ogrenci_id);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const { rehber_id, not_metni } = req.body;
   if (!not_metni) {
     return res.status(400).json({ error: 'Rehberlik notu içeriği gereklidir.' });
@@ -1686,6 +1835,11 @@ app.post('/api/ogrenci/:id/not', (req, res) => {
 });
 
 app.delete('/api/ogrenci/:id/not/:noteId', (req, res) => {
+  const ogrenci_id = Number(req.params.id);
+  const access = checkStudentAccess(req, ogrenci_id);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const noteId = Number(req.params.noteId);
   const success = db.delete('rehberlik_notlari', noteId);
   if (success) {
@@ -1697,6 +1851,10 @@ app.delete('/api/ogrenci/:id/not/:noteId', (req, res) => {
 
 app.post('/api/ogrenci/:id/velinot', (req, res) => {
   const ogrenci_id = Number(req.params.id);
+  const access = checkStudentAccess(req, ogrenci_id);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const { ekleyen_id, not_metni } = req.body;
   if (!not_metni) {
     return res.status(400).json({ error: 'Not içeriği gereklidir.' });
@@ -1725,6 +1883,11 @@ app.post('/api/ogrenci/:id/velinot', (req, res) => {
 });
 
 app.delete('/api/ogrenci/:id/velinot/:noteId', (req, res) => {
+  const ogrenci_id = Number(req.params.id);
+  const access = checkStudentAccess(req, ogrenci_id);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const noteId = Number(req.params.noteId);
   const success = db.delete('veli_notlari', noteId);
   if (success) {
@@ -1739,12 +1902,20 @@ app.delete('/api/ogrenci/:id/velinot/:noteId', (req, res) => {
 // Feature 1: Konu Takip (Subject checklist)
 app.get('/api/ogrenci/:id/konu-takip', (req, res) => {
   const studentId = Number(req.params.id);
+  const access = checkStudentAccess(req, studentId);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const data = db.getKonuTakip().filter(kt => kt.ogrenci_id === studentId);
   res.json(data);
 });
 
 app.post('/api/ogrenci/:id/konu-takip', (req, res) => {
   const studentId = Number(req.params.id);
+  const access = checkStudentAccess(req, studentId);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const { konu_key, tamamlandi } = req.body;
   if (!konu_key) {
     return res.status(400).json({ error: 'konu_key gereklidir.' });
@@ -1772,12 +1943,20 @@ app.post('/api/ogrenci/:id/konu-takip', (req, res) => {
 // Feature 2: Çalışma Seansları (Timer / Focus stopwatch sessions)
 app.get('/api/ogrenci/:id/calisma-seanslari', (req, res) => {
   const studentId = Number(req.params.id);
+  const access = checkStudentAccess(req, studentId);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const data = db.getCalismaSeanslari().filter(cs => cs.ogrenci_id === studentId);
   res.json(data);
 });
 
 app.post('/api/ogrenci/:id/calisma-seanslari', (req, res) => {
   const studentId = Number(req.params.id);
+  const access = checkStudentAccess(req, studentId);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const { ders_adi, sure } = req.body;
   if (!ders_adi || typeof sure !== 'number') {
     return res.status(400).json({ error: 'ders_adi ve sayısal sure gereklidir.' });
@@ -1800,6 +1979,10 @@ app.post('/api/ogrenci/:id/calisma-seanslari', (req, res) => {
 // Endpoint to update student's live transient active studying session status (Features 1, 2, 4)
 app.post('/api/ogrenci/:id/aktif-seans', (req, res) => {
   const studentId = Number(req.params.id);
+  const access = checkStudentAccess(req, studentId);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const { ders_adi, mod, kalan_sure, toplam_sure, calisiyor } = req.body;
   
   activeSessions[studentId] = {
@@ -1817,12 +2000,20 @@ app.post('/api/ogrenci/:id/aktif-seans', (req, res) => {
 // Feature 4: Haftalık Görevler (Weekly Study Tasks assigned by Coach/Teacher or self)
 app.get('/api/ogrenci/:id/haftalik-gorevler', (req, res) => {
   const studentId = Number(req.params.id);
+  const access = checkStudentAccess(req, studentId);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const data = db.getHaftalikGorevler().filter(hg => hg.ogrenci_id === studentId);
   res.json(data);
 });
 
 app.post('/api/ogrenci/:id/haftalik-gorevler', (req, res) => {
   const studentId = Number(req.params.id);
+  const access = checkStudentAccess(req, studentId);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const { gorev_metni, ders_adi, gun } = req.body;
   if (!gorev_metni || !ders_adi || !gun) {
     return res.status(400).json({ error: 'gorev_metni, ders_adi ve gun alanları gereklidir.' });
@@ -1839,6 +2030,11 @@ app.post('/api/ogrenci/:id/haftalik-gorevler', (req, res) => {
 });
 
 app.put('/api/ogrenci/:id/haftalik-gorevler/:gorevId', (req, res) => {
+  const studentId = Number(req.params.id);
+  const access = checkStudentAccess(req, studentId);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const gorevId = Number(req.params.gorevId);
   const { tamamlandi, gorev_metni, ders_adi, gun } = req.body;
   const updates: any = {};
@@ -1856,6 +2052,11 @@ app.put('/api/ogrenci/:id/haftalik-gorevler/:gorevId', (req, res) => {
 });
 
 app.delete('/api/ogrenci/:id/haftalik-gorevler/:gorevId', (req, res) => {
+  const studentId = Number(req.params.id);
+  const access = checkStudentAccess(req, studentId);
+  if (!access.allowed) {
+    return res.status(access.status || 403).json({ error: access.error });
+  }
   const gorevId = Number(req.params.gorevId);
   const success = db.delete('haftalik_gorevler', gorevId);
   if (success) {
