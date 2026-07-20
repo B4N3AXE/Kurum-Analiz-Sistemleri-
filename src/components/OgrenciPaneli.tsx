@@ -461,7 +461,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
     e.preventDefault();
     setFormError('');
 
-    if (!formData.ad_soyad || !formData.tc_no || !formData.sinif_id || !formData.alan) {
+    if (!formData.ad_soyad || !formData.sinif_id || !formData.alan) {
       setFormError('Lütfen tüm zorunlu alanları (*) doldurun.');
       return;
     }

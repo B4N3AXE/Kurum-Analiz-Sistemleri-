@@ -888,7 +888,7 @@ app.get('/api/students', (req, res) => {
   }
   if (search) {
     const query = String(search).toLowerCase();
-    students = students.filter(s => s.ad_soyad.toLowerCase().includes(query) || s.tc_no.includes(query));
+    students = students.filter(s => s.ad_soyad.toLowerCase().includes(query) || (s.tc_no && s.tc_no.includes(query)));
   }
 
   // Join class name and parent details
@@ -1533,7 +1533,7 @@ app.get('/api/ogrenci', (req, res) => {
   }
   if (search) {
     const query = String(search).toLowerCase();
-    students = students.filter(s => s.ad_soyad.toLowerCase().includes(query) || s.tc_no.includes(query));
+    students = students.filter(s => s.ad_soyad.toLowerCase().includes(query) || (s.tc_no && s.tc_no.includes(query)));
   }
 
   const joined = students.map(s => {
