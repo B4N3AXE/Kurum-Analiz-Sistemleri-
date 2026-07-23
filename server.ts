@@ -3303,7 +3303,7 @@ app.post('/api/mesaj', (req, res) => {
   res.json(msg);
 });
 
-app.get('/api/mesaj/:id/oku', (req, res) => {
+app.put('/api/mesaj/:id/oku', (req, res) => {
   const id = Number(req.params.id);
   const success = db.update('mesajlar', id, { okundu: true });
   if (success) {

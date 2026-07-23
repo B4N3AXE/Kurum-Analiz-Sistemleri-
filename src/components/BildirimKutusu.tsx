@@ -54,12 +54,12 @@ export default function BildirimKutusu({ user, onNavigate }: BildirimKutusuProps
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      fetch(`/api/mesaj?user_id=${user.id}&rol=${user.rol}`, {
+      fetch(`/api/mesaj?user_id=${user.id}&rol=${user.rol}&_t=${Date.now()}`, {
         headers: { 'Authorization': token }
       })
       .then(res => res.ok ? res.json() : [])
       .then((messages: any[]) => {
-        const unreadMsgs = messages.filter(m => Number(m.alici_id) === Number(user.id) && (m.okundu === false || m.okundu === 0 || m.okundu === "false"));
+        const unreadMsgs = messages.filter(m => Number(m.alici_id) === Number(user.id) && !m.okundu);
         const converted: NotificationItem[] = unreadMsgs.map(m => ({
           id: `msg_${m.id}`,
           title: `Yeni Mesaj: ${m.konu || 'Bilgilendirme'}`,
