@@ -59,7 +59,7 @@ export default function BildirimKutusu({ user, onNavigate }: BildirimKutusuProps
       })
       .then(res => res.ok ? res.json() : [])
       .then((messages: any[]) => {
-        const unreadMsgs = messages.filter(m => m.alici_id === user.id && !m.okundu);
+        const unreadMsgs = messages.filter(m => Number(m.alici_id) === Number(user.id) && (m.okundu === false || m.okundu === 0 || m.okundu === "false"));
         const converted: NotificationItem[] = unreadMsgs.map(m => ({
           id: `msg_${m.id}`,
           title: `Yeni Mesaj: ${m.konu || 'Bilgilendirme'}`,
@@ -76,7 +76,7 @@ export default function BildirimKutusu({ user, onNavigate }: BildirimKutusuProps
     };
 
     fetchMessages();
-    const interval = setInterval(fetchMessages, 15000); // Every 15 seconds
+    const interval = setInterval(fetchMessages, 3000); // Every 15 seconds
     return () => clearInterval(interval);
   }, [user.id, user.rol]);
 
