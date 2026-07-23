@@ -51,14 +51,14 @@ export default function BildirimKutusu({ user, onNavigate }: BildirimKutusuProps
   // Fetch real unread messages from backend
   useEffect(() => {
     const fetchMessages = () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('kas_token');
       if (!token) return;
 
       fetch(`/api/mesaj?user_id=${user.id}&rol=${user.rol}&_t=${Date.now()}`, {
         headers: { 'Authorization': token }
       })
       .then(res => res.ok ? res.json() : [])
-      .then((messages: any[]) => {
+      .then((messages: any[]) => { console.log("FETCHED MESSAGES:", messages);
         const unreadMsgs = messages.filter(m => Number(m.alici_id) === Number(user.id) && !m.okundu);
         const converted: NotificationItem[] = unreadMsgs.map(m => ({
           id: `msg_${m.id}`,
@@ -266,7 +266,7 @@ export default function BildirimKutusu({ user, onNavigate }: BildirimKutusuProps
   const markAsRead = (id: string) => {
     if (id.startsWith('msg_')) {
       const msgId = id.replace('msg_', '');
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('kas_token');
       if (token) {
         fetch(`/api/mesaj/${msgId}/oku`, {
           method: 'PUT',
