@@ -9,6 +9,7 @@ import Abonelik from './components/Abonelik';
 import RiskLimitleri from './components/RiskLimitleri';
 import AiChatWidget from './components/AiChatWidget';
 import Kitapligim from './components/Kitapligim';
+import BildirimKutusu from './components/BildirimKutusu';
 import { Home, Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key, Target, Eye, Send, Trash2, Play, Pause, RotateCcw, Plus, Square, CheckSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -3070,6 +3071,10 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2">
+              <BildirimKutusu 
+                user={user} 
+                onNavigate={(tab) => setCurrentTab(tab as any)} 
+              />
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700/50 cursor-pointer transition flex items-center justify-center"
@@ -3678,8 +3683,70 @@ export default function App() {
           </aside>
 
           {/* Core App Viewport */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-slate-900 scrollbar-thumb-slate-800">
-            <main className="p-6 md:p-8 max-w-7xl mx-auto w-full">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-slate-900 scrollbar-thumb-slate-800 flex flex-col">
+            {/* Desktop Top Header Bar */}
+            <header className="hidden md:flex items-center justify-between px-8 py-3.5 bg-slate-900/60 border-b border-slate-800/80 sticky top-0 z-30 backdrop-blur-md">
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-full font-black uppercase tracking-wider">
+                  {user.kurum_adi || "K.A.S Portal"}
+                </span>
+                <span className="text-slate-600 font-bold">•</span>
+                <span className="text-xs font-bold text-slate-300">
+                  {currentTab === 'dashboard' && 'Genel Yönetim & Analiz Özeti'}
+                  {currentTab === 'veli-panel' && 'Veli Gelişim Karnesi & Takip'}
+                  {currentTab === 'ogrenci-panel' && 'Öğrenci Gelişim Karnem'}
+                  {currentTab === 'ogrenci' && 'Öğrenci Yönetimi'}
+                  {currentTab === 'pdf' && 'PDF Akıllı Sınav Okuyucu'}
+                  {currentTab === 'mesaj' && 'Mesaj Merkezi'}
+                  {currentTab === 'kitapligim' && 'Kütüphanem & Çalışma Alanı'}
+                  {currentTab === 'kas-ai' && 'KAS.ai Yapay Zeka Asistanı'}
+                  {currentTab === 'abonelik' && 'Lisans & Abonelik Yönetimi'}
+                  {currentTab.startsWith('tanimlar') && 'Kurum Tanımları'}
+                  {currentTab === 'risk_limitleri' && 'Başarı Risk Limitleri'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* KAS.ai Quick Button */}
+                <button
+                  onClick={() => setCurrentTab('kas-ai')}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-950/60 to-blue-950/60 border border-indigo-800/50 hover:border-indigo-600 text-indigo-300 hover:text-white text-xs font-extrabold transition cursor-pointer shadow-sm group"
+                >
+                  <Sparkles size={14} className="text-indigo-400 group-hover:rotate-12 transition-transform" />
+                  <span>KAS.ai Asistanı</span>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                  </span>
+                </button>
+
+                {/* Bildirim Kutusu Bell */}
+                <BildirimKutusu 
+                  user={user} 
+                  onNavigate={(tab) => setCurrentTab(tab as any)} 
+                />
+
+                {/* Profile User Pill */}
+                <div className="flex items-center gap-2.5 bg-slate-950/50 border border-slate-800/80 px-3 py-1.5 rounded-xl">
+                  <div className="h-6 w-6 bg-blue-600/20 border border-blue-500/30 text-blue-400 font-extrabold text-[10px] rounded-lg flex items-center justify-center uppercase">
+                    {user.ad_soyad[0]}
+                  </div>
+                  <div className="text-left leading-none">
+                    <span className="text-xs font-extrabold text-slate-200 block">{user.ad_soyad}</span>
+                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mt-0.5">{user.rol}</span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="ml-1 p-1 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition cursor-pointer"
+                    title="Güvenli Çıkış"
+                  >
+                    <LogOut size={13} />
+                  </button>
+                </div>
+              </div>
+            </header>
+
+            <main className="p-6 md:p-8 max-w-7xl mx-auto w-full flex-1">
             
             {user.rol === 'admin' && currentSubscription === 'trial' && trialDaysLeft <= 0 ? (
               user.rol === 'admin' && currentTab === 'abonelik' ? (
