@@ -3631,14 +3631,17 @@ export default function App() {
                   <span className="text-[#30D158] font-mono font-bold">AKTİF</span>
                 </div>
                 
-                <span className="block text-xl font-black text-white font-mono tracking-tight">
+                <span className="block text-2xl font-black text-white font-mono tracking-tight mt-1">
                   {currentTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+                <span className="block text-xs font-bold text-slate-400 mt-1">
+                  {currentTime.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </span>
               </div>
 
               <div className="text-[10px] text-slate-400 font-bold space-y-0.5 px-1 pt-1">
-                <p>Kurum Analiz Sistemi v1.5</p>
-                <p className="text-[9px] text-slate-500">© 2026 K.A.S Portal • Aurora Glass</p>
+                <p>Kurum Analiz Sistemi</p>
+                <p className="text-[9px] text-slate-500">© 2026 K.A.S Portal</p>
               </div>
             </div>
           </aside>
