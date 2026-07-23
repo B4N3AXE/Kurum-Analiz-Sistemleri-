@@ -987,12 +987,62 @@ export default function Dashboard({ user, token }: DashboardProps) {
             <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Sistem Saati</span>
             <span className="inline-block w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></span>
           </div>
-          <div className="my-auto text-center z-10">
-            <div className="text-3xl font-black text-slate-100 tracking-wider">
-              {currentTime.toLocaleTimeString('tr-TR')}
+          <div className="my-auto flex flex-row items-center justify-center gap-6 z-10">
+            {/* Analog Clock */}
+            <div className="relative">
+              <svg width="100" height="100" viewBox="0 0 100 100" className="drop-shadow-lg opacity-90">
+                <circle cx="50" cy="50" r="46" fill="rgba(15, 23, 42, 0.4)" stroke="rgba(255,255,255,0.15)" strokeWidth="3" />
+                
+                {/* Ticks */}
+                {[...Array(12)].map((_, i) => (
+                  <line 
+                    key={i} 
+                    x1="50" 
+                    y1="10" 
+                    x2="50" 
+                    y2={i % 3 === 0 ? "16" : "13"} 
+                    stroke="rgba(255,255,255,0.5)" 
+                    strokeWidth={i % 3 === 0 ? "3" : "1.5"} 
+                    transform={`rotate(${i * 30} 50 50)`} 
+                  />
+                ))}
+                
+                {/* KAS Logo / Text */}
+                <text x="50" y="38" fontSize="15" fill="rgba(255,255,255,0.3)" textAnchor="middle" fontWeight="bold" letterSpacing="1">KAS</text>
+
+                {/* Hands */}
+                <line 
+                  x1="50" y1="50" x2="50" y2="28" 
+                  stroke="rgba(255,255,255,0.9)" 
+                  strokeWidth="3.5" 
+                  strokeLinecap="round" 
+                  transform={`rotate(${(currentTime.getHours() % 12) * 30 + currentTime.getMinutes() * 0.5} 50 50)`} 
+                />
+                <line 
+                  x1="50" y1="50" x2="50" y2="15" 
+                  stroke="rgba(255,255,255,0.7)" 
+                  strokeWidth="2.5" 
+                  strokeLinecap="round" 
+                  transform={`rotate(${currentTime.getMinutes() * 6 + currentTime.getSeconds() * 0.1} 50 50)`} 
+                />
+                <line 
+                  x1="50" y1="50" x2="50" y2="12" 
+                  stroke="#ef4444" 
+                  strokeWidth="1.5" 
+                  strokeLinecap="round" 
+                  transform={`rotate(${currentTime.getSeconds() * 6} 50 50)`} 
+                />
+                <circle cx="50" cy="50" r="3" fill="#ef4444" />
+              </svg>
             </div>
-            <div className="text-xs text-slate-400 mt-2 font-medium">
-              {currentTime.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            
+            <div className="text-left">
+              <div className="text-3xl font-black text-slate-100 tracking-wider">
+                {currentTime.toLocaleTimeString('tr-TR')}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1 font-medium">
+                {currentTime.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </div>
             </div>
           </div>
         </div>
@@ -1007,7 +1057,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Toplam Öğrenci</span>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-3xl font-black text-white tracking-tight">{stats.totalStudents || 342}</span>
+                <span className="text-3xl font-black text-white tracking-tight">{stats.totalStudents ?? 0}</span>
                 <span className="text-xs font-extrabold text-[#30D158] bg-[#30D158]/10 px-2 py-0.5 rounded-full border border-[#30D158]/20">+12 Bu Ay</span>
               </div>
               <p className="text-[11px] font-bold text-slate-400 mt-1">Aktif Kayıtlı Öğrenci Portföyü</p>
@@ -1032,7 +1082,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Aktif Öğretmen</span>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-3xl font-black text-white tracking-tight">28</span>
+                <span className="text-3xl font-black text-white tracking-tight">{stats.teacherAnalysis?.length ?? 0}</span>
                 <span className="text-xs font-extrabold text-[#29D8FF] bg-[#29D8FF]/10 px-2 py-0.5 rounded-full border border-[#29D8FF]/20">%100 Katılım</span>
               </div>
               <p className="text-[11px] font-bold text-slate-400 mt-1">Branş & Rehberlik Kadrosu</p>
@@ -1082,7 +1132,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Riskli Öğrenci</span>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-3xl font-black text-[#FF5F57] tracking-tight">{stats.riskCount || 4}</span>
+                <span className="text-3xl font-black text-[#FF5F57] tracking-tight">{stats.riskCount ?? 0}</span>
                 <span className="text-xs font-extrabold text-[#FFB020] bg-[#FFB020]/10 px-2 py-0.5 rounded-full border border-[#FFB020]/20">Takipte</span>
               </div>
               <p className="text-[11px] font-bold text-slate-400 mt-1">Limit Altı Performans Grubu</p>
@@ -1157,7 +1207,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
               <span className="text-lg">🚨</span>
             </div>
             <p className="text-xs font-bold text-slate-200 leading-snug">
-              Eşik netin altında kalan <span className="text-[#FF5F57] font-black">{stats.riskCount || 4} öğrenci</span> için birebir veli bilgilendirmesi öneriliyor.
+              Eşik netin altında kalan <span className="text-[#FF5F57] font-black">{stats.riskCount ?? 0} öğrenci</span> için birebir veli bilgilendirmesi öneriliyor.
             </p>
           </div>
 

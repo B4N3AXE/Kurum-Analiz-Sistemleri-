@@ -748,18 +748,6 @@ app.get('/api/dashboard/stats', (req, res) => {
         matematik = Number((classResults.reduce((sum, r) => sum + (r.matematik_net || 0), 0) / classResults.length).toFixed(1));
         sosyal = Number((classResults.reduce((sum, r) => sum + (r.sosyal_net || 0), 0) / classResults.length).toFixed(1));
         fen = Number((classResults.reduce((sum, r) => sum + (r.fen_net || 0), 0) / classResults.length).toFixed(1));
-      } else {
-        // Realistic pre-populated metrics for demo if there's no data yet
-        const seeds = [
-          { t: 28.5, m: 24.2, s: 16.4, f: 14.1 },
-          { t: 22.1, m: 18.5, s: 12.3, f: 9.8 },
-          { t: 25.8, m: 21.0, s: 15.0, f: 11.2 }
-        ];
-        const s = seeds[idx % seeds.length];
-        turkce = s.t;
-        matematik = s.m;
-        sosyal = s.s;
-        fen = s.f;
       }
       
       return {
@@ -789,7 +777,7 @@ app.get('/api/dashboard/stats', (req, res) => {
       const etut_sayisi = teacherLessons.length;
       
       // Calculate a real success rate if they have exams
-      let basari_orani = 100;
+      let basari_orani = 0;
       if (ogrenci_sayisi > 0) {
         const studentIds = Array.from(uniqueStudents);
         const studentResults = results.filter(r => studentIds.includes(r.ogrenci_id));
@@ -797,11 +785,7 @@ app.get('/api/dashboard/stats', (req, res) => {
           const avgNet = studentResults.reduce((sum, r) => sum + (r.toplam_net || 0), 0) / studentResults.length;
           // Map average net (out of 120) to a reasonable success rate percentage
           basari_orani = Math.min(100, Math.max(50, Math.round(50 + (avgNet / 120) * 50)));
-        } else {
-          basari_orani = 85; // Default if they have students but no exams yet
         }
-      } else {
-        basari_orani = 0; // 0% if they have no students/lessons scheduled yet
       }
       
       return {

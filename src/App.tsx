@@ -10,6 +10,7 @@ import RiskLimitleri from './components/RiskLimitleri';
 import AiChatWidget from './components/AiChatWidget';
 import Kitapligim from './components/Kitapligim';
 import BildirimKutusu from './components/BildirimKutusu';
+import GlobalSearch from './components/GlobalSearch';
 import Ayarlar from './components/Ayarlar';
 import Raporlar from './components/Raporlar';
 import { Home, Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, AlertTriangle, Search, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key, Target, Eye, Send, Trash2, Play, Pause, RotateCcw, Plus, Square, CheckSquare } from 'lucide-react';
@@ -3674,26 +3675,13 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Center Action Bar - Search */}
+              <div className="flex-1 hidden md:flex items-center justify-center px-6">
+                <GlobalSearch token={token} onNavigate={(tab) => setCurrentTab(tab as any)} />
+              </div>
+
               {/* Right Action Bar */}
               <div className="flex items-center gap-4">
-                {/* 🔍 Arama Box */}
-                <div className="relative group">
-                  <input 
-                    type="text" 
-                    placeholder="Sistemde arayın..." 
-                    className="glass-input text-xs py-2 pl-9 pr-4 w-52 sm:w-64 focus:w-72 transition-all placeholder:text-slate-400 font-medium"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const target = e.currentTarget;
-                        target.value = '';
-                        target.blur();
-                        alert("Arama sonuçları yakında eklenecek.");
-                      }
-                    }}
-                  />
-                  <Search size={14} className="absolute left-3 top-2.5 text-slate-400 group-focus-within:text-[#4F7DFF] transition-colors" />
-                </div>
-
                 {/* 🔔 Bildirim Kutusunu Tetikleme */}
                 <BildirimKutusu 
                   user={user} 
@@ -5853,7 +5841,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Floating KAS.ai Assistant Trigger for All Users */}
-      {!isAiChatOpen && (
+      {currentTab === 'dashboard' && !isAiChatOpen && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 pointer-events-none">
           {/* Greeting Speech Bubble */}
           <motion.div

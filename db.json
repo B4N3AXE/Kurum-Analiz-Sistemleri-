@@ -750,14 +750,6 @@
     }
   ],
   "haftalik_gorevler": [],
-  "user_pdfs": [
-    {
-      "id": 1,
-      "userId": 10001,
-      "title": "BIRSEM-BILGISARMAL-TYT-DENEME-SAYI-4.pdf",
-      "fileUrl": "/api/pdf/serve/1784577117080-BIRSEM-BILGISARMAL-TYT-DENEME-SAYI-4.pdf",
-      "createdAt": "2026-07-20T19:51:57.082Z"
-    }
-  ],
+  "user_pdfs": [],
   "pdf_annotations": []
 }
