@@ -10,17 +10,14 @@ interface MesajlarProps {
 export default function Mesajlar({ user, token }: MesajlarProps) {
   const [messages, setMessages] = useState<Mesaj[]>([]);
   const [loading, setLoading] = useState(true);
-
+  
   // Send message form state
-  const [selectedParentId, setSelectedParentId] = useState('');
-  const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [konu, setKonu] = useState('Akademik Gelişim Bilgilendirmesi');
+  const [aliciId, setAliciId] = useState('');
+  const [konu, setKonu] = useState('');
   const [mesaj, setMesaj] = useState('');
-
-  // Dropdowns lists
-  const [parents, setParents] = useState<any[]>([]);
-  const [students, setStudents] = useState<any[]>([]);
-  const [staffList, setStaffList] = useState<any[]>([]);
+  
+  // Dropdown list
+  const [usersList, setUsersList] = useState<any[]>([]);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -44,47 +41,23 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
   useEffect(() => {
     loadMessages();
 
-    if (user.rol === 'admin' || user.rol === 'ogretmen' || user.rol === 'rehber') {
-      const fetchLookups = async () => {
-        try {
-          const [resParents, resStudents] = await Promise.all([
-            fetch(`/api/veli?kurum_id=${user.kurum_id}`, { headers: { 'Authorization': token } }),
-            fetch(`/api/ogrenci?kurum_id=${user.kurum_id}&aktif=true`, { headers: { 'Authorization': token } })
-          ]);
-          if (resParents.ok && resStudents.ok) {
-            setParents(await resParents.json());
-            setStudents(await resStudents.json());
-          }
-        } catch (err) {
-          console.error("Error lookups:", err);
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch(`/api/kullanici/liste?kurum_id=${user.kurum_id}`, { 
+          headers: { 'Authorization': token } 
+        });
+        if (res.ok) {
+          const list = await res.json();
+          setUsersList(list.filter((u: any) => u.id !== user.id)); // exclude self
         }
-      };
-      fetchLookups();
-    } else {
-      const fetchStaff = async () => {
-        try {
-          const [resTeachers, resCounselors] = await Promise.all([
-            fetch(`/api/ogretmen?kurum_id=${user.kurum_id}`, { headers: { 'Authorization': token } }),
-            fetch(`/api/rehber?kurum_id=${user.kurum_id}`, { headers: { 'Authorization': token } })
-          ]);
-          if (resTeachers.ok && resCounselors.ok) {
-            const teachers = await resTeachers.json();
-            const counselors = await resCounselors.json();
-            const combined = [
-              ...teachers.map((t: any) => ({ ...t, displayRol: 'Öğretmen' })),
-              ...counselors.map((c: any) => ({ ...c, displayRol: 'Rehberlik' }))
-            ];
-            setStaffList(combined);
-          }
-        } catch (err) {
-          console.error("Error loading staff lookups:", err);
-        }
-      };
-      fetchStaff();
-    }
+      } catch (err) {
+        console.error("Error loading users:", err);
+      }
+    };
+    fetchUsers();
   }, [user.id, user.rol, token]);
 
-  // Mark a message as read (Veli action)
+  // Mark a message as read
   const handleMarkAsRead = async (msgId: number) => {
     try {
       const res = await fetch(`/api/mesaj/${msgId}/oku`, {
@@ -105,12 +78,8 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
     setError('');
     setSuccess('');
 
-    const isStudentOrParent = user.rol === 'veli' || user.rol === 'ogrenci';
-
-    if (!selectedParentId || !konu || !mesaj) {
-      setError(isStudentOrParent
-        ? "Lütfen alıcı öğretmen/rehber, konu ve mesaj alanlarını eksiksiz doldurun."
-        : "Lütfen alıcı veli, konu ve mesaj alanlarını eksiksiz doldurun.");
+    if (!aliciId || !konu || !mesaj) {
+      setError("Lütfen alıcı, konu ve mesaj alanlarını eksiksiz doldurun.");
       return;
     }
 
@@ -123,20 +92,18 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
         },
         body: JSON.stringify({
           gonderen_id: user.id,
-          alici_id: parseInt(selectedParentId),
-          ogrenci_id: selectedStudentId ? parseInt(selectedStudentId) : (user.rol === 'ogrenci' ? (user.id - 10000) : null),
+          alici_id: parseInt(aliciId),
+          ogrenci_id: null,
           konu,
           mesaj
         })
       });
 
       if (res.ok) {
-        setSuccess(isStudentOrParent
-          ? "Mesajınız öğretmenimize/rehberlik birimine başarıyla iletildi."
-          : "Mesajınız ilgili öğrenci velisine başarıyla iletildi.");
+        setSuccess("Mesajınız başarıyla iletildi.");
         setMesaj('');
-        setSelectedStudentId('');
-        setSelectedParentId('');
+        setKonu('');
+        setAliciId('');
         loadMessages();
       } else {
         setError("Mesaj gönderilemedi, lütfen bilgileri kontrol edin.");
@@ -146,13 +113,24 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
     }
   };
 
+  const getRoleLabel = (r: string) => {
+    switch (r) {
+      case 'admin': return 'Yönetici';
+      case 'ogretmen': return 'Öğretmen';
+      case 'rehber': return 'Rehberlik';
+      case 'veli': return 'Veli';
+      case 'ogrenci': return 'Öğrenci';
+      default: return r;
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       {/* COLUMN 1: Messenger Form */}
       <div className="lg:col-span-4 bg-slate-900/50 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 h-fit">
         <h3 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex items-center gap-1.5">
           <Send size={14} className="text-blue-500 animate-pulse" /> 
-          {user.rol === 'veli' || user.rol === 'ogrenci' ? 'Öğretmen / Rehberlik Mesaj Formu' : 'Veli Bilgilendirme Formu'}
+          Yeni Mesaj Gönder
         </h3>
 
         {error && (
@@ -168,59 +146,30 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
         )}
 
         <form onSubmit={handleSendMessage} className="space-y-4">
-          {user.rol === 'veli' || user.rol === 'ogrenci' ? (
-            <div>
-              <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Alıcı Öğretmen / Rehber Seçimi *</label>
-              <select
-                value={selectedParentId}
-                onChange={e => setSelectedParentId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
-              >
-                <option value="">-- Öğretmen / Rehber Seçin --</option>
-                {staffList.map(s => (
-                  <option key={s.id} value={s.id}>{s.ad_soyad} ({s.displayRol})</option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <>
-              <div>
-                <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Alıcı Veli Seçimi *</label>
-                <select
-                  value={selectedParentId}
-                  onChange={e => setSelectedParentId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">-- Veli Seçin --</option>
-                  {parents.map(p => (
-                    <option key={p.id} value={p.id}>{p.ad_soyad} ({p.telefon})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Öğrenci İlişkisi (İsteğe Bağlı)</label>
-                <select
-                  value={selectedStudentId}
-                  onChange={e => setSelectedStudentId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none"
-                >
-                  <option value="">-- Genel / Sınıf Genel --</option>
-                  {students.map(s => (
-                    <option key={s.id} value={s.id}>{s.ad_soyad} ({s.sinif_adi})</option>
-                  ))}
-                </select>
-              </div>
-            </>
-          )}
+          <div>
+            <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Alıcı Seçimi *</label>
+            <select
+              value={aliciId}
+              onChange={e => setAliciId(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+            >
+              <option value="">-- Kişi Seçin --</option>
+              {usersList.map(u => (
+                <option key={u.id} value={u.id}>
+                  {u.ad_soyad} ({getRoleLabel(u.rol)})
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div>
             <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Mesaj Konusu *</label>
             <input
               type="text"
               value={konu}
+              placeholder="Konu başlığı"
               onChange={e => setKonu(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none"
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -228,13 +177,10 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
             <label className="block text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-wider">Mesaj İçeriği *</label>
             <textarea
               rows={5}
-              placeholder={user.rol === 'veli' || user.rol === 'ogrenci' 
-                ? "Öğretmeninize veya rehberlik servisine iletmek istediğiniz soru veya mesajınızı buraya yazın..."
-                : "Öğrencinin ödev takip, etüt planı veya deneme durumu hakkında detaylı notunuzu yazın..."
-              }
+              placeholder="İletmek istediğiniz mesajınızı yazın..."
               value={mesaj}
               onChange={e => setMesaj(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none"
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
             />
           </div>
 
@@ -242,7 +188,7 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
             type="submit"
             className="w-full flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs transition shadow-md shadow-blue-500/10"
           >
-            <Send size={12} /> {user.rol === 'veli' || user.rol === 'ogrenci' ? 'Mesajı Gönder' : 'Mesajı Veliye İlet'}
+            <Send size={12} /> Mesajı Gönder
           </button>
         </form>
       </div>
@@ -252,7 +198,7 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
           <h3 className="text-xs text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 pb-2 flex items-center gap-1.5">
             <Mail size={14} className="text-indigo-400" />
-            {user.rol === 'veli' || user.rol === 'ogrenci' ? "Mesaj Kutunuz / Takip" : "Gönderdiğiniz Mesajların Takibi"}
+            Mesaj Kutunuz / Geçmiş
           </h3>
 
           {loading ? (
@@ -261,13 +207,11 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
             </div>
           ) : messages.length === 0 ? (
             <div className="text-center py-12 text-slate-500 text-xs">
-              {user.rol === 'veli' || user.rol === 'ogrenci'
-                ? "Henüz kurum rehberliği veya öğretmenlerden gelen bir mesajınız bulunmuyor."
-                : "Velilere veya öğretmenlere gönderilmiş herhangi bir bildirim mesajı bulunamadı."}
+              Kutunuzda henüz hiç mesaj bulunmuyor.
             </div>
           ) : (
             <div className="space-y-3.5 max-h-[500px] overflow-y-auto pr-1">
-              {messages.map(m => (
+              {messages.slice().reverse().map(m => (
                 <div
                   key={m.id}
                   className={`p-4 border rounded-xl space-y-2 relative transition ${
@@ -285,7 +229,7 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-[9px] text-slate-500 font-medium">{m.tarih}</span>
-                      {(user.rol === 'veli' || user.rol === 'ogrenci') && m.alici_id === user.id && !m.okundu && (
+                      {m.alici_id === user.id && !m.okundu && (
                         <button
                           onClick={() => handleMarkAsRead(m.id)}
                           className="flex items-center gap-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-[10px] px-2 py-0.5 rounded font-bold transition border border-blue-500/20"
@@ -301,16 +245,7 @@ export default function Mesajlar({ user, token }: MesajlarProps) {
                       )}
                     </div>
                   </div>
-
                   <p className="text-xs text-slate-300 font-medium leading-relaxed whitespace-pre-line">{m.mesaj}</p>
-
-                  {m.ogrenci_adi && (
-                    <div className="pt-2 border-t border-slate-850/60 flex items-center">
-                      <span className="text-[10px] text-slate-500 font-semibold">
-                        İlişkili Öğrenci: <strong className="text-slate-400 font-bold">{m.ogrenci_adi}</strong>
-                      </span>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
