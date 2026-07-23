@@ -1000,12 +1000,12 @@ export default function Dashboard({ user, token }: DashboardProps) {
 
       {/* Aurora Glassmorphism KPI Stat Cards (4 Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Card 1: 👨🎓 Toplam Öğrenci */}
+        {/* Card 1: Toplam Öğrenci */}
         <div className="glass-card glass-card-hover p-5 relative overflow-hidden group border border-white/10">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#4F7DFF]/15 rounded-full blur-xl group-hover:bg-[#4F7DFF]/30 transition-all"></div>
           <div className="flex justify-between items-start relative z-10">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">👨🎓 Toplam Öğrenci</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Toplam Öğrenci</span>
               <div className="flex items-baseline gap-2 mt-2">
                 <span className="text-3xl font-black text-white tracking-tight">{stats.totalStudents || 342}</span>
                 <span className="text-xs font-extrabold text-[#30D158] bg-[#30D158]/10 px-2 py-0.5 rounded-full border border-[#30D158]/20">+12 Bu Ay</span>
@@ -1025,12 +1025,12 @@ export default function Dashboard({ user, token }: DashboardProps) {
           </div>
         </div>
 
-        {/* Card 2: 👩🏫 Aktif Öğretmen */}
+        {/* Card 2: Aktif Öğretmen */}
         <div className="glass-card glass-card-hover p-5 relative overflow-hidden group border border-white/10">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#7C5CFF]/15 rounded-full blur-xl group-hover:bg-[#7C5CFF]/30 transition-all"></div>
           <div className="flex justify-between items-start relative z-10">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">👩🏫 Aktif Öğretmen</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Aktif Öğretmen</span>
               <div className="flex items-baseline gap-2 mt-2">
                 <span className="text-3xl font-black text-white tracking-tight">28</span>
                 <span className="text-xs font-extrabold text-[#29D8FF] bg-[#29D8FF]/10 px-2 py-0.5 rounded-full border border-[#29D8FF]/20">%100 Katılım</span>
@@ -1050,12 +1050,12 @@ export default function Dashboard({ user, token }: DashboardProps) {
           </div>
         </div>
 
-        {/* Card 3: 📈 Ortalama Başarı */}
+        {/* Card 3: Ortalama Başarı */}
         <div className="glass-card glass-card-hover p-5 relative overflow-hidden group border border-white/10">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#29D8FF]/15 rounded-full blur-xl group-hover:bg-[#29D8FF]/30 transition-all"></div>
           <div className="flex justify-between items-start relative z-10">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">📈 Ortalama Başarı</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Ortalama Başarı</span>
               <div className="flex items-baseline gap-2 mt-2">
                 <span className="text-3xl font-black text-white tracking-tight">%78.4</span>
                 <span className="text-xs font-extrabold text-[#30D158] bg-[#30D158]/10 px-2 py-0.5 rounded-full border border-[#30D158]/20">+4.2% Yükseliş</span>
@@ -1075,12 +1075,12 @@ export default function Dashboard({ user, token }: DashboardProps) {
           </div>
         </div>
 
-        {/* Card 4: ⚠ Riskli Öğrenci */}
+        {/* Card 4: Riskli Öğrenci */}
         <div className="glass-card glass-card-hover p-5 relative overflow-hidden group border border-red-500/30">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#FF5F57]/20 rounded-full blur-xl group-hover:bg-[#FF5F57]/40 transition-all"></div>
           <div className="flex justify-between items-start relative z-10">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">⚠ Riskli Öğrenci</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Riskli Öğrenci</span>
               <div className="flex items-baseline gap-2 mt-2">
                 <span className="text-3xl font-black text-[#FF5F57] tracking-tight">{stats.riskCount || 4}</span>
                 <span className="text-xs font-extrabold text-[#FFB020] bg-[#FFB020]/10 px-2 py-0.5 rounded-full border border-[#FFB020]/20">Takipte</span>
@@ -1150,10 +1150,10 @@ export default function Dashboard({ user, token }: DashboardProps) {
             </p>
           </div>
 
-          {/* Module 3: ⚠ Risk Uyarıları */}
+          {/* Module 3: Risk Uyarıları */}
           <div className="bg-white/5 border border-white/10 p-4 rounded-2xl hover:border-[#FF5F57]/50 transition-all group cursor-pointer hover:-translate-y-1">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-black text-[#FF5F57] uppercase tracking-wider">⚠ Risk Uyarıları</span>
+              <span className="text-[10px] font-black text-[#FF5F57] uppercase tracking-wider">Risk Uyarıları</span>
               <span className="text-lg">🚨</span>
             </div>
             <p className="text-xs font-bold text-slate-200 leading-snug">
@@ -1776,7 +1776,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
                               : 'border-transparent text-slate-500 hover:text-slate-300'
                           }`}
                         >
-                          📈 Genel Gelişim & Hedef
+                          Genel Gelişim & Hedef
                         </button>
                         <button
                           type="button"

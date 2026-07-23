@@ -2389,7 +2389,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                     <p className="text-xs text-slate-500 mt-0.5">Rehberlik servisi ve danışman öğretmenlerin öğrenci takip değerlendirmeleri.</p>
                   </div>
                   <span className="text-[10px] text-blue-400 font-bold bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 flex items-center gap-1">
-                    🏠 Rehber Panel
+                    Rehber Panel
                   </span>
                 </div>
 
@@ -2475,7 +2475,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                     <p className="text-xs text-slate-500 mt-0.5">Ders öğretmenlerinin konuları pekiştirme, soru ödevi ve kaynak tavsiyeleri.</p>
                   </div>
                   <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 flex items-center gap-1">
-                    📖 Branş Bazlı
+                    Branş Bazlı
                   </span>
                 </div>
 
@@ -2587,7 +2587,7 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
                     <p className="text-xs text-slate-500 mt-0.5">Velilerimizin evdeki çalışma disiplini, motivasyon ve gözlem bildirimleri.</p>
                   </div>
                   <span className="text-[10px] text-purple-400 font-bold bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20 flex items-center gap-1">
-                    🏠 Ev Geri Bildirim
+                    Ev Geri Bildirim
                   </span>
                 </div>
 

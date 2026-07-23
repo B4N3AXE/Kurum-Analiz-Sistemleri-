@@ -10,7 +10,9 @@ import RiskLimitleri from './components/RiskLimitleri';
 import AiChatWidget from './components/AiChatWidget';
 import Kitapligim from './components/Kitapligim';
 import BildirimKutusu from './components/BildirimKutusu';
-import { Home, Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key, Target, Eye, Send, Trash2, Play, Pause, RotateCcw, Plus, Square, CheckSquare } from 'lucide-react';
+import Ayarlar from './components/Ayarlar';
+import Raporlar from './components/Raporlar';
+import { Home, Layers, Users, Sparkles, Mail, Settings, LogOut, Award, Shield, LayoutDashboard, UserCheck, LogIn, ChevronRight, HelpCircle, AlertCircle, AlertTriangle, Search, GraduationCap, Activity, Calendar, Clock, Check, Zap, TrendingUp, Coins, MessageSquare, BookOpen, CheckCircle, ArrowRight, Star, FileText, Menu, X, Instagram, Key, Target, Eye, Send, Trash2, Play, Pause, RotateCcw, Plus, Square, CheckSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Helper function to calculate expected net projection for the next practice exam
@@ -1095,34 +1097,6 @@ export default function App() {
   return (
     <div className={`bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-600/30 selection:text-blue-300 ${isLoggedIn ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
       
-      {/* HEADER BANNER - Always visible when logged in, displaying Institution Name */}
-      {isLoggedIn && user && (
-        <header className="hidden md:flex bg-slate-900 border-b border-slate-800/80 px-6 py-3.5 justify-between items-center z-20 shadow-md">
-          <div className="flex items-center gap-2.5">
-            <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
-              <img src="/K.A.S logo.png" alt="K.A.S" className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
-            </div>
-            <div>
-              <span className="text-xs text-blue-400 font-bold uppercase tracking-wider block">Kurum Analiz Sistemi</span>
-              <h1 className="text-sm font-black text-slate-100 tracking-wide">{user.kurum_adi || "Kurum Kayıtlı Değil"}</h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 text-xs font-semibold">
-            <div className="text-right">
-              <span className="text-slate-200 block font-bold">{user.ad_soyad}</span>
-              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{user.rol}</span>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="p-2 bg-slate-800 hover:bg-red-500/10 hover:text-red-400 rounded-lg border border-slate-750 text-slate-400 transition cursor-pointer"
-              title="Güvenli Çıkış"
-            >
-              <LogOut size={15} />
-            </button>
-          </div>
-        </header>
-      )}
-
       {/* Main UI body */}
       {!isLoggedIn ? (
         /* PREMIUM HIGH-CONVERTING SaaS LANDING & AUTH PAGE */
@@ -1933,7 +1907,7 @@ export default function App() {
 
               {/* Informational Guidance Warning Banner for payments */}
               <div className="max-w-4xl mx-auto bg-slate-950/80 border border-slate-850 p-4 rounded-2xl space-y-2 text-center">
-                <span className="font-extrabold uppercase text-[10px] text-blue-400 tracking-wider block">💳 LİSANSLAMA VE ABONELİK SİSTEMİ</span>
+                <span className="font-extrabold uppercase text-[10px] text-blue-400 tracking-wider block">LİSANSLAMA VE ABONELİK SİSTEMİ</span>
                 <p className="text-[10px] text-slate-400 font-semibold leading-relaxed max-w-2xl mx-auto">
                   Kurum Analiz Sistemi'nde ödemeler ve lisans yükseltmeleri, kayıt olup sisteme giriş yaptıktan sonra <strong>Kurum Paneli'ndeki "Abonelik" sekmesinden</strong> şeffaf bir şekilde yönetilir. Önceden kart bilgisi girmeden ücretsiz denemenizi dilediğiniz an başlatabilirsiniz.
                 </p>
@@ -3394,7 +3368,7 @@ export default function App() {
             <div className="flex flex-col gap-1.5 w-full">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-3 py-1">Ana Menü</span>
               
-              {/* 🏠 Genel Özet */}
+              {/* Genel Özet */}
               {user.rol !== 'veli' && user.rol !== 'ogrenci' && (
                 <button
                   onClick={() => setCurrentTab('dashboard')}
@@ -3405,11 +3379,11 @@ export default function App() {
                   }`}
                 >
                   <Home size={16} className={currentTab === 'dashboard' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> 
-                  <span>🏠 Genel Özet</span>
+                  <span>Genel Özet</span>
                 </button>
               )}
 
-              {/* 🏠 Veli Panel */}
+              {/* Veli Panel */}
               {user.rol === 'veli' && (
                 <button
                   onClick={() => setCurrentTab('veli-panel')}
@@ -3420,11 +3394,11 @@ export default function App() {
                   }`}
                 >
                   <Award size={16} className={currentTab === 'veli-panel' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> 
-                  <span>🏠 Veli Karnesi</span>
+                  <span>Veli Karnesi</span>
                 </button>
               )}
 
-              {/* 🏠 Student Panel */}
+              {/* Student Panel */}
               {user.rol === 'ogrenci' && (
                 <button
                   onClick={() => setCurrentTab('ogrenci-panel')}
@@ -3435,7 +3409,7 @@ export default function App() {
                   }`}
                 >
                   <Award size={16} className={currentTab === 'ogrenci-panel' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> 
-                  <span>🏠 Gelişim Karnem</span>
+                  <span>Gelişim Karnem</span>
                 </button>
               )}
 
@@ -3450,11 +3424,11 @@ export default function App() {
                   }`}
                 >
                   <Sparkles size={16} className={currentTab === 'pdf' ? 'text-[#29D8FF]' : 'text-slate-400'} /> 
-                  <span>📄 PDF Sınav Okuyucu</span>
+                  <span>PDF Sınav Okuyucu</span>
                 </button>
               )}
 
-              {/* 📚 Kitaplığım */}
+              {/* Kitaplığım */}
               {(user.rol === 'admin' || user.rol === 'ogretmen' || user.rol === 'rehber' || user.rol === 'ogrenci') && (
                 <button
                   onClick={() => setCurrentTab('kitapligim')}
@@ -3465,7 +3439,7 @@ export default function App() {
                   }`}
                 >
                   <BookOpen size={16} className={currentTab === 'kitapligim' ? 'text-[#7C5CFF]' : 'text-slate-400'} /> 
-                  <span>📚 Kitaplığım</span>
+                  <span>Kitaplığım</span>
                 </button>
               )}
 
@@ -3479,10 +3453,10 @@ export default function App() {
                 }`}
               >
                 <Mail size={16} className={currentTab === 'mesaj' ? 'text-[#30D158]' : 'text-slate-400'} /> 
-                <span>💬 Mesaj Merkezi</span>
+                <span>Mesaj Merkezi</span>
               </button>
 
-              {/* ✨ Yapay Zeka Asistanı */}
+              {/* Yapay Zeka Asistanı */}
               <button
                 onClick={() => setCurrentTab("kas-ai")}
                 className={`flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs font-bold rounded-2xl w-full text-left transition cursor-pointer shrink-0 relative overflow-hidden group border ${
@@ -3493,7 +3467,7 @@ export default function App() {
               >
                 <div className="flex items-center gap-2.5">
                   <Sparkles size={16} className="text-[#29D8FF] group-hover:rotate-12 transition-transform" />
-                  <span className="font-extrabold tracking-wide">✨ Yapay Zeka Asistanı</span>
+                  <span className="font-extrabold tracking-wide">Yapay Zeka Asistanı</span>
                 </div>
                 <span className="flex h-2 w-2 relative">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#29D8FF] opacity-75"></span>
@@ -3501,7 +3475,7 @@ export default function App() {
                 </span>
               </button>
 
-              {/* 💳 Abonelik ve Ödeme */}
+              {/* Abonelik ve Ödeme */}
               {user.rol === 'admin' && (
                 <button
                   onClick={() => setCurrentTab('abonelik')}
@@ -3512,7 +3486,7 @@ export default function App() {
                   }`}
                 >
                   <Coins size={16} className={currentTab === 'abonelik' ? 'text-[#FFB020]' : 'text-slate-400'} /> 
-                  <span>💳 Abonelik ve Ödeme</span>
+                  <span>Abonelik ve Ödeme</span>
                 </button>
               )}
             </div>
@@ -3524,125 +3498,125 @@ export default function App() {
                   Yönetim Bölümü
                 </span>
 
-                <div className="grid grid-cols-2 gap-1.5 p-1 bg-black/20 rounded-2xl border border-white/5">
+                <div className="flex flex-col gap-1.5 p-2 bg-black/20 rounded-2xl border border-white/5">
                   {/* 🏫 Sınıflar */}
                   <button
                     onClick={() => setCurrentTab('tanimlar_sinif')}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                    className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer ${
                       currentTab === 'tanimlar_sinif'
-                        ? "bg-[#4F7DFF] text-white shadow"
-                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                        ? "bg-white/10 text-white shadow border border-white/20"
+                        : "text-slate-300 hover:text-white hover:bg-white/5"
                     }`}
                   >
-                    <span>🏫</span> <span className="truncate">Sınıflar</span>
+                    <Layers size={15} className={currentTab === 'tanimlar_sinif' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> <span className="truncate">Sınıflar</span>
                   </button>
 
                   {/* 👨🎓 Öğrenciler */}
                   <button
                     onClick={() => setCurrentTab('tanimlar_ogrenci')}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                    className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer ${
                       currentTab === 'tanimlar_ogrenci' || currentTab === 'ogrenci'
-                        ? "bg-[#4F7DFF] text-white shadow"
-                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                        ? "bg-white/10 text-white shadow border border-white/20"
+                        : "text-slate-300 hover:text-white hover:bg-white/5"
                     }`}
                   >
-                    <span>👨🎓</span> <span className="truncate">Öğrenciler</span>
+                    <Users size={15} className={currentTab === 'tanimlar_ogrenci' || currentTab === 'ogrenci' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> <span className="truncate">Öğrenciler</span>
                   </button>
 
                   {/* 👩🏫 Öğretmenler */}
                   <button
                     onClick={() => setCurrentTab('tanimlar_ogretmen')}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                    className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer ${
                       currentTab === 'tanimlar_ogretmen'
-                        ? "bg-[#4F7DFF] text-white shadow"
-                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                        ? "bg-white/10 text-white shadow border border-white/20"
+                        : "text-slate-300 hover:text-white hover:bg-white/5"
                     }`}
                   >
-                    <span>👩🏫</span> <span className="truncate">Öğretmenler</span>
+                    <Users size={15} className={currentTab === 'tanimlar_ogretmen' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> <span className="truncate">Öğretmenler</span>
                   </button>
 
                   {/* 🧑💼 Rehberler */}
                   <button
                     onClick={() => setCurrentTab('tanimlar_rehber')}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                    className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer ${
                       currentTab === 'tanimlar_rehber'
-                        ? "bg-[#4F7DFF] text-white shadow"
-                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                        ? "bg-white/10 text-white shadow border border-white/20"
+                        : "text-slate-300 hover:text-white hover:bg-white/5"
                     }`}
                   >
-                    <span>🧑💼</span> <span className="truncate">Rehberler</span>
+                    <Award size={15} className={currentTab === 'tanimlar_rehber' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> <span className="truncate">Rehberler</span>
                   </button>
 
                   {/* 👨👩👧 Veliler */}
                   <button
                     onClick={() => setCurrentTab('tanimlar_veli')}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                    className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer ${
                       currentTab === 'tanimlar_veli'
-                        ? "bg-[#4F7DFF] text-white shadow"
-                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                        ? "bg-white/10 text-white shadow border border-white/20"
+                        : "text-slate-300 hover:text-white hover:bg-white/5"
                     }`}
                   >
-                    <span>👨👩👧</span> <span className="truncate">Veliler</span>
+                    <Shield size={15} className={currentTab === 'tanimlar_veli' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> <span className="truncate">Veliler</span>
                   </button>
 
                   {/* 📝 Sınavlar */}
                   <button
                     onClick={() => setCurrentTab('tanimlar_sinav')}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                    className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer ${
                       currentTab === 'tanimlar_sinav'
-                        ? "bg-[#4F7DFF] text-white shadow"
-                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                        ? "bg-white/10 text-white shadow border border-white/20"
+                        : "text-slate-300 hover:text-white hover:bg-white/5"
                     }`}
                   >
-                    <span>📝</span> <span className="truncate">Sınavlar</span>
+                    <BookOpen size={15} className={currentTab === 'tanimlar_sinav' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> <span className="truncate">Sınavlar</span>
                   </button>
 
                   {/* 📅 Programlar */}
                   <button
                     onClick={() => setCurrentTab('tanimlar_ders_programi')}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                    className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer ${
                       currentTab === 'tanimlar_ders_programi'
-                        ? "bg-[#4F7DFF] text-white shadow"
-                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                        ? "bg-white/10 text-white shadow border border-white/20"
+                        : "text-slate-300 hover:text-white hover:bg-white/5"
                     }`}
                   >
-                    <span>📅</span> <span className="truncate">Programlar</span>
+                    <Calendar size={15} className={currentTab === 'tanimlar_ders_programi' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> <span className="truncate">Programlar</span>
                   </button>
 
                   {/* ⚠ Risk Tanımı */}
                   <button
                     onClick={() => setCurrentTab('risk_limitleri')}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                    className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer ${
                       currentTab === 'risk_limitleri'
-                        ? "bg-[#FF5F57] text-white shadow"
-                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                        ? "bg-[#FF5F57]/20 text-[#FF5F57] shadow border border-[#FF5F57]/30"
+                        : "text-slate-300 hover:text-[#FF5F57] hover:bg-[#FF5F57]/10"
                     }`}
                   >
-                    <span>⚠</span> <span className="truncate">Risk Tanımı</span>
+                    <AlertTriangle size={15} className={currentTab === 'risk_limitleri' ? 'text-[#FF5F57]' : 'text-slate-400 group-hover:text-[#FF5F57]'} /> <span className="truncate">Risk Tanımı</span>
                   </button>
 
                   {/* 📊 Raporlar */}
                   <button
-                    onClick={() => setCurrentTab('dashboard')}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
-                      currentTab === 'dashboard'
-                        ? "bg-[#4F7DFF] text-white shadow"
-                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                    onClick={() => setCurrentTab('raporlar')}
+                    className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer ${
+                      currentTab === 'raporlar'
+                        ? "bg-white/10 text-white shadow border border-white/20"
+                        : "text-slate-300 hover:text-white hover:bg-white/5"
                     }`}
                   >
-                    <span>📊</span> <span className="truncate">Raporlar</span>
+                    <Activity size={15} className={currentTab === 'raporlar' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> <span className="truncate">Raporlar</span>
                   </button>
 
                   {/* ⚙ Ayarlar */}
                   <button
-                    onClick={() => setCurrentTab('tanimlar')}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
-                      currentTab === 'tanimlar'
-                        ? "bg-[#4F7DFF] text-white shadow"
-                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                    onClick={() => setCurrentTab('ayarlar')}
+                    className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer ${
+                      currentTab === 'ayarlar'
+                        ? "bg-white/10 text-white shadow border border-white/20"
+                        : "text-slate-300 hover:text-white hover:bg-white/5"
                     }`}
                   >
-                    <span>⚙</span> <span className="truncate">Ayarlar</span>
+                    <Settings size={15} className={currentTab === 'ayarlar' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> <span className="truncate">Ayarlar</span>
                   </button>
                 </div>
               </div>
@@ -3676,14 +3650,26 @@ export default function App() {
               {/* Left Welcome Area */}
               <div className="flex items-center gap-4">
                 <div className="p-2 rounded-2xl bg-gradient-to-br from-[#4F7DFF]/20 to-[#7C5CFF]/20 border border-[#4F7DFF]/30 text-white shadow-md">
-                  <span className="text-xl">👋</span>
+                  <LayoutDashboard size={24} />
                 </div>
                 <div>
                   <h2 className="text-sm font-black text-white tracking-wide flex items-center gap-2">
-                    Hoş Geldiniz 👋
+                    {user.kurum_adi || "Kurum Analiz Sistemi"}
                   </h2>
-                  <p className="text-xs font-bold text-[#29D8FF] tracking-tight mt-0.5">
-                    {user.kurum_adi || "Gelecek Koleji"}
+                  <p className="text-xs font-bold text-slate-400 tracking-tight mt-0.5">
+                    {currentTab === 'dashboard' && 'Genel Yönetim & Analiz Özeti'}
+                    {currentTab === 'veli-panel' && 'Veli Gelişim Karnesi & Takip'}
+                    {currentTab === 'ogrenci-panel' && 'Öğrenci Gelişim Karnem'}
+                    {currentTab === 'ogrenci' && 'Öğrenci Yönetimi'}
+                    {currentTab === 'pdf' && 'PDF Akıllı Sınav Okuyucu'}
+                    {currentTab === 'mesaj' && 'Mesaj Merkezi'}
+                    {currentTab === 'kitapligim' && 'Kütüphanem & Çalışma Alanı'}
+                    {currentTab === 'kas-ai' && 'KAS.ai Yapay Zeka Asistanı'}
+                    {currentTab === 'abonelik' && 'Lisans & Abonelik Yönetimi'}
+                    {currentTab.startsWith('tanimlar') && 'Kurum Tanımları'}
+                    {currentTab === 'risk_limitleri' && 'Başarı Risk Limitleri'}
+                    {currentTab === 'raporlar' && 'Öğrenci Analiz Raporları'}
+                    {currentTab === 'ayarlar' && 'Hesap & Kurum Ayarları'}
                   </p>
                 </div>
               </div>
@@ -3691,13 +3677,21 @@ export default function App() {
               {/* Right Action Bar */}
               <div className="flex items-center gap-4">
                 {/* 🔍 Arama Box */}
-                <div className="relative">
+                <div className="relative group">
                   <input 
                     type="text" 
                     placeholder="Sistemde arayın..." 
                     className="glass-input text-xs py-2 pl-9 pr-4 w-52 sm:w-64 focus:w-72 transition-all placeholder:text-slate-400 font-medium"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const target = e.currentTarget;
+                        target.value = '';
+                        target.blur();
+                        alert("Arama sonuçları yakında eklenecek.");
+                      }
+                    }}
                   />
-                  <span className="absolute left-3 top-2.5 text-slate-400">🔍</span>
+                  <Search size={14} className="absolute left-3 top-2.5 text-slate-400 group-focus-within:text-[#4F7DFF] transition-colors" />
                 </div>
 
                 {/* 🔔 Bildirim Kutusunu Tetikleme */}
@@ -3706,7 +3700,7 @@ export default function App() {
                   onNavigate={(tab) => setCurrentTab(tab as any)} 
                 />
 
-                {/* ✨ Yapay Zeka Quick Button */}
+                {/* Yapay Zeka Quick Button */}
                 <button
                   onClick={() => setCurrentTab('kas-ai')}
                   className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-[#4F7DFF] to-[#7C5CFF] text-white text-xs font-black shadow-lg shadow-blue-500/25 hover:scale-105 transition-transform cursor-pointer"
@@ -3837,6 +3831,16 @@ export default function App() {
                 {/* MOUNT VIEW: Risk Threshold Settings */}
                 {currentTab === 'risk_limitleri' && user.rol === 'admin' && (
                   <RiskLimitleri user={user} token={token} />
+                )}
+
+                {/* MOUNT VIEW: Raporlar */}
+                {currentTab === 'raporlar' && user.rol !== 'veli' && (
+                  <Raporlar user={user} token={token} />
+                )}
+
+                {/* MOUNT VIEW: Ayarlar */}
+                {currentTab === 'ayarlar' && user.rol === 'admin' && (
+                  <Ayarlar user={user} token={token} onUserUpdate={(updatedUser) => setUser(updatedUser)} />
                 )}
 
                 {/* MOUNT VIEW: KAS.ai Assistant */}
@@ -4383,7 +4387,7 @@ export default function App() {
                             <p className="text-xs text-slate-500 mt-0.5">Ders öğretmenlerinin konuları pekiştirme, soru ödevi ve kaynak tavsiyeleri.</p>
                           </div>
                           <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 flex items-center gap-1">
-                            📖 Branş Bazlı
+                            Branş Bazlı
                           </span>
                         </div>
                         
@@ -4422,7 +4426,7 @@ export default function App() {
                             <p className="text-xs text-slate-500 mt-0.5">Öğrencimizin evdeki çalışma disiplini, ödev düzeni veya gözlemlerini iletebilirsiniz.</p>
                           </div>
                           <span className="text-[10px] text-purple-400 font-bold bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20 flex items-center gap-1">
-                            🏠 Ev Geri Bildirim
+                            Ev Geri Bildirim
                           </span>
                         </div>
 
@@ -4894,14 +4898,14 @@ export default function App() {
                               disabled={timerIsRunning}
                               className="bg-slate-950 border border-slate-850 text-slate-300 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500 font-medium flex-1 cursor-pointer disabled:opacity-50"
                             >
-                              <option value="Matematik">📐 Matematik</option>
-                              <option value="Türkçe">📚 Türkçe</option>
-                              <option value="Fizik">⚡ Fizik</option>
-                              <option value="Kimya">🧪 Kimya</option>
-                              <option value="Biyoloji">🧬 Biyoloji</option>
-                              <option value="Coğrafya">🌍 Coğrafya</option>
+                              <option value="Matematik">Matematik</option>
+                              <option value="Türkçe">Türkçe</option>
+                              <option value="Fizik">Fizik</option>
+                              <option value="Kimya">Kimya</option>
+                              <option value="Biyoloji">Biyoloji</option>
+                              <option value="Coğrafya">Coğrafya</option>
                               <option value="Tarih">⏳ Tarih</option>
-                              <option value="Sözel">✍️ Diğer Konular</option>
+                              <option value="Sözel">Diğer Konular</option>
                             </select>
 
                             {/* Clock Controls */}
@@ -5344,10 +5348,10 @@ export default function App() {
                             {(() => {
                               const last = studentReport.sonuclar[studentReport.sonuclar.length - 1];
                               const minCourse = [
-                                { name: 'Türkçe', ratio: last.turkce_net / 40, reco: '📚 Paragrafta hız kazanmak ve odaklanmak için her gün mutlaka süre tutarak 25 paragraf sorusu çözmeyi ihmal etme!' },
-                                { name: 'Matematik', ratio: last.matematik_net / 40, reco: '📐 Matematik netlerinde sıçrama için temel konuları (Problemler & Üçgenler) her gün tekrar edip soru çözümleri videolarını izle!' },
-                                { name: 'Sosyal', ratio: last.sosyal_net / 20, reco: '🌍 Coğrafya harita bilgisi ve tarih kavramları sözlüğü çalışarak hızlıca net artışı sağlayabilirsin.' },
-                                { name: 'Fen', ratio: last.fen_net / 20, reco: '🧪 Fen bilimlerinde TYT Kimya ve Biyoloji soru bankalarından her akşam 2 adet ünite testi çözerek netleri sabitle!' }
+                                { name: 'Türkçe', ratio: last.turkce_net / 40, reco: 'Paragrafta hız kazanmak ve odaklanmak için her gün mutlaka süre tutarak 25 paragraf sorusu çözmeyi ihmal etme!' },
+                                { name: 'Matematik', ratio: last.matematik_net / 40, reco: 'Matematik netlerinde sıçrama için temel konuları (Problemler & Üçgenler) her gün tekrar edip soru çözümleri videolarını izle!' },
+                                { name: 'Sosyal', ratio: last.sosyal_net / 20, reco: 'Coğrafya harita bilgisi ve tarih kavramları sözlüğü çalışarak hızlıca net artışı sağlayabilirsin.' },
+                                { name: 'Fen', ratio: last.fen_net / 20, reco: 'Fen bilimlerinde TYT Kimya ve Biyoloji soru bankalarından her akşam 2 adet ünite testi çözerek netleri sabitle!' }
                               ].sort((a, b) => a.ratio - b.ratio)[0];
                               return <p className="text-slate-300 font-medium text-[11px] mt-1">{minCourse.reco}</p>;
                             })()}

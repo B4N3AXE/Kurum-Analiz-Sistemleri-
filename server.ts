@@ -1567,17 +1567,20 @@ app.get('/api/ogrenci', (req, res) => {
     const studentExams = db.getSinavSonuclari().filter(r => r.ogrenci_id === s.id);
     let son_net: number | string = "-";
     let son_puan: number | string = "-";
+    let examHistory: any[] = [];
     if (studentExams.length > 0) {
       const examsWithDates = studentExams.map(r => {
         const examDef = db.getSinavTanimlari().find(e => e.id === r.sinav_id);
         return {
           ...r,
-          tarih: examDef ? examDef.tarih : ''
+          tarih: examDef ? examDef.tarih : '',
+          ad: examDef ? examDef.ad : 'Sınav'
         }
       });
       examsWithDates.sort((a, b) => new Date(b.tarih).getTime() - new Date(a.tarih).getTime());
       son_net = examsWithDates[0].toplam_net;
       son_puan = examsWithDates[0].puan;
+      examHistory = examsWithDates.slice(0, 5).reverse(); // oldest first for charts
     }
 
     return {
@@ -1590,7 +1593,8 @@ app.get('/api/ogrenci', (req, res) => {
       bugun_calisma_suresi,
       aktif_seans,
       son_net,
-      son_puan
+      son_puan,
+      examHistory
     };
   });
 
@@ -1924,7 +1928,7 @@ function generateDynamicFallbackAnalysis(student: any, examResult: any, topicAna
       let issue = `Bu konuda toplam ${t.soru} soruda ${t.d} doğru, ${t.y} yanlış yaptın. `;
       let solution = `Bu konudaki eksiklerini gidermek için `;
 
-      const tName = t.topic_name.toLowerCase();
+      const tName = (t.topic_name || "").toLowerCase();
       if (subj.key === 'turkce') {
         if (tName.includes('yazım')) {
           issue += `Yazım kuralları sorularında özellikle birleşik sözcükler ve büyük harflerin kullanımı konularında dikkatsizlik veya bilgi eksikliği görülmektedir.`;
@@ -2070,7 +2074,7 @@ app.post('/api/ogrenci/:id/ai-karne-analizi', async (req, res) => {
 
     if (ai) {
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -2128,8 +2132,8 @@ app.post('/api/ogrenci/:id/ai-karne-analizi', async (req, res) => {
     try {
       const dynamicAnalysis = generateDynamicFallbackAnalysis(student, examResult, topicAnalysisData);
       return res.json({ analysis: dynamicAnalysis, is_mocked: false, is_fallback: true });
-    } catch (fallbackErr) {
-      res.status(500).json({ error: "Yapay zeka analiz yaparken bir hata oluştu.", details: error.message });
+    } catch (fallbackErr: any) {
+      res.status(500).json({ error: "Yapay zeka analiz yaparken bir hata oluştu.", details: fallbackErr.message || error.message });
     }
   }
 });

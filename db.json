@@ -20,12 +20,13 @@
     },
     {
       "id": 2,
-      "ad_soyad": "Caner Demir",
+      "ad_soyad": "Çağrı İŞCEN",
       "email": "dibiadam81@gmail.com",
       "sifre": "admin123",
       "rol": "admin",
       "kurum_id": 1,
-      "telefon": "0555 222 3344"
+      "telefon": "0555 222 3344",
+      "kurum_adi": "Gelecek Koleji"
     }
   ],
   "siniflar": [
@@ -224,6 +225,33 @@
       "veli_id": null,
       "alan": "Sayısal",
       "aktif": true
+    },
+    {
+      "id": 21,
+      "ad_soyad": "IRMK",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 22,
+      "ad_soyad": "NİSANUR DAĞLAR",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
+    },
+    {
+      "id": 23,
+      "ad_soyad": "SELİN ÜNSAL",
+      "tc_no": "",
+      "sinif_id": 1,
+      "veli_id": null,
+      "alan": "Sayısal",
+      "aktif": true
     }
   ],
   "sinav_tanimlari": [
@@ -232,6 +260,13 @@
       "ad": "3D Türkiye Geneli TYT-2",
       "tur": "TYT",
       "tarih": "2026-07-20",
+      "kurum_id": 1
+    },
+    {
+      "id": 2,
+      "ad": "3D Türkiye Geneli TYT-1",
+      "tur": "TYT",
+      "tarih": "2026-07-23",
       "kurum_id": 1
     }
   ],
@@ -455,6 +490,193 @@
       "fen_net": 0,
       "toplam_net": 21.75,
       "puan": 208.47
+    },
+    {
+      "id": 21,
+      "ogrenci_id": 1,
+      "sinav_id": 2,
+      "turkce_net": 37.5,
+      "sosyal_net": 18.75,
+      "matematik_net": 35.25,
+      "fen_net": 15,
+      "toplam_net": 106.5,
+      "puan": 459.42
+    },
+    {
+      "id": 22,
+      "ogrenci_id": 5,
+      "sinav_id": 2,
+      "turkce_net": 37.5,
+      "sosyal_net": 15.5,
+      "matematik_net": 28.25,
+      "fen_net": 8,
+      "toplam_net": 89.25,
+      "puan": 407.36
+    },
+    {
+      "id": 23,
+      "ogrenci_id": 2,
+      "sinav_id": 2,
+      "turkce_net": 35,
+      "sosyal_net": 15,
+      "matematik_net": 26.5,
+      "fen_net": 10,
+      "toplam_net": 86.5,
+      "puan": 399.8
+    },
+    {
+      "id": 24,
+      "ogrenci_id": 4,
+      "sinav_id": 2,
+      "turkce_net": 31.75,
+      "sosyal_net": 15.5,
+      "matematik_net": 28.5,
+      "fen_net": 10.5,
+      "toplam_net": 86.25,
+      "puan": 399.24
+    },
+    {
+      "id": 25,
+      "ogrenci_id": 3,
+      "sinav_id": 2,
+      "turkce_net": 33.75,
+      "sosyal_net": 14.25,
+      "matematik_net": 25.75,
+      "fen_net": 7.75,
+      "toplam_net": 81.5,
+      "puan": 384.68
+    },
+    {
+      "id": 26,
+      "ogrenci_id": 8,
+      "sinav_id": 2,
+      "turkce_net": 30.75,
+      "sosyal_net": 12.5,
+      "matematik_net": 28.25,
+      "fen_net": 5.5,
+      "toplam_net": 77,
+      "puan": 371.05
+    },
+    {
+      "id": 27,
+      "ogrenci_id": 13,
+      "sinav_id": 2,
+      "turkce_net": 32.5,
+      "sosyal_net": 13.75,
+      "matematik_net": 7.25,
+      "fen_net": 3.5,
+      "toplam_net": 57,
+      "puan": 312.08
+    },
+    {
+      "id": 28,
+      "ogrenci_id": 21,
+      "sinav_id": 2,
+      "turkce_net": 34.5,
+      "sosyal_net": 17.5,
+      "matematik_net": 2.75,
+      "fen_net": 2.75,
+      "toplam_net": 54.75,
+      "puan": 304.72
+    },
+    {
+      "id": 29,
+      "ogrenci_id": 9,
+      "sinav_id": 2,
+      "turkce_net": 36.25,
+      "sosyal_net": 10.5,
+      "matematik_net": 5,
+      "fen_net": 5,
+      "toplam_net": 51.75,
+      "puan": 295.84
+    },
+    {
+      "id": 30,
+      "ogrenci_id": 17,
+      "sinav_id": 2,
+      "turkce_net": 30,
+      "sosyal_net": 12.25,
+      "matematik_net": 1.5,
+      "fen_net": -1.5,
+      "toplam_net": 43.75,
+      "puan": 272.56
+    },
+    {
+      "id": 31,
+      "ogrenci_id": 22,
+      "sinav_id": 2,
+      "turkce_net": 28.25,
+      "sosyal_net": 10.5,
+      "matematik_net": 2.5,
+      "fen_net": -1.5,
+      "toplam_net": 43.75,
+      "puan": 272.24
+    },
+    {
+      "id": 32,
+      "ogrenci_id": 11,
+      "sinav_id": 2,
+      "turkce_net": 25,
+      "sosyal_net": 2.5,
+      "matematik_net": 7.75,
+      "fen_net": -1.25,
+      "toplam_net": 34,
+      "puan": 243.74
+    },
+    {
+      "id": 33,
+      "ogrenci_id": 16,
+      "sinav_id": 2,
+      "turkce_net": 18.25,
+      "sosyal_net": 5.25,
+      "matematik_net": 9,
+      "fen_net": 0.25,
+      "toplam_net": 32.75,
+      "puan": 240.56
+    },
+    {
+      "id": 34,
+      "ogrenci_id": 10,
+      "sinav_id": 2,
+      "turkce_net": 20,
+      "sosyal_net": 7.75,
+      "matematik_net": 4,
+      "fen_net": 0,
+      "toplam_net": 31.75,
+      "puan": 237.58
+    },
+    {
+      "id": 35,
+      "ogrenci_id": 19,
+      "sinav_id": 2,
+      "turkce_net": 16.25,
+      "sosyal_net": 10.5,
+      "matematik_net": 0,
+      "fen_net": 0,
+      "toplam_net": 26.75,
+      "puan": 223.04
+    },
+    {
+      "id": 36,
+      "ogrenci_id": 23,
+      "sinav_id": 2,
+      "turkce_net": 17,
+      "sosyal_net": 6.5,
+      "matematik_net": 0,
+      "fen_net": -1.5,
+      "toplam_net": 23.5,
+      "puan": 213.48
+    },
+    {
+      "id": 37,
+      "ogrenci_id": 15,
+      "sinav_id": 2,
+      "turkce_net": 11.75,
+      "sosyal_net": 6.75,
+      "matematik_net": 3.5,
+      "fen_net": -1.5,
+      "toplam_net": 20.5,
+      "puan": 204.46
     }
   ],
   "ogretmen_sinif": [],
@@ -502,7 +724,15 @@
       "active": true
     }
   ],
-  "konu_takip": [],
+  "konu_takip": [
+    {
+      "id": 1,
+      "ogrenci_id": 15,
+      "konu_key": "ayt_matematik_polinomlar",
+      "tamamlandi": false,
+      "tarih": "2026-07-23T14:11:16.742Z"
+    }
+  ],
   "calisma_seanslari": [
     {
       "id": 1,
@@ -510,9 +740,24 @@
       "ders_adi": "Matematik",
       "sure": 1800,
       "tarih": "2026-07-20T18:00:15.876Z"
+    },
+    {
+      "id": 2,
+      "ogrenci_id": 15,
+      "ders_adi": "Matematik",
+      "sure": 1,
+      "tarih": "2026-07-20T19:48:15.112Z"
     }
   ],
   "haftalik_gorevler": [],
-  "user_pdfs": [],
+  "user_pdfs": [
+    {
+      "id": 1,
+      "userId": 10001,
+      "title": "BIRSEM-BILGISARMAL-TYT-DENEME-SAYI-4.pdf",
+      "fileUrl": "/api/pdf/serve/1784577117080-BIRSEM-BILGISARMAL-TYT-DENEME-SAYI-4.pdf",
+      "createdAt": "2026-07-20T19:51:57.082Z"
+    }
+  ],
   "pdf_annotations": []
 }
