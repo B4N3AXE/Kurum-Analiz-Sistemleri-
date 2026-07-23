@@ -3352,7 +3352,7 @@ export default function App() {
           </AnimatePresence>
 
           {/* Sidebar Navigation (Desktop Only) - Aurora Glassmorphism */}
-          <aside className="hidden md:flex md:flex-col w-72 bg-[rgba(18,26,52,0.75)] backdrop-blur-xl border-r border-white/10 p-4 space-y-4 z-10 shrink-0 overflow-y-auto scrollbar-thin rounded-r-3xl my-2 ml-2 shadow-2xl">
+          <aside className="hidden md:flex md:flex-col w-72 bg-[rgba(18,26,52,0.75)] backdrop-blur-xl border-r border-white/10 p-4 space-y-4 z-10 shrink-0 overflow-y-auto no-scrollbar rounded-r-3xl my-2 ml-2 shadow-2xl">
             
             {/* Sidebar Logo Header */}
             <div className="flex items-center gap-3 px-3 py-3.5 border-b border-white/10 mb-1 shrink-0 bg-white/5 rounded-2xl">
