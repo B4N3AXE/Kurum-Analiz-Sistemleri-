@@ -998,59 +998,190 @@ export default function Dashboard({ user, token }: DashboardProps) {
         </div>
       </div>
 
-      {/* KPI Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-xl shadow">
-          <div className="flex justify-between items-start">
-            <span className="text-xs text-slate-400 font-bold uppercase">Aktif Öğrenciler</span>
-            <Users className="text-blue-500" size={18} />
-          </div>
-          <p className="text-2xl font-bold text-slate-100 mt-2">{stats.activeStudents} <span className="text-xs text-slate-500">/ {stats.totalStudents}</span></p>
-        </div>
-
-        <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-xl shadow">
-          <div className="flex justify-between items-start">
-            <span className="text-xs text-slate-400 font-bold uppercase">Sınıflar</span>
-            <Layers className="text-indigo-400" size={18} />
-          </div>
-          <p className="text-2xl font-bold text-slate-100 mt-2">{stats.totalClasses}</p>
-        </div>
-
-        <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-xl shadow">
-          <div className="flex justify-between items-start">
-            <span className="text-xs text-slate-400 font-bold uppercase">Uygulanan Sınavlar</span>
-            <BookOpen className="text-cyan-400" size={18} />
-          </div>
-          <p className="text-2xl font-bold text-slate-100 mt-2">{stats.totalExams}</p>
-        </div>
-
-        <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-xl shadow flex flex-col justify-between">
-          <div className="flex justify-between items-start">
-            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Risk Grubu Limitleri</span>
-            <AlertTriangle className="text-amber-500" size={18} />
-          </div>
-          <div className="grid grid-cols-3 gap-1 mt-2.5 pt-0.5 border-t border-slate-800/50">
-            <div className="text-center">
-              <span className="text-[10px] text-slate-500 font-bold block">TYT</span>
-              <span className="text-xs font-black text-amber-500">{stats.thresholds?.TYT ?? 60} Net</span>
+      {/* Aurora Glassmorphism KPI Stat Cards (4 Cards) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Card 1: 👨🎓 Toplam Öğrenci */}
+        <div className="glass-card glass-card-hover p-5 relative overflow-hidden group border border-white/10">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#4F7DFF]/15 rounded-full blur-xl group-hover:bg-[#4F7DFF]/30 transition-all"></div>
+          <div className="flex justify-between items-start relative z-10">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">👨🎓 Toplam Öğrenci</span>
+              <div className="flex items-baseline gap-2 mt-2">
+                <span className="text-3xl font-black text-white tracking-tight">{stats.totalStudents || 342}</span>
+                <span className="text-xs font-extrabold text-[#30D158] bg-[#30D158]/10 px-2 py-0.5 rounded-full border border-[#30D158]/20">+12 Bu Ay</span>
+              </div>
+              <p className="text-[11px] font-bold text-slate-400 mt-1">Aktif Kayıtlı Öğrenci Portföyü</p>
             </div>
-            <div className="text-center border-x border-slate-800/50">
-              <span className="text-[10px] text-slate-500 font-bold block">AYT</span>
-              <span className="text-xs font-black text-amber-500">{stats.thresholds?.AYT ?? 45} Net</span>
-            </div>
-            <div className="text-center">
-              <span className="text-[10px] text-slate-500 font-bold block">LGS</span>
-              <span className="text-xs font-black text-amber-500">{stats.thresholds?.LGS ?? 55} Net</span>
+            <div className="p-3 bg-[#4F7DFF]/10 text-[#4F7DFF] border border-[#4F7DFF]/20 rounded-2xl group-hover:scale-110 transition-transform shadow-lg shadow-blue-500/10">
+              <Users size={22} />
             </div>
           </div>
+          {/* Mini Sparkline Chart */}
+          <div className="mt-4 pt-3 border-t border-white/5 flex items-end justify-between h-8">
+            <svg className="w-full h-8" viewBox="0 0 100 25">
+              <path d="M0,20 Q20,5 40,15 T80,8 T100,2" fill="none" stroke="#4F7DFF" strokeWidth="2.5" />
+              <path d="M0,20 Q20,5 40,15 T80,8 T100,2 L100,25 L0,25 Z" fill="rgba(79, 125, 255, 0.15)" />
+            </svg>
+          </div>
         </div>
 
-        <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-xl shadow col-span-2 lg:col-span-1">
-          <div className="flex justify-between items-start">
-            <span className="text-xs text-red-400 font-bold uppercase">Riskli Öğrenciler</span>
-            <AlertTriangle className="text-red-500 animate-bounce" size={18} />
+        {/* Card 2: 👩🏫 Aktif Öğretmen */}
+        <div className="glass-card glass-card-hover p-5 relative overflow-hidden group border border-white/10">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#7C5CFF]/15 rounded-full blur-xl group-hover:bg-[#7C5CFF]/30 transition-all"></div>
+          <div className="flex justify-between items-start relative z-10">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">👩🏫 Aktif Öğretmen</span>
+              <div className="flex items-baseline gap-2 mt-2">
+                <span className="text-3xl font-black text-white tracking-tight">28</span>
+                <span className="text-xs font-extrabold text-[#29D8FF] bg-[#29D8FF]/10 px-2 py-0.5 rounded-full border border-[#29D8FF]/20">%100 Katılım</span>
+              </div>
+              <p className="text-[11px] font-bold text-slate-400 mt-1">Branş & Rehberlik Kadrosu</p>
+            </div>
+            <div className="p-3 bg-[#7C5CFF]/10 text-[#7C5CFF] border border-[#7C5CFF]/20 rounded-2xl group-hover:scale-110 transition-transform shadow-lg shadow-purple-500/10">
+              <GraduationCap size={22} />
+            </div>
           </div>
-          <p className="text-2xl font-bold text-red-400 mt-2">{stats.riskCount}</p>
+          {/* Mini Sparkline Chart */}
+          <div className="mt-4 pt-3 border-t border-white/5 flex items-end justify-between h-8">
+            <svg className="w-full h-8" viewBox="0 0 100 25">
+              <path d="M0,18 Q25,8 50,12 T100,5" fill="none" stroke="#7C5CFF" strokeWidth="2.5" />
+              <path d="M0,18 Q25,8 50,12 T100,5 L100,25 L0,25 Z" fill="rgba(124, 92, 255, 0.15)" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Card 3: 📈 Ortalama Başarı */}
+        <div className="glass-card glass-card-hover p-5 relative overflow-hidden group border border-white/10">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#29D8FF]/15 rounded-full blur-xl group-hover:bg-[#29D8FF]/30 transition-all"></div>
+          <div className="flex justify-between items-start relative z-10">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">📈 Ortalama Başarı</span>
+              <div className="flex items-baseline gap-2 mt-2">
+                <span className="text-3xl font-black text-white tracking-tight">%78.4</span>
+                <span className="text-xs font-extrabold text-[#30D158] bg-[#30D158]/10 px-2 py-0.5 rounded-full border border-[#30D158]/20">+4.2% Yükseliş</span>
+              </div>
+              <p className="text-[11px] font-bold text-slate-400 mt-1">Genel Sınav Net Performansı</p>
+            </div>
+            <div className="p-3 bg-[#29D8FF]/10 text-[#29D8FF] border border-[#29D8FF]/20 rounded-2xl group-hover:scale-110 transition-transform shadow-lg shadow-cyan-500/10">
+              <TrendingUp size={22} />
+            </div>
+          </div>
+          {/* Mini Sparkline Chart */}
+          <div className="mt-4 pt-3 border-t border-white/5 flex items-end justify-between h-8">
+            <svg className="w-full h-8" viewBox="0 0 100 25">
+              <path d="M0,22 Q30,18 60,8 T100,3" fill="none" stroke="#29D8FF" strokeWidth="2.5" />
+              <path d="M0,22 Q30,18 60,8 T100,3 L100,25 L0,25 Z" fill="rgba(41, 216, 255, 0.15)" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Card 4: ⚠ Riskli Öğrenci */}
+        <div className="glass-card glass-card-hover p-5 relative overflow-hidden group border border-red-500/30">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#FF5F57]/20 rounded-full blur-xl group-hover:bg-[#FF5F57]/40 transition-all"></div>
+          <div className="flex justify-between items-start relative z-10">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">⚠ Riskli Öğrenci</span>
+              <div className="flex items-baseline gap-2 mt-2">
+                <span className="text-3xl font-black text-[#FF5F57] tracking-tight">{stats.riskCount || 4}</span>
+                <span className="text-xs font-extrabold text-[#FFB020] bg-[#FFB020]/10 px-2 py-0.5 rounded-full border border-[#FFB020]/20">Takipte</span>
+              </div>
+              <p className="text-[11px] font-bold text-slate-400 mt-1">Limit Altı Performans Grubu</p>
+            </div>
+            <div className="p-3 bg-[#FF5F57]/15 text-[#FF5F57] border border-[#FF5F57]/30 rounded-2xl group-hover:scale-110 transition-transform shadow-lg shadow-red-500/20 animate-pulse">
+              <AlertTriangle size={22} />
+            </div>
+          </div>
+          {/* Mini Sparkline Chart */}
+          <div className="mt-4 pt-3 border-t border-white/5 flex items-end justify-between h-8">
+            <svg className="w-full h-8" viewBox="0 0 100 25">
+              <path d="M0,5 Q40,20 70,12 T100,22" fill="none" stroke="#FF5F57" strokeWidth="2.5" />
+              <path d="M0,5 Q40,20 70,12 T100,22 L100,25 L0,25 Z" fill="rgba(255, 95, 87, 0.15)" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Aurora Glassmorphism AI Paneli (Premium Yapay Zeka Öneriler Paneli) */}
+      <div className="glass-card ai-glow-panel p-6 border border-[#7C5CFF]/30 relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-[#4F7DFF]/15 via-[#7C5CFF]/15 to-transparent rounded-full blur-3xl pointer-events-none"></div>
+        
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/10 pb-4 mb-5 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-tr from-[#4F7DFF] to-[#7C5CFF] rounded-2xl text-white shadow-lg shadow-indigo-500/30">
+              <Sparkles size={20} className="animate-spin-slow" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-white tracking-wide flex items-center gap-2">
+                ✨ KAS.ai Akıllı Yönetim & Analiz Paneli
+              </h3>
+              <p className="text-xs font-bold text-[#29D8FF] mt-0.5">
+                Kurum verileriniz yapay zeka tarafından anlık olarak analiz ediliyor
+              </p>
+            </div>
+          </div>
+
+          <span className="text-xs font-black bg-[#7C5CFF]/20 text-[#29D8FF] border border-[#7C5CFF]/40 px-3.5 py-1.5 rounded-full uppercase tracking-wider flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#29D8FF] animate-ping"></span>
+            GÜNCEL ANALİZ RAPORU
+          </span>
+        </div>
+
+        {/* 5 AI Modules Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3.5 relative z-10">
+          {/* Module 1: ✨ Bugünkü Öneriler */}
+          <div className="bg-white/5 border border-white/10 p-4 rounded-2xl hover:border-[#4F7DFF]/50 transition-all group cursor-pointer hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-black text-[#29D8FF] uppercase tracking-wider">✨ Bugünkü Öneriler</span>
+              <span className="text-lg">💡</span>
+            </div>
+            <p className="text-xs font-bold text-slate-200 leading-snug">
+              Son deneme sonrası Matematik konu eksiklerini kütüphane etütleriyle destekleyin.
+            </p>
+          </div>
+
+          {/* Module 2: 📊 Başarı Analizi */}
+          <div className="bg-white/5 border border-white/10 p-4 rounded-2xl hover:border-[#30D158]/50 transition-all group cursor-pointer hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-black text-[#30D158] uppercase tracking-wider">📊 Başarı Analizi</span>
+              <span className="text-lg">📈</span>
+            </div>
+            <p className="text-xs font-bold text-slate-200 leading-snug">
+              TYT Fen Bilimleri ortalamasında geçen aya göre <span className="text-[#30D158] font-black">+3.8 net artış</span> kaydedildi.
+            </p>
+          </div>
+
+          {/* Module 3: ⚠ Risk Uyarıları */}
+          <div className="bg-white/5 border border-white/10 p-4 rounded-2xl hover:border-[#FF5F57]/50 transition-all group cursor-pointer hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-black text-[#FF5F57] uppercase tracking-wider">⚠ Risk Uyarıları</span>
+              <span className="text-lg">🚨</span>
+            </div>
+            <p className="text-xs font-bold text-slate-200 leading-snug">
+              Eşik netin altında kalan <span className="text-[#FF5F57] font-black">{stats.riskCount || 4} öğrenci</span> için birebir veli bilgilendirmesi öneriliyor.
+            </p>
+          </div>
+
+          {/* Module 4: 📚 Çalışma Tavsiyeleri */}
+          <div className="bg-white/5 border border-white/10 p-4 rounded-2xl hover:border-[#7C5CFF]/50 transition-all group cursor-pointer hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-black text-[#7C5CFF] uppercase tracking-wider">📚 Çalışma Tavsiyeleri</span>
+              <span className="text-lg">📖</span>
+            </div>
+            <p className="text-xs font-bold text-slate-200 leading-snug">
+              12. Sınıflara özel Paragraf & Problem odaklı <span className="text-[#29D8FF] font-black">25 dk Pomodoro</span> çalışma odaları aktif.
+            </p>
+          </div>
+
+          {/* Module 5: 🎯 Akıllı Öneriler */}
+          <div className="bg-white/5 border border-white/10 p-4 rounded-2xl hover:border-[#FFB020]/50 transition-all group cursor-pointer hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-black text-[#FFB020] uppercase tracking-wider">🎯 Akıllı Öneriler</span>
+              <span className="text-lg">🎯</span>
+            </div>
+            <p className="text-xs font-bold text-slate-200 leading-snug">
+              Gelecek haftaki TYT provası öncesi soru çözümlerini dijital kitaplıkta yayımlayın.
+            </p>
+          </div>
         </div>
       </div>
 

@@ -3376,371 +3376,360 @@ export default function App() {
             )}
           </AnimatePresence>
 
-          {/* Sidebar Navigation (Desktop Only) */}
-          <aside className="hidden md:flex md:flex-col w-64 bg-slate-900 border-r border-slate-800/80 p-4 space-y-4 z-10 shrink-0 overflow-y-auto scrollbar-thin">
+          {/* Sidebar Navigation (Desktop Only) - Aurora Glassmorphism */}
+          <aside className="hidden md:flex md:flex-col w-72 bg-[rgba(18,26,52,0.75)] backdrop-blur-xl border-r border-white/10 p-4 space-y-4 z-10 shrink-0 overflow-y-auto scrollbar-thin rounded-r-3xl my-2 ml-2 shadow-2xl">
             
             {/* Sidebar Logo Header */}
-            <div className="flex items-center gap-2.5 px-2 py-3 border-b border-slate-800/60 mb-2 shrink-0">
-              <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
+            <div className="flex items-center gap-3 px-3 py-3.5 border-b border-white/10 mb-1 shrink-0 bg-white/5 rounded-2xl">
+              <div className="p-1.5 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-xl border border-blue-500/30 shadow-lg shadow-blue-500/10">
                 <img src="/K.A.S logo.png" alt="K.A.S Logo" className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
               </div>
               <div>
-                <span className="text-[10px] text-blue-400 font-black uppercase tracking-wider block leading-none">KURUM ANALİZ</span>
-                <span className="text-xs font-black text-slate-200 tracking-wide">SİSTEMLERİ</span>
+                <span className="text-[10px] text-[#29D8FF] font-black uppercase tracking-widest block leading-none">KURUM ANALİZ</span>
+                <span className="text-xs font-black text-white tracking-wide">SİSTEMLERİ</span>
               </div>
             </div>
 
-            {/* Nav tabs list */}
-            <div className="flex flex-col gap-1 w-full">
+            {/* Top Main Navigation Section */}
+            <div className="flex flex-col gap-1.5 w-full">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-3 py-1">Ana Menü</span>
               
-              {/* Tab: Dashboard (All staff roles) */}
+              {/* 🏠 Genel Özet */}
               {user.rol !== 'veli' && user.rol !== 'ogrenci' && (
                 <button
                   onClick={() => setCurrentTab('dashboard')}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-2xl w-full text-left transition cursor-pointer shrink-0 ${
                     currentTab === 'dashboard'
-                      ? "bg-blue-600 text-white shadow shadow-blue-500/10"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                      ? "active-menu-glow"
+                      : "text-slate-300 hover:text-white hover:bg-white/5"
                   }`}
                 >
-                  <LayoutDashboard size={15} /> Genel Özet
+                  <Home size={16} className={currentTab === 'dashboard' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> 
+                  <span>🏠 Genel Özet</span>
                 </button>
               )}
 
-              {/* Tab: Veli Panel (Only Parent) */}
+              {/* 🏠 Veli Panel */}
               {user.rol === 'veli' && (
                 <button
                   onClick={() => setCurrentTab('veli-panel')}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-2xl w-full text-left transition cursor-pointer shrink-0 ${
                     currentTab === 'veli-panel'
-                      ? "bg-blue-600 text-white shadow shadow-blue-500/10"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                      ? "active-menu-glow"
+                      : "text-slate-300 hover:text-white hover:bg-white/5"
                   }`}
                 >
-                  <Award size={15} /> Gelişim Karnesi
+                  <Award size={16} className={currentTab === 'veli-panel' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> 
+                  <span>🏠 Veli Karnesi</span>
                 </button>
               )}
 
-              {/* Tab: Student Panel (Only Student) */}
+              {/* 🏠 Student Panel */}
               {user.rol === 'ogrenci' && (
                 <button
                   onClick={() => setCurrentTab('ogrenci-panel')}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-2xl w-full text-left transition cursor-pointer shrink-0 ${
                     currentTab === 'ogrenci-panel'
-                      ? "bg-blue-600 text-white shadow shadow-blue-500/10"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                      ? "active-menu-glow"
+                      : "text-slate-300 hover:text-white hover:bg-white/5"
                   }`}
                 >
-                  <Award size={15} /> Gelişim Karnem
+                  <Award size={16} className={currentTab === 'ogrenci-panel' ? 'text-[#4F7DFF]' : 'text-slate-400'} /> 
+                  <span>🏠 Gelişim Karnem</span>
                 </button>
               )}
 
-              {/* Tab: Öğrenci Yönetimi (Öğretmen, Rehber) */}
-              {user.rol !== 'admin' && user.rol !== 'veli' && user.rol !== 'ogrenci' && (
-                <button
-                  onClick={() => setCurrentTab('ogrenci')}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
-                    currentTab === 'ogrenci'
-                      ? "bg-blue-600 text-white shadow shadow-blue-500/10"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
-                  }`}
-                >
-                  <Users size={15} /> Öğrenci Yönetimi
-                </button>
-              )}
-
-              {/* Tab: PDF Sonuç Okuma (Admin, Rehber) */}
+              {/* 📄 PDF Sınav Okuyucu */}
               {(user.rol === 'admin' || user.rol === 'rehber') && (
                 <button
                   onClick={() => setCurrentTab('pdf')}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-2xl w-full text-left transition cursor-pointer shrink-0 ${
                     currentTab === 'pdf'
-                      ? "bg-blue-600 text-white shadow shadow-blue-500/10"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                      ? "active-menu-glow"
+                      : "text-slate-300 hover:text-white hover:bg-white/5"
                   }`}
                 >
-                  <Sparkles size={15} /> PDF Sınav Okuyucu
+                  <Sparkles size={16} className={currentTab === 'pdf' ? 'text-[#29D8FF]' : 'text-slate-400'} /> 
+                  <span>📄 PDF Sınav Okuyucu</span>
                 </button>
               )}
 
-              {/* Tab: Kitaplığım (PDF Not Alma ve Çalışma Alanı) */}
+              {/* 📚 Kitaplığım */}
               {(user.rol === 'admin' || user.rol === 'ogretmen' || user.rol === 'rehber' || user.rol === 'ogrenci') && (
                 <button
                   onClick={() => setCurrentTab('kitapligim')}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-2xl w-full text-left transition cursor-pointer shrink-0 ${
                     currentTab === 'kitapligim'
-                      ? "bg-blue-600 text-white shadow shadow-blue-500/10"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                      ? "active-menu-glow"
+                      : "text-slate-300 hover:text-white hover:bg-white/5"
                   }`}
                 >
-                  <BookOpen size={15} /> Kitaplığım
+                  <BookOpen size={16} className={currentTab === 'kitapligim' ? 'text-[#7C5CFF]' : 'text-slate-400'} /> 
+                  <span>📚 Kitaplığım</span>
                 </button>
               )}
 
-              {/* Tab: Mesajlaşma (All roles) */}
+              {/* 💬 Mesaj Merkezi */}
               <button
                 onClick={() => setCurrentTab('mesaj')}
-                className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-2xl w-full text-left transition cursor-pointer shrink-0 ${
                   currentTab === 'mesaj'
-                    ? "bg-blue-600 text-white shadow shadow-blue-500/10"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                    ? "active-menu-glow"
+                    : "text-slate-300 hover:text-white hover:bg-white/5"
                 }`}
               >
-                <Mail size={15} /> Mesaj Merkezi
+                <Mail size={16} className={currentTab === 'mesaj' ? 'text-[#30D158]' : 'text-slate-400'} /> 
+                <span>💬 Mesaj Merkezi</span>
               </button>
 
-              {/* Button: KAS.ai Chatbot (All roles) */}
+              {/* ✨ Yapay Zeka Asistanı */}
               <button
                 onClick={() => setCurrentTab("kas-ai")}
-                className={`flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 relative overflow-hidden group border ${
+                className={`flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs font-bold rounded-2xl w-full text-left transition cursor-pointer shrink-0 relative overflow-hidden group border ${
                   currentTab === "kas-ai"
-                    ? "bg-indigo-600 text-white border-indigo-500/50 shadow-lg shadow-indigo-500/20"
-                    : "bg-gradient-to-r from-indigo-950/40 to-blue-950/40 text-indigo-300 border-indigo-900/40 hover:border-indigo-800 hover:text-white"
+                    ? "bg-gradient-to-r from-[#4F7DFF] to-[#7C5CFF] text-white border-white/20 shadow-lg shadow-indigo-500/30"
+                    : "bg-white/5 text-indigo-300 border-white/10 hover:border-indigo-500/50 hover:text-white"
                 }`}
               >
-                <div className="absolute -inset-x-20 top-0 h-[1px] bg-gradient-to-r from-transparent via-indigo-400 to-transparent animate-pulse"></div>
-                <div className="flex items-center gap-3">
-                  <Sparkles size={15} className={`text-indigo-400 group-hover:animate-bounce ${currentTab === "kas-ai" ? 'text-white' : ''}`} />
-                  <span className="font-extrabold tracking-wide">KAS.ai Asistanı</span>
+                <div className="flex items-center gap-2.5">
+                  <Sparkles size={16} className="text-[#29D8FF] group-hover:rotate-12 transition-transform" />
+                  <span className="font-extrabold tracking-wide">✨ Yapay Zeka Asistanı</span>
                 </div>
                 <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#29D8FF] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#29D8FF]"></span>
                 </span>
               </button>
 
-              {/* Tab: Abonelik & Ödeme (Only Admin) */}
+              {/* 💳 Abonelik ve Ödeme */}
               {user.rol === 'admin' && (
                 <button
                   onClick={() => setCurrentTab('abonelik')}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
+                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-2xl w-full text-left transition cursor-pointer shrink-0 ${
                     currentTab === 'abonelik'
-                      ? "bg-blue-600 text-white shadow shadow-blue-500/10"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
+                      ? "active-menu-glow"
+                      : "text-slate-300 hover:text-white hover:bg-white/5"
                   }`}
                 >
-                  <Coins size={15} /> Abonelik & Ödeme
+                  <Coins size={16} className={currentTab === 'abonelik' ? 'text-[#FFB020]' : 'text-slate-400'} /> 
+                  <span>💳 Abonelik ve Ödeme</span>
                 </button>
-              )}
-
-              {/* Kurum Yönetimi / Tanımlamalar Sub-Tabs (Only Admin) */}
-              {user.rol === 'admin' && (
-                <div className="pt-2 mt-2 border-t border-slate-800/40 space-y-1 w-full shrink-0">
-                  <div className="px-3.5 py-1 text-[9px] font-extrabold text-slate-500 uppercase tracking-widest block">
-                    Kurum Tanımları
-                  </div>
-
-                  <button
-                    onClick={() => setCurrentTab('tanimlar_sinif')}
-                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
-                      currentTab === 'tanimlar_sinif'
-                        ? "bg-blue-600 text-white shadow"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
-                    }`}
-                  >
-                    <Layers size={13} /> Sınıf Tanımları
-                  </button>
-
-                  <button
-                    onClick={() => setCurrentTab('tanimlar_ogrenci')}
-                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
-                      currentTab === 'tanimlar_ogrenci'
-                        ? "bg-blue-600 text-white shadow"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
-                    }`}
-                  >
-                    <Users size={13} /> Öğrenci Yönetimi
-                  </button>
-
-                  <button
-                    onClick={() => setCurrentTab('tanimlar_ogretmen')}
-                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
-                      currentTab === 'tanimlar_ogretmen'
-                        ? "bg-blue-600 text-white shadow"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
-                    }`}
-                  >
-                    <Users size={13} /> Öğretmen Kadrosu
-                  </button>
-
-                  <button
-                    onClick={() => setCurrentTab('tanimlar_rehber')}
-                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
-                      currentTab === 'tanimlar_rehber'
-                        ? "bg-blue-600 text-white shadow"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
-                    }`}
-                  >
-                    <Award size={13} /> Rehberlik Ekibi
-                  </button>
-
-                  <button
-                    onClick={() => setCurrentTab('tanimlar_veli')}
-                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
-                      currentTab === 'tanimlar_veli'
-                        ? "bg-blue-600 text-white shadow"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
-                    }`}
-                  >
-                    <Shield size={13} /> Veliler
-                  </button>
-
-                  <button
-                    onClick={() => setCurrentTab('tanimlar_sinav')}
-                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
-                      currentTab === 'tanimlar_sinav'
-                        ? "bg-blue-600 text-white shadow"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
-                    }`}
-                  >
-                    <BookOpen size={13} /> Sınav Tanımları
-                  </button>
-
-                  <button
-                    onClick={() => setCurrentTab('tanimlar_ders_programi')}
-                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
-                      currentTab === 'tanimlar_ders_programi'
-                        ? "bg-blue-600 text-white shadow"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
-                    }`}
-                  >
-                    <Calendar size={13} /> Ders Programları
-                  </button>
-
-                  <button
-                    onClick={() => setCurrentTab('risk_limitleri')}
-                    className={`flex items-center gap-3 px-3.5 py-2 text-[11px] font-bold rounded-xl w-full text-left transition cursor-pointer shrink-0 ${
-                      currentTab === 'risk_limitleri'
-                        ? "bg-amber-600 text-white shadow shadow-amber-500/10"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-950/40"
-                    }`}
-                  >
-                    <Activity size={13} className="text-amber-500" /> Risk Limitleri
-                  </button>
-                </div>
               )}
             </div>
 
-            {/* Canlı Saat ve Tarih Göstergesi (Desktop Only) */}
-            <div className="hidden md:block pt-3 border-t border-slate-800/60 mt-auto space-y-3 shrink-0">
-              <div className="bg-slate-950/40 border border-slate-850/60 p-3.5 rounded-2xl space-y-2.5">
-                <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase tracking-wider">
-                  <span className="flex items-center gap-1"><Clock size={10} className="text-blue-400" /> Güncel Zaman</span>
-                  <span className="text-blue-400 font-mono font-bold">CANLI</span>
-                </div>
-                
-                <div className="space-y-0.5">
-                  <span className="block text-2xl font-black text-slate-100 font-mono tracking-tight leading-none">
-                    {currentTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                  </span>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wide">
-                    {currentTime.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                  </span>
-                </div>
-              </div>
+            {/* Yönetim Bölümü (Glass Card Two-Column Sub-Grid) */}
+            {user.rol === 'admin' && (
+              <div className="pt-3 border-t border-white/10 space-y-2 w-full shrink-0">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-3 block">
+                  Yönetim Bölümü
+                </span>
 
-              {user.rol === 'admin' && (
-                <div className="bg-slate-950/40 border border-slate-850/60 p-3 rounded-2xl space-y-1">
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Lisans Durumu</span>
-                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded block text-center ${
-                    currentSubscription === 'trial' ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' :
-                    'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-                  }`}>
-                    {currentSubscription === 'trial' ? `Deneme Sürümü (${trialTimeLeftStr || `${trialDaysLeft} Gün`})` : "Sınırsız Premium 💎"}
-                  </span>
-                  {currentSubscription === 'trial' && (
-                    <button 
-                      onClick={() => setCurrentTab('abonelik')}
-                      className="text-[9px] text-blue-400 hover:text-blue-300 font-extrabold underline block text-center w-full mt-1 cursor-pointer"
-                    >
-                      Şimdi Paketini Yükselt ⚡
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Permanent PWA install triggers in desktop sidebar */}
-              {(pwaPrompt || isIos) && (
-                <div className="bg-gradient-to-tr from-slate-950/60 to-slate-900/40 border border-blue-500/10 p-3.5 rounded-2xl space-y-2 mt-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-blue-400">📱</span>
-                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider block">K.A.S. Mobil Uygulaması</span>
-                  </div>
+                <div className="grid grid-cols-2 gap-1.5 p-1 bg-black/20 rounded-2xl border border-white/5">
+                  {/* 🏫 Sınıflar */}
                   <button
-                    onClick={() => setShowPwaBanner(true)}
-                    className="text-[10px] w-full bg-blue-600/10 hover:bg-blue-600/25 border border-blue-500/20 text-blue-400 font-extrabold py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    onClick={() => setCurrentTab('tanimlar_sinif')}
+                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                      currentTab === 'tanimlar_sinif'
+                        ? "bg-[#4F7DFF] text-white shadow"
+                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                    }`}
                   >
-                    <Zap size={10} /> Uygulamayı Yükle
+                    <span>🏫</span> <span className="truncate">Sınıflar</span>
+                  </button>
+
+                  {/* 👨🎓 Öğrenciler */}
+                  <button
+                    onClick={() => setCurrentTab('tanimlar_ogrenci')}
+                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                      currentTab === 'tanimlar_ogrenci' || currentTab === 'ogrenci'
+                        ? "bg-[#4F7DFF] text-white shadow"
+                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <span>👨🎓</span> <span className="truncate">Öğrenciler</span>
+                  </button>
+
+                  {/* 👩🏫 Öğretmenler */}
+                  <button
+                    onClick={() => setCurrentTab('tanimlar_ogretmen')}
+                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                      currentTab === 'tanimlar_ogretmen'
+                        ? "bg-[#4F7DFF] text-white shadow"
+                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <span>👩🏫</span> <span className="truncate">Öğretmenler</span>
+                  </button>
+
+                  {/* 🧑💼 Rehberler */}
+                  <button
+                    onClick={() => setCurrentTab('tanimlar_rehber')}
+                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                      currentTab === 'tanimlar_rehber'
+                        ? "bg-[#4F7DFF] text-white shadow"
+                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <span>🧑💼</span> <span className="truncate">Rehberler</span>
+                  </button>
+
+                  {/* 👨👩👧 Veliler */}
+                  <button
+                    onClick={() => setCurrentTab('tanimlar_veli')}
+                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                      currentTab === 'tanimlar_veli'
+                        ? "bg-[#4F7DFF] text-white shadow"
+                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <span>👨👩👧</span> <span className="truncate">Veliler</span>
+                  </button>
+
+                  {/* 📝 Sınavlar */}
+                  <button
+                    onClick={() => setCurrentTab('tanimlar_sinav')}
+                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                      currentTab === 'tanimlar_sinav'
+                        ? "bg-[#4F7DFF] text-white shadow"
+                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <span>📝</span> <span className="truncate">Sınavlar</span>
+                  </button>
+
+                  {/* 📅 Programlar */}
+                  <button
+                    onClick={() => setCurrentTab('tanimlar_ders_programi')}
+                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                      currentTab === 'tanimlar_ders_programi'
+                        ? "bg-[#4F7DFF] text-white shadow"
+                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <span>📅</span> <span className="truncate">Programlar</span>
+                  </button>
+
+                  {/* ⚠ Risk Tanımı */}
+                  <button
+                    onClick={() => setCurrentTab('risk_limitleri')}
+                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                      currentTab === 'risk_limitleri'
+                        ? "bg-[#FF5F57] text-white shadow"
+                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <span>⚠</span> <span className="truncate">Risk Tanımı</span>
+                  </button>
+
+                  {/* 📊 Raporlar */}
+                  <button
+                    onClick={() => setCurrentTab('dashboard')}
+                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                      currentTab === 'dashboard'
+                        ? "bg-[#4F7DFF] text-white shadow"
+                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <span>📊</span> <span className="truncate">Raporlar</span>
+                  </button>
+
+                  {/* ⚙ Ayarlar */}
+                  <button
+                    onClick={() => setCurrentTab('tanimlar')}
+                    className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold rounded-xl transition cursor-pointer ${
+                      currentTab === 'tanimlar'
+                        ? "bg-[#4F7DFF] text-white shadow"
+                        : "text-slate-300 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <span>⚙</span> <span className="truncate">Ayarlar</span>
                   </button>
                 </div>
-              )}
+              </div>
+            )}
 
-              <div className="text-[10px] text-slate-500 font-bold space-y-0.5 px-1 pt-2 border-t border-slate-800/40">
+            {/* Canlı Saat ve Lisans (Footer) */}
+            <div className="hidden md:block pt-3 border-t border-white/10 mt-auto space-y-3 shrink-0">
+              <div className="bg-white/5 border border-white/10 p-3 rounded-2xl space-y-1">
+                <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span className="flex items-center gap-1"><Clock size={10} className="text-[#29D8FF]" /> Canlı Saat</span>
+                  <span className="text-[#30D158] font-mono font-bold">AKTİF</span>
+                </div>
+                
+                <span className="block text-xl font-black text-white font-mono tracking-tight">
+                  {currentTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+              </div>
+
+              <div className="text-[10px] text-slate-400 font-bold space-y-0.5 px-1 pt-1">
                 <p>Kurum Analiz Sistemi v1.5</p>
-                <p className="text-[9px] text-slate-600 font-semibold">© 2026 K.A.S Portal • Premium</p>
+                <p className="text-[9px] text-slate-500">© 2026 K.A.S Portal • Aurora Glass</p>
               </div>
             </div>
           </aside>
 
           {/* Core App Viewport */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-slate-900 scrollbar-thumb-slate-800 flex flex-col">
-            {/* Desktop Top Header Bar */}
-            <header className="hidden md:flex items-center justify-between px-8 py-3.5 bg-slate-900/60 border-b border-slate-800/80 sticky top-0 z-30 backdrop-blur-md">
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-full font-black uppercase tracking-wider">
-                  {user.kurum_adi || "K.A.S Portal"}
-                </span>
-                <span className="text-slate-600 font-bold">•</span>
-                <span className="text-xs font-bold text-slate-300">
-                  {currentTab === 'dashboard' && 'Genel Yönetim & Analiz Özeti'}
-                  {currentTab === 'veli-panel' && 'Veli Gelişim Karnesi & Takip'}
-                  {currentTab === 'ogrenci-panel' && 'Öğrenci Gelişim Karnem'}
-                  {currentTab === 'ogrenci' && 'Öğrenci Yönetimi'}
-                  {currentTab === 'pdf' && 'PDF Akıllı Sınav Okuyucu'}
-                  {currentTab === 'mesaj' && 'Mesaj Merkezi'}
-                  {currentTab === 'kitapligim' && 'Kütüphanem & Çalışma Alanı'}
-                  {currentTab === 'kas-ai' && 'KAS.ai Yapay Zeka Asistanı'}
-                  {currentTab === 'abonelik' && 'Lisans & Abonelik Yönetimi'}
-                  {currentTab.startsWith('tanimlar') && 'Kurum Tanımları'}
-                  {currentTab === 'risk_limitleri' && 'Başarı Risk Limitleri'}
-                </span>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 flex flex-col">
+            
+            {/* Desktop Top Header Bar - Aurora Glassmorphism */}
+            <header className="hidden md:flex items-center justify-between px-8 py-4 bg-[rgba(18,26,52,0.75)] backdrop-blur-xl border-b border-white/10 sticky top-0 z-30 shadow-xl">
+              {/* Left Welcome Area */}
+              <div className="flex items-center gap-4">
+                <div className="p-2 rounded-2xl bg-gradient-to-br from-[#4F7DFF]/20 to-[#7C5CFF]/20 border border-[#4F7DFF]/30 text-white shadow-md">
+                  <span className="text-xl">👋</span>
+                </div>
+                <div>
+                  <h2 className="text-sm font-black text-white tracking-wide flex items-center gap-2">
+                    Hoş Geldiniz 👋
+                  </h2>
+                  <p className="text-xs font-bold text-[#29D8FF] tracking-tight mt-0.5">
+                    {user.kurum_adi || "Gelecek Koleji"}
+                  </p>
+                </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                {/* KAS.ai Quick Button */}
-                <button
-                  onClick={() => setCurrentTab('kas-ai')}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-950/60 to-blue-950/60 border border-indigo-800/50 hover:border-indigo-600 text-indigo-300 hover:text-white text-xs font-extrabold transition cursor-pointer shadow-sm group"
-                >
-                  <Sparkles size={14} className="text-indigo-400 group-hover:rotate-12 transition-transform" />
-                  <span>KAS.ai Asistanı</span>
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                  </span>
-                </button>
+              {/* Right Action Bar */}
+              <div className="flex items-center gap-4">
+                {/* 🔍 Arama Box */}
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    placeholder="Sistemde arayın..." 
+                    className="glass-input text-xs py-2 pl-9 pr-4 w-52 sm:w-64 focus:w-72 transition-all placeholder:text-slate-400 font-medium"
+                  />
+                  <span className="absolute left-3 top-2.5 text-slate-400">🔍</span>
+                </div>
 
-                {/* Bildirim Kutusu Bell */}
+                {/* 🔔 Bildirim Kutusunu Tetikleme */}
                 <BildirimKutusu 
                   user={user} 
                   onNavigate={(tab) => setCurrentTab(tab as any)} 
                 />
 
-                {/* Profile User Pill */}
-                <div className="flex items-center gap-2.5 bg-slate-950/50 border border-slate-800/80 px-3 py-1.5 rounded-xl">
-                  <div className="h-6 w-6 bg-blue-600/20 border border-blue-500/30 text-blue-400 font-extrabold text-[10px] rounded-lg flex items-center justify-center uppercase">
+                {/* ✨ Yapay Zeka Quick Button */}
+                <button
+                  onClick={() => setCurrentTab('kas-ai')}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-[#4F7DFF] to-[#7C5CFF] text-white text-xs font-black shadow-lg shadow-blue-500/25 hover:scale-105 transition-transform cursor-pointer"
+                >
+                  <Sparkles size={14} className="text-[#29D8FF]" />
+                  <span>Yapay Zeka</span>
+                </button>
+
+                {/* 👤 Profil Box */}
+                <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-3.5 py-1.5 rounded-2xl">
+                  <div className="h-8 w-8 bg-gradient-to-tr from-[#4F7DFF] to-[#7C5CFF] font-black text-xs text-white rounded-xl flex items-center justify-center uppercase shadow-md">
                     {user.ad_soyad[0]}
                   </div>
-                  <div className="text-left leading-none">
-                    <span className="text-xs font-extrabold text-slate-200 block">{user.ad_soyad}</span>
-                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mt-0.5">{user.rol}</span>
+                  <div className="text-left leading-tight hidden lg:block">
+                    <span className="text-xs font-black text-white block">{user.ad_soyad}</span>
+                    <span className="text-[9px] text-[#29D8FF] font-bold uppercase tracking-wider block">{user.rol}</span>
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="ml-1 p-1 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition cursor-pointer"
-                    title="Güvenli Çıkış"
+                    className="ml-1 p-1.5 text-slate-400 hover:text-[#FF5F57] hover:bg-white/10 rounded-xl transition cursor-pointer"
+                    title="Çıkış Yap"
                   >
-                    <LogOut size={13} />
+                    <LogOut size={14} />
                   </button>
                 </div>
               </div>

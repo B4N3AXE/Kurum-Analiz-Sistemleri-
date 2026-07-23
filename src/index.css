@@ -1,11 +1,110 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
 
-/* 
- * K.A.S (Kurum Analiz Sistemleri) - Platform-wide Card Modernization
- * Adds a smooth, high-fidelity tactile hover depth effect (shadow-lg) 
- * and an elegant soft blue border glow (border-blue-500/20) to hover-lift components.
- */
+:root {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --bg-primary: #070B1F;
+  --bg-secondary: #0E1633;
+  --card-glass: rgba(18, 26, 52, 0.75);
+  --color-primary: #4F7DFF;
+  --color-secondary: #7C5CFF;
+  --color-accent: #29D8FF;
+  --color-success: #30D158;
+  --color-warning: #FFB020;
+  --color-error: #FF5F57;
+}
 
+body {
+  background-color: var(--bg-primary);
+  color: #e2e8f0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Aurora Background Effect */
+.aurora-bg {
+  background-color: #070B1F;
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(124, 92, 255, 0.18) 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(79, 125, 255, 0.16) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(41, 216, 255, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 80% 85%, rgba(124, 92, 255, 0.15) 0%, transparent 40%);
+  background-attachment: fixed;
+}
+
+/* Glassmorphism Cards */
+.glass-card {
+  background: rgba(18, 26, 52, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-3px);
+  border-color: rgba(79, 125, 255, 0.35);
+  box-shadow: 0 16px 40px -10px rgba(79, 125, 255, 0.25),
+              0 0 20px 0 rgba(41, 216, 255, 0.15);
+}
+
+/* Aurora Glass Inputs & Controls */
+.glass-input {
+  background: rgba(14, 22, 51, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 14px;
+  color: #f1f5f9;
+  transition: all 0.2s ease;
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: #4F7DFF;
+  box-shadow: 0 0 0 3px rgba(79, 125, 255, 0.25);
+  background: rgba(18, 26, 52, 0.85);
+}
+
+/* Glowing Neon Borders */
+.neon-border-primary {
+  border: 1px solid rgba(79, 125, 255, 0.4);
+  box-shadow: 0 0 15px rgba(79, 125, 255, 0.2);
+}
+
+.neon-border-purple {
+  border: 1px solid rgba(124, 92, 255, 0.4);
+  box-shadow: 0 0 15px rgba(124, 92, 255, 0.2);
+}
+
+/* Breathing AI Glow Animation */
+@keyframes ai-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(124, 92, 255, 0.25), 0 0 40px rgba(79, 125, 255, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(124, 92, 255, 0.45), 0 0 60px rgba(41, 216, 255, 0.3);
+  }
+}
+
+.ai-glow-panel {
+  animation: ai-pulse 4s infinite ease-in-out;
+}
+
+/* Active Menu Item Glow */
+.active-menu-glow {
+  background: linear-gradient(90deg, rgba(79, 125, 255, 0.22) 0%, rgba(124, 92, 255, 0.12) 100%);
+  border-left: 4px solid #4F7DFF;
+  color: #ffffff !important;
+  box-shadow: 0 0 20px rgba(79, 125, 255, 0.15);
+}
+
+/* Tactile Hover Lift */
 .hover-lift {
   transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), 
               box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), 
@@ -14,20 +113,8 @@
 }
 
 .hover-lift:hover {
-  /* Soft border blue-500/20 glow */
-  border-color: rgba(59, 130, 246, 0.25) !important;
-  
-  /* Distinct, high-fidelity shadow depth (shadow-lg equivalent with indigo accent) */
+  border-color: rgba(79, 125, 255, 0.35) !important;
   box-shadow: 0 12px 25px -5px rgba(0, 0, 0, 0.65), 
-              0 8px 10px -6px rgba(0, 0, 0, 0.65),
-              0 0 15px -3px rgba(59, 130, 246, 0.08) !important;
-  
-  /* Micro-translation lift for natural hand-to-eye alignment */
+              0 0 20px -3px rgba(79, 125, 255, 0.2) !important;
   transform: translateY(-2px);
 }
-
-.hover-lift:active {
-  transform: translateY(0px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4) !important;
-}
-
