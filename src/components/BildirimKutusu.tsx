@@ -46,6 +46,39 @@ export default function BildirimKutusu({ user, onNavigate }: BildirimKutusuProps
   const [isOpen, setIsOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'unread' | 'sinav' | 'odev' | 'duyuru'>('all');
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [dbNotifications, setDbNotifications] = useState<NotificationItem[]>([]);
+
+  // Fetch real unread messages from backend
+  useEffect(() => {
+    const fetchMessages = () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      fetch(`/api/mesaj?user_id=${user.id}&rol=${user.rol}`, {
+        headers: { 'Authorization': token }
+      })
+      .then(res => res.ok ? res.json() : [])
+      .then((messages: any[]) => {
+        const unreadMsgs = messages.filter(m => m.alici_id === user.id && !m.okundu);
+        const converted: NotificationItem[] = unreadMsgs.map(m => ({
+          id: `msg_${m.id}`,
+          title: `Yeni Mesaj: ${m.konu || 'Bilgilendirme'}`,
+          message: `${m.gonderen_adi || 'Bilinmeyen'}: ${m.mesaj}`,
+          type: 'duyuru',
+          time: new Date(m.tarih).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+          read: false,
+          linkTab: 'mesaj',
+          priority: 'high'
+        }));
+        setDbNotifications(converted);
+      })
+      .catch(console.error);
+    };
+
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 15000); // Every 15 seconds
+    return () => clearInterval(interval);
+  }, [user.id, user.rol]);
 
   // Generate role-specific initial notifications
   useEffect(() => {
@@ -219,20 +252,40 @@ export default function BildirimKutusu({ user, onNavigate }: BildirimKutusuProps
     localStorage.setItem(`kas_notifications_user_${user.id}`, JSON.stringify(items));
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const allNotifications = [...dbNotifications, ...notifications];
+  const unreadCount = allNotifications.filter(n => !n.read).length;
 
   const markAllAsRead = () => {
     const updated = notifications.map(n => ({ ...n, read: true }));
     saveNotifications(updated);
+    
+    // Attempt to mark db messages as read too
+    dbNotifications.forEach(n => markAsRead(n.id));
   };
 
   const markAsRead = (id: string) => {
+    if (id.startsWith('msg_')) {
+      const msgId = id.replace('msg_', '');
+      const token = localStorage.getItem('token');
+      if (token) {
+        fetch(`/api/mesaj/${msgId}/oku`, {
+          method: 'PUT',
+          headers: { 'Authorization': token }
+        }).catch(console.error);
+        setDbNotifications(prev => prev.filter(n => n.id !== id));
+      }
+      return;
+    }
     const updated = notifications.map(n => n.id === id ? { ...n, read: true } : n);
     saveNotifications(updated);
   };
 
   const deleteNotification = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    if (id.startsWith('msg_')) {
+      markAsRead(id); // essentially dismissing it
+      return;
+    }
     const updated = notifications.filter(n => n.id !== id);
     saveNotifications(updated);
   };
@@ -245,7 +298,7 @@ export default function BildirimKutusu({ user, onNavigate }: BildirimKutusuProps
     }
   };
 
-  const filteredList = notifications.filter(item => {
+  const filteredList = allNotifications.filter(item => {
     if (activeFilter === 'unread') return !item.read;
     if (activeFilter === 'sinav') return item.type === 'sinav';
     if (activeFilter === 'odev') return item.type === 'odev';

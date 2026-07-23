@@ -681,7 +681,18 @@
   ],
   "ogretmen_sinif": [],
   "rehberlik_notlari": [],
-  "mesajlar": [],
+  "mesajlar": [
+    {
+      "id": 1,
+      "gonderen_id": 2,
+      "alici_id": 10015,
+      "ogrenci_id": 1,
+      "konu": "as",
+      "mesaj": "sa",
+      "okundu": false,
+      "tarih": "2026-07-23T17:42:17.624Z"
+    }
+  ],
   "ders_programlari": [],
   "risk_thresholds": [
     {
