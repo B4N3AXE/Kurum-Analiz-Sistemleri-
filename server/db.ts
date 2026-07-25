@@ -264,7 +264,9 @@ const initialData: DatabaseSchema = {
   ogretmen_tavsiyeleri: [],
   veli_notlari: [],
   coupons: [
-    { id: 1, code: "YENISEZON10", discount_type: "percentage", discount_value: 10, applies_to: "once", active: true }
+    { id: 1, code: "YENISEZON10", discount_type: "percentage", discount_value: 10, applies_to: "once", active: true },
+    { id: 2, code: "KURUM100", discount_type: "percentage", discount_value: 100, applies_to: "once", active: true },
+    { id: 3, code: "KAS100", discount_type: "percentage", discount_value: 100, applies_to: "once", active: true }
   ],
   konu_takip: [],
   calisma_seanslari: [],
@@ -320,7 +322,9 @@ export class Database {
         // Seed coupons if not exists or empty
         if (!parsed.coupons || parsed.coupons.length === 0) {
           parsed.coupons = [
-            { id: 1, code: "YENISEZON10", discount_type: "percentage", discount_value: 10, applies_to: "once", active: true }
+            { id: 1, code: "YENISEZON10", discount_type: "percentage", discount_value: 10, applies_to: "once", active: true },
+    { id: 2, code: "KURUM100", discount_type: "percentage", discount_value: 100, applies_to: "once", active: true },
+    { id: 3, code: "KAS100", discount_type: "percentage", discount_value: 100, applies_to: "once", active: true }
           ];
         }
 

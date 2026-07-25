@@ -268,6 +268,13 @@
       "tur": "TYT",
       "tarih": "2026-07-23",
       "kurum_id": 1
+    },
+    {
+      "id": 3,
+      "ad": "BS",
+      "tur": "TYT",
+      "tarih": "2026-07-25",
+      "kurum_id": 1
     }
   ],
   "sinav_sonuclari": [
@@ -677,6 +684,226 @@
       "fen_net": -1.5,
       "toplam_net": 20.5,
       "puan": 204.46
+    },
+    {
+      "id": 38,
+      "ogrenci_id": 1,
+      "sinav_id": 3,
+      "turkce_net": 30,
+      "sosyal_net": 19,
+      "matematik_net": 28,
+      "fen_net": 17.75,
+      "toplam_net": 94.75,
+      "puan": 425.79
+    },
+    {
+      "id": 39,
+      "ogrenci_id": 2,
+      "sinav_id": 3,
+      "turkce_net": 37.5,
+      "sosyal_net": 12.5,
+      "matematik_net": 27.25,
+      "fen_net": 12.5,
+      "toplam_net": 89.75,
+      "puan": 409.79
+    },
+    {
+      "id": 40,
+      "ogrenci_id": 3,
+      "sinav_id": 3,
+      "turkce_net": 33.75,
+      "sosyal_net": 9,
+      "matematik_net": 25,
+      "fen_net": 16.5,
+      "toplam_net": 84.25,
+      "puan": 394.62
+    },
+    {
+      "id": 41,
+      "ogrenci_id": 4,
+      "sinav_id": 3,
+      "turkce_net": 28.25,
+      "sosyal_net": 17.75,
+      "matematik_net": 21,
+      "fen_net": 16.25,
+      "toplam_net": 83.25,
+      "puan": 391.83
+    },
+    {
+      "id": 42,
+      "ogrenci_id": 5,
+      "sinav_id": 3,
+      "turkce_net": 30,
+      "sosyal_net": 16.25,
+      "matematik_net": 16.5,
+      "fen_net": 13.75,
+      "toplam_net": 76.5,
+      "puan": 371.48
+    },
+    {
+      "id": 43,
+      "ogrenci_id": 6,
+      "sinav_id": 3,
+      "turkce_net": 31.75,
+      "sosyal_net": 13.25,
+      "matematik_net": 21.75,
+      "fen_net": 0,
+      "toplam_net": 66.75,
+      "puan": 339.83
+    },
+    {
+      "id": 44,
+      "ogrenci_id": 7,
+      "sinav_id": 3,
+      "turkce_net": 29.5,
+      "sosyal_net": 8.25,
+      "matematik_net": 18,
+      "fen_net": 7.25,
+      "toplam_net": 63,
+      "puan": 330.45
+    },
+    {
+      "id": 45,
+      "ogrenci_id": 8,
+      "sinav_id": 3,
+      "turkce_net": 24.25,
+      "sosyal_net": 9.5,
+      "matematik_net": 26.5,
+      "fen_net": 1,
+      "toplam_net": 61.25,
+      "puan": 324.05
+    },
+    {
+      "id": 46,
+      "ogrenci_id": 9,
+      "sinav_id": 3,
+      "turkce_net": 32.75,
+      "sosyal_net": 16.25,
+      "matematik_net": 2,
+      "fen_net": 1.75,
+      "toplam_net": 52.75,
+      "puan": 299.28
+    },
+    {
+      "id": 47,
+      "ogrenci_id": 10,
+      "sinav_id": 3,
+      "turkce_net": 27,
+      "sosyal_net": 14,
+      "matematik_net": 3.75,
+      "fen_net": 0,
+      "toplam_net": 44.75,
+      "puan": 275.56
+    },
+    {
+      "id": 48,
+      "ogrenci_id": 11,
+      "sinav_id": 3,
+      "turkce_net": 11,
+      "sosyal_net": 9.25,
+      "matematik_net": 12.5,
+      "fen_net": 7.5,
+      "toplam_net": 40.25,
+      "puan": 264.28
+    },
+    {
+      "id": 49,
+      "ogrenci_id": 12,
+      "sinav_id": 3,
+      "turkce_net": 24.25,
+      "sosyal_net": 11.5,
+      "matematik_net": 1.75,
+      "fen_net": -0.25,
+      "toplam_net": 37.25,
+      "puan": 253.58
+    },
+    {
+      "id": 50,
+      "ogrenci_id": 13,
+      "sinav_id": 3,
+      "turkce_net": 23.75,
+      "sosyal_net": 7.5,
+      "matematik_net": 4.75,
+      "fen_net": 0,
+      "toplam_net": 36,
+      "puan": 249.94
+    },
+    {
+      "id": 51,
+      "ogrenci_id": 14,
+      "sinav_id": 3,
+      "turkce_net": 19.25,
+      "sosyal_net": 10,
+      "matematik_net": 2.75,
+      "fen_net": 3.25,
+      "toplam_net": 35.25,
+      "puan": 248.58
+    },
+    {
+      "id": 52,
+      "ogrenci_id": 15,
+      "sinav_id": 3,
+      "turkce_net": 18.5,
+      "sosyal_net": 6.75,
+      "matematik_net": 6.5,
+      "fen_net": 2.5,
+      "toplam_net": 34.25,
+      "puan": 245.46
+    },
+    {
+      "id": 53,
+      "ogrenci_id": 16,
+      "sinav_id": 3,
+      "turkce_net": 11,
+      "sosyal_net": 10.25,
+      "matematik_net": 7.5,
+      "fen_net": 3.5,
+      "toplam_net": 32.25,
+      "puan": 240
+    },
+    {
+      "id": 54,
+      "ogrenci_id": 17,
+      "sinav_id": 3,
+      "turkce_net": 22,
+      "sosyal_net": 7.5,
+      "matematik_net": 2,
+      "fen_net": 0,
+      "toplam_net": 31.5,
+      "puan": 236.81
+    },
+    {
+      "id": 55,
+      "ogrenci_id": 18,
+      "sinav_id": 3,
+      "turkce_net": 16.25,
+      "sosyal_net": 12.5,
+      "matematik_net": -2.5,
+      "fen_net": 0.75,
+      "toplam_net": 27,
+      "puan": 223.96
+    },
+    {
+      "id": 56,
+      "ogrenci_id": 19,
+      "sinav_id": 3,
+      "turkce_net": 11.25,
+      "sosyal_net": 10.25,
+      "matematik_net": 1.75,
+      "fen_net": 3,
+      "toplam_net": 26.25,
+      "puan": 222.33
+    },
+    {
+      "id": 57,
+      "ogrenci_id": 20,
+      "sinav_id": 3,
+      "turkce_net": 12,
+      "sosyal_net": 9,
+      "matematik_net": 0.75,
+      "fen_net": 0,
+      "toplam_net": 21.75,
+      "puan": 208.47
     }
   ],
   "ogretmen_sinif": [],
@@ -689,8 +916,98 @@
       "ogrenci_id": 1,
       "konu": "as",
       "mesaj": "sa",
-      "okundu": false,
+      "okundu": true,
       "tarih": "2026-07-23T17:42:17.624Z"
+    },
+    {
+      "id": 2,
+      "gonderen_id": 2,
+      "alici_id": 10015,
+      "ogrenci_id": 1,
+      "konu": "a",
+      "mesaj": "Asasaa",
+      "okundu": true,
+      "tarih": "2026-07-23T17:50:45.613Z"
+    },
+    {
+      "id": 3,
+      "gonderen_id": 2,
+      "alici_id": 10015,
+      "ogrenci_id": 1,
+      "konu": "sa",
+      "mesaj": "sa",
+      "okundu": true,
+      "tarih": "2026-07-23T17:51:12.870Z"
+    },
+    {
+      "id": 4,
+      "gonderen_id": 2,
+      "alici_id": 10015,
+      "ogrenci_id": 1,
+      "konu": "a",
+      "mesaj": "A\n",
+      "okundu": true,
+      "tarih": "2026-07-23T17:51:29.366Z"
+    },
+    {
+      "id": 5,
+      "gonderen_id": 10015,
+      "alici_id": 2,
+      "ogrenci_id": 1,
+      "konu": "Merhaba",
+      "mesaj": "Nasılsınız hocam",
+      "okundu": true,
+      "tarih": "2026-07-23T18:11:57.587Z"
+    },
+    {
+      "id": 6,
+      "gonderen_id": 2,
+      "alici_id": 10015,
+      "ogrenci_id": 1,
+      "konu": "hguuy",
+      "mesaj": "gyyuyuy",
+      "okundu": true,
+      "tarih": "2026-07-23T18:20:50.714Z"
+    },
+    {
+      "id": 7,
+      "gonderen_id": 10015,
+      "alici_id": 2,
+      "ogrenci_id": 1,
+      "konu": "A",
+      "mesaj": "A",
+      "okundu": true,
+      "tarih": "2026-07-23T18:21:09.156Z"
+    },
+    {
+      "id": 8,
+      "gonderen_id": 2,
+      "alici_id": 10015,
+      "ogrenci_id": 1,
+      "konu": "nabersss",
+      "mesaj": "sss",
+      "okundu": true,
+      "tarih": "2026-07-23T18:22:04.656Z"
+    },
+    {
+      "id": 9,
+      "gonderen_id": 10015,
+      "alici_id": 2,
+      "ogrenci_id": 1,
+      "konu": "S",
+      "mesaj": "S",
+      "okundu": true,
+      "tarih": "2026-07-23T18:22:14.207Z"
+    },
+    {
+      "id": 10,
+      "gonderen_id": 10015,
+      "alici_id": 2,
+      "ogrenci_id": 1,
+      "konu": "Sa",
+      "mesaj": "As",
+      "okundu": true,
+      "tarih": "2026-07-23T18:29:45.599Z"
     }
   ],
   "ders_programlari": [],
@@ -742,6 +1059,13 @@
       "konu_key": "ayt_matematik_polinomlar",
       "tamamlandi": false,
       "tarih": "2026-07-23T14:11:16.742Z"
+    },
+    {
+      "id": 2,
+      "ogrenci_id": 15,
+      "konu_key": "turkce_sözcükte ve söz öbeklerinde anlam",
+      "tamamlandi": true,
+      "tarih": "2026-07-25T10:40:11.246Z"
     }
   ],
   "calisma_seanslari": [
@@ -758,9 +1082,139 @@
       "ders_adi": "Matematik",
       "sure": 1,
       "tarih": "2026-07-20T19:48:15.112Z"
+    },
+    {
+      "id": 3,
+      "ogrenci_id": 15,
+      "ders_adi": "Matematik",
+      "sure": 9,
+      "tarih": "2026-07-25T10:45:03.931Z"
     }
   ],
   "haftalik_gorevler": [],
   "user_pdfs": [],
-  "pdf_annotations": []
+  "pdf_annotations": [],
+  "taksit_planlari": [
+    {
+      "id": 1,
+      "ogrenci_id": 15,
+      "kurum_id": 1,
+      "toplam_tutar": 150000,
+      "pesinat": 300000,
+      "taksit_sayisi": 12,
+      "baslangic_tarihi": "2026-07-26",
+      "durum": "aktif"
+    }
+  ],
+  "taksitler": [
+    {
+      "id": 1,
+      "plan_id": 1,
+      "ogrenci_id": 15,
+      "vade_tarihi": "2026-07-26T00:00:00.000Z",
+      "tutar": -12500,
+      "odenen_tutar": 0,
+      "durum": "bekliyor"
+    },
+    {
+      "id": 2,
+      "plan_id": 1,
+      "ogrenci_id": 15,
+      "vade_tarihi": "2026-08-26T00:00:00.000Z",
+      "tutar": -12500,
+      "odenen_tutar": 0,
+      "durum": "bekliyor"
+    },
+    {
+      "id": 3,
+      "plan_id": 1,
+      "ogrenci_id": 15,
+      "vade_tarihi": "2026-09-26T00:00:00.000Z",
+      "tutar": -12500,
+      "odenen_tutar": 0,
+      "durum": "bekliyor"
+    },
+    {
+      "id": 4,
+      "plan_id": 1,
+      "ogrenci_id": 15,
+      "vade_tarihi": "2026-10-26T00:00:00.000Z",
+      "tutar": -12500,
+      "odenen_tutar": 0,
+      "durum": "bekliyor"
+    },
+    {
+      "id": 5,
+      "plan_id": 1,
+      "ogrenci_id": 15,
+      "vade_tarihi": "2026-11-26T00:00:00.000Z",
+      "tutar": -12500,
+      "odenen_tutar": 0,
+      "durum": "bekliyor"
+    },
+    {
+      "id": 6,
+      "plan_id": 1,
+      "ogrenci_id": 15,
+      "vade_tarihi": "2026-12-26T00:00:00.000Z",
+      "tutar": -12500,
+      "odenen_tutar": 0,
+      "durum": "bekliyor"
+    },
+    {
+      "id": 7,
+      "plan_id": 1,
+      "ogrenci_id": 15,
+      "vade_tarihi": "2027-01-26T00:00:00.000Z",
+      "tutar": -12500,
+      "odenen_tutar": 0,
+      "durum": "bekliyor"
+    },
+    {
+      "id": 8,
+      "plan_id": 1,
+      "ogrenci_id": 15,
+      "vade_tarihi": "2027-02-26T00:00:00.000Z",
+      "tutar": -12500,
+      "odenen_tutar": 0,
+      "durum": "bekliyor"
+    },
+    {
+      "id": 9,
+      "plan_id": 1,
+      "ogrenci_id": 15,
+      "vade_tarihi": "2027-03-26T00:00:00.000Z",
+      "tutar": -12500,
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-25T22:40:46.987Z"
+    },
+    {
+      "id": 10,
+      "plan_id": 1,
+      "ogrenci_id": 15,
+      "vade_tarihi": "2027-04-26T00:00:00.000Z",
+      "tutar": -12500,
+      "odenen_tutar": 0,
+      "durum": "bekliyor"
+    },
+    {
+      "id": 11,
+      "plan_id": 1,
+      "ogrenci_id": 15,
+      "vade_tarihi": "2027-05-26T00:00:00.000Z",
+      "tutar": -12500,
+      "odenen_tutar": 0,
+      "durum": "bekliyor"
+    },
+    {
+      "id": 12,
+      "plan_id": 1,
+      "ogrenci_id": 15,
+      "vade_tarihi": "2027-06-26T00:00:00.000Z",
+      "tutar": -12500,
+      "odenen_tutar": 0,
+      "durum": "bekliyor"
+    }
+  ]
 }

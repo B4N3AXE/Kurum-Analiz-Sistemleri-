@@ -67,8 +67,21 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
 
       if (res.ok) {
         const data = await res.json();
-        if (data.success && data.token) {
-          setPaytrToken(data.token);
+        if (data.success) {
+          if (data.isFreeUpgrade) {
+             localStorage.setItem('kas_subscription_plan', 'premium');
+             if (user && user.kurum_id) {
+               localStorage.setItem(`kas_subscription_plan_kurum_${user.kurum_id}`, 'premium');
+             }
+             setCouponSuccess('Ücretsiz Yükseltme Başarılı! Premium özellikleriniz aktif ediliyor...');
+             setTimeout(() => {
+               window.location.reload();
+             }, 3000);
+          } else if (data.token) {
+             setPaytrToken(data.token);
+          } else {
+             setPaytrError(data.error || 'Token oluşturulamadı.');
+          }
         } else {
           setPaytrError(data.error || 'Token oluşturulamadı.');
         }
