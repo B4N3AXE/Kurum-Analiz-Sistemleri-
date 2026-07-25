@@ -6,6 +6,13 @@
       "tur": "Özel Anadolu Lisesi",
       "abonelik_turu": "premium",
       "deneme_bitis": "2029-12-31T23:59:59.000Z"
+    },
+    {
+      "id": 2,
+      "ad": "Atatürk Anadolu Lisesi",
+      "tur": "Anadolu Lisesi",
+      "abonelik_turu": "premium",
+      "deneme_bitis": "2026-08-08T23:02:13.854Z"
     }
   ],
   "kullanicilar": [
@@ -27,6 +34,15 @@
       "kurum_id": 1,
       "telefon": "0555 222 3344",
       "kurum_adi": "Gelecek Koleji"
+    },
+    {
+      "id": 3,
+      "ad_soyad": "sadada fasdasd",
+      "email": "master@kas.com",
+      "sifre": "masters1.s",
+      "rol": "admin",
+      "telefon": "5426105632",
+      "kurum_id": 2
     }
   ],
   "siniflar": [
@@ -1113,8 +1129,9 @@
       "ogrenci_id": 15,
       "vade_tarihi": "2026-07-26T00:00:00.000Z",
       "tutar": -12500,
-      "odenen_tutar": 0,
-      "durum": "bekliyor"
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-25T23:10:04.527Z"
     },
     {
       "id": 2,
@@ -1122,8 +1139,9 @@
       "ogrenci_id": 15,
       "vade_tarihi": "2026-08-26T00:00:00.000Z",
       "tutar": -12500,
-      "odenen_tutar": 0,
-      "durum": "bekliyor"
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-25T23:10:05.921Z"
     },
     {
       "id": 3,
@@ -1131,8 +1149,9 @@
       "ogrenci_id": 15,
       "vade_tarihi": "2026-09-26T00:00:00.000Z",
       "tutar": -12500,
-      "odenen_tutar": 0,
-      "durum": "bekliyor"
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-25T23:10:06.963Z"
     },
     {
       "id": 4,
@@ -1149,8 +1168,9 @@
       "ogrenci_id": 15,
       "vade_tarihi": "2026-11-26T00:00:00.000Z",
       "tutar": -12500,
-      "odenen_tutar": 0,
-      "durum": "bekliyor"
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-25T23:10:09.380Z"
     },
     {
       "id": 6,
@@ -1158,8 +1178,9 @@
       "ogrenci_id": 15,
       "vade_tarihi": "2026-12-26T00:00:00.000Z",
       "tutar": -12500,
-      "odenen_tutar": 0,
-      "durum": "bekliyor"
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-25T23:10:09.871Z"
     },
     {
       "id": 7,
@@ -1167,8 +1188,9 @@
       "ogrenci_id": 15,
       "vade_tarihi": "2027-01-26T00:00:00.000Z",
       "tutar": -12500,
-      "odenen_tutar": 0,
-      "durum": "bekliyor"
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-25T23:10:08.152Z"
     },
     {
       "id": 8,

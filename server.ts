@@ -636,11 +636,21 @@ app.get('/api/dashboard/stats', (req, res) => {
   try {
     const rol = req.query.rol as string;
     const userId = Number(req.query.user_id);
+    const kurumId = Number(req.query.kurum_id);
 
     let students = db.getOgrenciler();
+    let classes = db.getSiniflar();
+    let teachers = db.getKullanicilar().filter(u => u.rol === 'ogretmen');
+    
+    // Filter by kurum_id if provided
+    if (kurumId) {
+       classes = classes.filter(c => c.kurum_id === kurumId);
+       const classIds = classes.map(c => c.id);
+       students = students.filter(s => classIds.includes(s.sinif_id));
+       teachers = teachers.filter(t => t.kurum_id === kurumId);
+    }
     const exams = db.getSinavTanimlari();
     const results = db.getSinavSonuclari();
-    let classes = db.getSiniflar();
     const guidanceNotes = db.getRehberlikNotlari();
 
     let assignedClassIds: number[] = [];
@@ -662,7 +672,8 @@ app.get('/api/dashboard/stats', (req, res) => {
     // Average TYT Nets Calculation
     const tytExams = exams.filter(e => e.tur === 'TYT');
     const tytExamIds = tytExams.map(e => e.id);
-    const tytResults = results.filter(r => tytExamIds.includes(r.sinav_id));
+    const studentIds = students.map(s => s.id);
+    const tytResults = results.filter(r => tytExamIds.includes(r.sinav_id) && studentIds.includes(r.ogrenci_id));
     
     let averageTytNet = 0;
     if (tytResults.length > 0) {
@@ -739,7 +750,7 @@ app.get('/api/dashboard/stats', (req, res) => {
     // Calculate trends for chart
     const trends = exams
       .map(e => {
-        const examResults = results.filter(r => r.sinav_id === e.id);
+        const examResults = results.filter(r => r.sinav_id === e.id && studentIds.includes(r.ogrenci_id));
         if (examResults.length === 0) return null;
         
         const totalNet = examResults.reduce((sum, r) => sum + (r.toplam_net || 0), 0);
@@ -759,7 +770,7 @@ app.get('/api/dashboard/stats', (req, res) => {
     // Applied exams recap list
     const recentExams = exams
       .map(e => {
-        const examResults = results.filter(r => r.sinav_id === e.id);
+        const examResults = results.filter(r => r.sinav_id === e.id && studentIds.includes(r.ogrenci_id));
         const totalNet = examResults.reduce((sum, r) => sum + (r.toplam_net || 0), 0);
         const ortalama_net = examResults.length > 0 ? Number((totalNet / examResults.length).toFixed(2)) : 0;
         return {
@@ -797,8 +808,8 @@ app.get('/api/dashboard/stats', (req, res) => {
     });
 
     // Calculate teacher success rate (Öğretmen Başarı Analizleri)
-    const teachersFromDb = db.getKullanicilar().filter(u => u.rol === 'ogretmen');
-    const teachersFromLessons = Array.from(new Set(db.getDersProgramlari().map(dp => dp.ogretmen_adi))).filter(Boolean);
+    const teachersFromDb = teachers; // Use already filtered teachers
+    const teachersFromLessons = Array.from(new Set(db.getDersProgramlari().filter(dp => studentIds.includes(dp.ogrenci_id)).map(dp => dp.ogretmen_adi))).filter(Boolean);
     
     // Merge both to get all distinct teacher names
     const allTeacherNames = new Set<string>();
@@ -808,7 +819,7 @@ app.get('/api/dashboard/stats', (req, res) => {
     const distinctTeachers = Array.from(allTeacherNames);
     
     const teacherAnalysis = distinctTeachers.map((teacher) => {
-      const teacherLessons = db.getDersProgramlari().filter(l => l.ogretmen_adi === teacher);
+      const teacherLessons = db.getDersProgramlari().filter(l => l.ogretmen_adi === teacher && studentIds.includes(l.ogrenci_id));
       const uniqueStudents = new Set(teacherLessons.map(l => l.ogrenci_id));
       const ogrenci_sayisi = uniqueStudents.size;
       const etut_sayisi = teacherLessons.length;
@@ -839,7 +850,7 @@ app.get('/api/dashboard/stats', (req, res) => {
       const sId = Number(idStr);
       const sessionWithClean = getStudentActiveSession(sId);
       if (sessionWithClean && sessionWithClean.calisiyor) {
-        const student = db.getOgrenciler().find(s => s.id === sId);
+        const student = students.find(s => s.id === sId); // Use the already filtered students array
         if (student && (assignedClassIds.length === 0 || assignedClassIds.includes(student.sinif_id))) {
           const studentClass = db.getSiniflar().find(c => c.id === student.sinif_id);
           activeStudyingStudents.push({

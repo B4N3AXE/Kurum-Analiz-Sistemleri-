@@ -72,6 +72,11 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
              localStorage.setItem('kas_subscription_plan', 'premium');
              if (user && user.kurum_id) {
                localStorage.setItem(`kas_subscription_plan_kurum_${user.kurum_id}`, 'premium');
+               try {
+                 const storedUser = JSON.parse(localStorage.getItem('kas_user') || '{}');
+                 storedUser.abonelik_turu = 'premium';
+                 localStorage.setItem('kas_user', JSON.stringify(storedUser));
+               } catch (e) {}
              }
              setCouponSuccess('Ücretsiz Yükseltme Başarılı! Premium özellikleriniz aktif ediliyor...');
              setTimeout(() => {
@@ -230,12 +235,15 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                   Deneme süreniz boyunca K.A.S'ın tüm özelliklerini sınırsız test edebilirsiniz. Bilgileriniz kaybolmadan tek fiyat avantajıyla yükseltebilirsiniz.
                 </p>
               </div>
-              <a 
-                href="#planlar" 
+              <button 
+                type="button"
+                onClick={() => {
+                   document.getElementById('planlar')?.scrollIntoView({ behavior: 'smooth' });
+                }} 
                 className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition cursor-pointer shrink-0 animate-pulse"
               >
                 Paketi İncele & Yükselt
-              </a>
+              </button>
             </div>
           )}
 

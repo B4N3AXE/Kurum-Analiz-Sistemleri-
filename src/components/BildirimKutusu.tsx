@@ -87,7 +87,14 @@ export default function BildirimKutusu({ user, onNavigate }: BildirimKutusuProps
 
     if (saved) {
       try {
-        setNotifications(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Clear dummy data
+        if (!parsed.some(p => p.id === 'n1' || p.id === 'n1_admin')) {
+            setNotifications(parsed);
+        } else {
+            setNotifications([]);
+            localStorage.removeItem(storageKey);
+        }
         return;
       } catch (e) {
         console.error("Failed to parse notifications", e);
@@ -97,7 +104,7 @@ export default function BildirimKutusu({ user, onNavigate }: BildirimKutusuProps
     // Default notifications generated per role
     let defaultList: NotificationItem[] = [];
 
-    if (user.rol === 'ogrenci') {
+    if (false && user.rol === 'ogrenci') { // Dummy notifications disabled for live
       defaultList = [
         {
           id: 'n1',
@@ -140,7 +147,7 @@ export default function BildirimKutusu({ user, onNavigate }: BildirimKutusuProps
           priority: 'medium'
         }
       ];
-    } else if (user.rol === 'veli') {
+    } else if (false && user.rol === 'veli') {
       defaultList = [
         {
           id: 'n1',
@@ -206,7 +213,7 @@ export default function BildirimKutusu({ user, onNavigate }: BildirimKutusuProps
           priority: 'medium'
         }
       ];
-    } else {
+    } else if (false) { // Dummy disabled for admin
       // Admin
       defaultList = [
         {
