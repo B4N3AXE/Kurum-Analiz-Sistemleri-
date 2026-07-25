@@ -3406,9 +3406,11 @@ Rol bazlı kurallar:
   * Bir öğretmen edasıyla, son derece cana yakın, şefkatli, motive edici ve açıklayıcı bir Türkçe ile öğrencinin sorduğu HER TÜRLÜ soruyu eksiksiz, bilimsel olarak doğru ve detaylı bir şekilde cevapla.
   * Öğrenci arkadaşına her konuda yardımcı ol, örnekler ver, konuyu sevdirecek bir dille anlat ki başka hiçbir yapay zeka asistanına gitmeye ihtiyaç duymasın. Ona her zaman en iyi öğretmen ve arkadaş ol!
 
-Sana sorulan öğrenci netlerini ve ödevleri/görevleri bulmak için araçları kullanmalısın. Kurumda devamsızlık (attendance) takibi bu sistemde girilmemiştir ve yapılmamaktadır. Dolayısıyla devamsızlık/devamsızlık durumu hakkında KESİNLİKLE hiçbir bilgi veya veri uydurma/gösterme.
-- Eğer kullanıcı (Veli veya Öğrenci ise), SAKIN 'searchStudents' kullanma veya KULLANICIYA İSİM SORMA! Sadece kendi ID'si ile (veya çocuğunun ID'si ile) 'getStudentDetail' aracını doğrudan çağır.
-- Eğer kullanıcı (Yönetici, Öğretmen veya Rehber) ise ve doğrudan bir öğrencinin durumunu sorarsa önce 'searchStudents' ile öğrenciyi ara. ID'sini bulduktan sonra 'getStudentDetail' aracını çağırarak detaylı verilerini getir.
+Sana sorulan öğrenci netlerini, ödevleri/görevleri ve ödeme/taksit planlarını bulmak için araçları kullanmalısın. Kurumda devamsızlık (attendance) takibi bu sistemde girilmemiştir ve yapılmamaktadır. Dolayısıyla devamsızlık/devamsızlık durumu hakkında KESİNLİKLE hiçbir bilgi veya veri uydurma/gösterme.
+- Taksit ve ödeme konularında soru gelirse 'getStudentPaymentInfo' aracını kullanmalısın. Çağrı veya başka bir isim gelirse önce 'searchStudents' yap, ID bul ve 'getStudentPaymentInfo' çalıştır.
+- Kurum genelinde kimin düşüşte veya yükselişte olduğu sorulursa 'getInstitutionTrends' aracını kullan.
+- Eğer kullanıcı (Veli veya Öğrenci ise), SAKIN 'searchStudents' kullanma veya KULLANICIYA İSİM SORMA! Sadece kendi ID'si ile (veya çocuğunun ID'si ile) 'getStudentDetail' veya 'getStudentPaymentInfo' araçlarını doğrudan çağır.
+- Eğer kullanıcı (Yönetici, Öğretmen veya Rehber) ise ve doğrudan bir öğrencinin durumunu sorarsa önce 'searchStudents' ile öğrenciyi ara. ID'sini bulduktan sonra duruma göre 'getStudentDetail' veya 'getStudentPaymentInfo' aracını çağırarak verileri getir.
 
 KRİTİK KURAL: Araç/Fonksiyon çağırırken kesinlikle metin içerisine \`<function=...>\` şeklinde XML kodları YAZMA! Araç (tool) çağrılarını sistemin sağladığı JSON tool calling API üzerinden yap. Kullanıcıya "Şu fonksiyonu kullanmak gerekli" GİBİ METİNLER YAZMA, doğrudan fonksiyonu arka planda çağır!
 
@@ -3429,6 +3431,33 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
           }
         },
         required: ["searchTerm"]
+      }
+    }
+  };
+
+  const getStudentPaymentInfoDeclaration = {
+    type: "function" as const,
+    function: {
+      name: "getStudentPaymentInfo",
+      description: "Belirtilen öğrenci ID'sine ait ödeme planını, kalan taksit sayısını ve ödenen/ödenmeyen taksit bilgilerini getirir.",
+      parameters: {
+        type: "object",
+        properties: {
+          studentId: { type: "integer", description: "Öğrencinin sistemdeki benzersiz ID'si" }
+        },
+        required: ["studentId"]
+      }
+    }
+  };
+
+  const getInstitutionTrendsDeclaration = {
+    type: "function" as const,
+    function: {
+      name: "getInstitutionTrends",
+      description: "Kurum geneli başarı durumu, sınıf net ortalamaları, yükselişte olan ve düşüşte olan öğrencilerin genel özetini getirir.",
+      parameters: {
+        type: "object",
+        properties: {}
       }
     }
   };
@@ -3477,6 +3506,92 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
         field: s.alan
       };
     });
+  };
+
+  const getStudentPaymentInfoLocal = (studentId: number) => {
+    if (userRole === 'ziyaretci') return { error: "Yetkisiz erişim." };
+    const plans = db.getTaksitPlanlari().filter(p => p.ogrenci_id === studentId);
+    if (plans.length === 0) return { error: "Bu öğrenciye ait bir ödeme/taksit planı bulunmamaktadır." };
+    const taksitler = db.getTaksitler();
+    
+    return plans.map(plan => {
+      const planTaksitleri = taksitler.filter(t => t.plan_id === plan.id);
+      const odenenler = planTaksitleri.filter(t => t.durum === 'odendi');
+      const bekleyenler = planTaksitleri.filter(t => t.durum === 'bekliyor' || t.durum === 'gecikti');
+      
+      return {
+        toplamTutar: plan.toplam_tutar,
+        pesinat: plan.pesinat,
+        taksitSayisi: plan.taksit_sayisi,
+        kalanTaksitSayisi: bekleyenler.length,
+        odenenTaksitSayisi: odenenler.length,
+        taksitDetaylari: bekleyenler.map(t => ({
+           vadeTarihi: t.vade_tarihi,
+           tutar: t.tutar,
+           durum: t.durum
+        }))
+      };
+    });
+  };
+
+  const getInstitutionTrendsLocal = () => {
+    if (userRole !== 'admin' && userRole !== 'ogretmen') return { error: "Bu veriye erişim yetkiniz yoktur." };
+    const students = db.getOgrenciler();
+    const exams = db.getSinavSonuclari();
+    const examDefs = db.getSinavTanimlari();
+    
+    // Sort exams by date for each student to find true trends
+    const resultsByStudent: Record<number, any[]> = {};
+    exams.forEach(r => {
+       if (!resultsByStudent[r.ogrenci_id]) resultsByStudent[r.ogrenci_id] = [];
+       const eDef = examDefs.find(ed => ed.id === r.sinav_id);
+       resultsByStudent[r.ogrenci_id].push({ ...r, date: eDef?.tarih || '2020-01-01' });
+    });
+
+    let topStudents: string[] = [];
+    let riskStudents: string[] = [];
+
+    students.forEach(s => {
+       const res = resultsByStudent[s.id];
+       if (res && res.length >= 2) {
+          res.sort((a, b) => b.date.localeCompare(a.date)); // Descending
+          const last = res[0].toplam_net;
+          const prev = res[1].toplam_net;
+          if (last > prev + 5) topStudents.push(s.ad_soyad + ` (Son 2 Sınav: ${prev} -> ${last} net)`);
+          if (last < prev - 5) riskStudents.push(s.ad_soyad + ` (Son 2 Sınav: ${prev} -> ${last} net)`);
+       }
+    });
+
+    // Calculate teacher success rate
+    const teachersFromDb = db.getKullanicilar().filter(u => u.rol === 'ogretmen');
+    const allTeacherNames = new Set<string>();
+    teachersFromDb.forEach(t => allTeacherNames.add(t.ad_soyad));
+    db.getDersProgramlari().forEach(t => allTeacherNames.add(t.ogretmen_adi));
+    
+    const distinctTeachers = Array.from(allTeacherNames).filter(Boolean);
+    const teacherAnalysis = distinctTeachers.map((teacher) => {
+      const teacherLessons = db.getDersProgramlari().filter(l => l.ogretmen_adi === teacher);
+      const uniqueStudents = new Set(teacherLessons.map(l => l.ogrenci_id));
+      const ogrenci_sayisi = uniqueStudents.size;
+      let basari_orani = 0;
+      if (ogrenci_sayisi > 0) {
+        const studentIds = Array.from(uniqueStudents);
+        const studentResults = exams.filter(r => studentIds.includes(r.ogrenci_id));
+        if (studentResults.length > 0) {
+          const avgNet = studentResults.reduce((sum, r) => sum + (r.toplam_net || 0), 0) / studentResults.length;
+          basari_orani = Math.min(100, Math.max(50, Math.round(50 + (avgNet / 120) * 50)));
+        }
+      }
+      return { ogretmen: teacher, basari_orani_yuzde: basari_orani, ogrenci_sayisi };
+    });
+
+    return {
+       aktifOgrenciSayisi: students.length,
+       yukselisteOlanOgrenciler: topStudents.slice(0, 5),
+       dususteRiskliOgrenciler: riskStudents.slice(0, 5),
+       ogretmenPerformansAnalizleri: teacherAnalysis,
+       genelDurum: "Kurum geneli başarı analizi ve öğretmen performansları yukarıda listelenmiştir."
+    };
   };
 
   const getStudentDetailLocal = (studentId: number) => {
@@ -3571,8 +3686,8 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
 
     while (loopCount < maxLoops) {
       const availableTools = (userRole === 'veli' || userRole === 'ogrenci') 
-        ? [getStudentDetailDeclaration] 
-        : [searchStudentsDeclaration, getStudentDetailDeclaration];
+        ? [getStudentDetailDeclaration, getStudentPaymentInfoDeclaration] 
+        : [searchStudentsDeclaration, getStudentDetailDeclaration, getStudentPaymentInfoDeclaration, getInstitutionTrendsDeclaration];
 
       const response = await groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
@@ -3641,6 +3756,11 @@ Lütfen yanıtlarını Türkçe olarak ver. Sonuçları markdown formatında ve 
           } else if (cleanCallName === 'getStudentDetail') {
             const sId = Number(args.studentId);
             toolResult = getStudentDetailLocal(sId);
+          } else if (cleanCallName === 'getStudentPaymentInfo') {
+            const sId = Number(args.studentId);
+            toolResult = getStudentPaymentInfoLocal(sId);
+          } else if (cleanCallName === 'getInstitutionTrends') {
+            toolResult = getInstitutionTrendsLocal();
           }
 
           messagesToSend.push({
@@ -3916,7 +4036,7 @@ app.post('/api/paytr/validate-coupon', (req, res) => {
     let coupon = dbCoupons.find(c => c.code.toUpperCase() === codeClean && c.active);
     
     if (!coupon && (codeClean === 'KURUM100' || codeClean === 'KAS100')) {
-      coupon = { id: 999, code: codeClean, discount_type: 'percentage', discount_value: 100, active: true };
+      coupon = { id: 999, code: codeClean, discount_type: 'percentage', discount_value: 100, active: true, applies_to: 'all' };
     }
 
     if (!coupon) {
@@ -3981,7 +4101,7 @@ app.post('/api/paytr/token', async (req, res) => {
       let coupon = dbCoupons.find(c => c.code.toUpperCase() === codeClean && c.active);
       
       if (!coupon && (codeClean === 'KURUM100' || codeClean === 'KAS100')) {
-        coupon = { id: 999, code: codeClean, discount_type: 'percentage', discount_value: 100, active: true };
+        coupon = { id: 999, code: codeClean, discount_type: 'percentage', discount_value: 100, active: true, applies_to: 'all' };
       }
 
       if (coupon) {
@@ -4508,33 +4628,6 @@ app.get('/api/paytr/fail', (req, res) => {
   `);
 });
 
-async function startServer() {
-  await db.loadFromFirestore();
-
-  // Serve frontend SPA in development or production
-  if (process.env.NODE_ENV !== 'production') {
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.resolve('dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res, next) => {
-      if (req.path.startsWith('/api')) return next();
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
-
-  // Start Server on configured port
-  httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server started on http://0.0.0.0:${PORT} under NODE_ENV=${process.env.NODE_ENV}`);
-  });
-}
-
-startServer();
 
 app.get('/api/taksitler', (req, res) => {
   const requester = getRequesterFromToken(req);
@@ -4641,3 +4734,32 @@ app.put('/api/taksitler/odeme/:taksitId', (req, res) => {
   }
 });
 
+
+
+async function startServer() {
+  await db.loadFromFirestore();
+
+  // Serve frontend SPA in development or production
+  if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.resolve('dist');
+    app.use(express.static(distPath));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) return next();
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
+
+  // Start Server on configured port
+  httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server started on http://0.0.0.0:${PORT} under NODE_ENV=${process.env.NODE_ENV}`);
+  });
+}
+
+startServer();
