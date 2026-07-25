@@ -48,6 +48,9 @@ export interface SinavTanim {
   kurum_id: number;
 }
 
+export interface TaksitPlani { id: number; ogrenci_id: number; kurum_id: number; toplam_tutar: number; pesinat: number; taksit_sayisi: number; baslangic_tarihi: string; durum: "aktif" | "tamamlandi" | "iptal"; }
+export interface Taksit { id: number; plan_id: number; ogrenci_id: number; vade_tarihi: string; tutar: number; odenen_tutar: number; durum: "odendi" | "bekliyor" | "gecikti"; odeme_tarihi?: string; }
+
 export interface SinavSonuc {
   id: number;
   ogrenci_id: number;
@@ -186,6 +189,8 @@ export interface DatabaseSchema {
   haftalik_gorevler?: HaftalikGorev[];
   user_pdfs?: UserPDF[];
   pdf_annotations?: PDFAnnotation[];
+  taksit_planlari?: TaksitPlani[];
+  taksitler?: Taksit[];
 }
 
 export interface DersProgrami {
@@ -265,7 +270,9 @@ const initialData: DatabaseSchema = {
   calisma_seanslari: [],
   haftalik_gorevler: [],
   user_pdfs: [],
-  pdf_annotations: []
+  pdf_annotations: [],
+  taksit_planlari: [],
+  taksitler: []
 };
 
 export class Database {
@@ -355,7 +362,9 @@ export class Database {
           calisma_seanslari: parsed.calisma_seanslari || [],
           haftalik_gorevler: parsed.haftalik_gorevler || [],
           user_pdfs: parsed.user_pdfs || [],
-          pdf_annotations: parsed.pdf_annotations || []
+          pdf_annotations: parsed.pdf_annotations || [],
+          taksit_planlari: parsed.taksit_planlari || [],
+          taksitler: parsed.taksitler || []
         };
 
         
@@ -428,6 +437,8 @@ export class Database {
   public getHaftalikGorevler() { return this.data.haftalik_gorevler || []; }
   public getUserPDFs() { return this.data.user_pdfs || []; }
   public getPDFAnnotations() { return this.data.pdf_annotations || []; }
+  public getTaksitPlanlari() { return this.data.taksit_planlari || []; }
+  public getTaksitler() { return this.data.taksitler || []; }
 
   // Mutation helper wrapper to auto-save after calls
   public insert<K extends keyof DatabaseSchema>(table: K, item: any): any {

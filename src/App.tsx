@@ -4,6 +4,7 @@ import Dashboard, { getTopicAnalysisForStudent, TYT_SUBJECT_TOPICS, LGS_SUBJECT_
 import OgrenciPaneli from './components/OgrenciPaneli';
 import PdfOkuyucu from './components/PdfOkuyucu';
 import Mesajlar from './components/Mesajlar';
+import TaksitYonetimi from './components/TaksitYonetimi';
 import Tanimlar from './components/Tanimlar';
 import Abonelik from './components/Abonelik';
 import RiskLimitleri from './components/RiskLimitleri';
@@ -3032,154 +3033,57 @@ export default function App() {
                 {currentTab === 'ogrenci-panel' && 'KARNEM'}
                 {currentTab === 'ogrenci' && 'ÖĞRENCİLER'}
                 {currentTab === 'pdf' && 'PDF OKUYUCU'}
-                {currentTab === 'mesaj' && 'MESAJLAR'}
-                {currentTab === 'abonelik' && 'ABONELİK'}
-                {currentTab === 'tanimlar_sinif' && 'Sınıflar'}
-                {currentTab === 'tanimlar_ogrenci' && 'Öğrenciler'}
-                {currentTab === 'tanimlar_ogretmen' && 'Öğretmenler'}
-                {currentTab === 'tanimlar_rehber' && 'Rehberler'}
-                {currentTab === 'tanimlar_veli' && 'Veliler'}
-                {currentTab === 'tanimlar_sinav' && 'Sınavlar'}
-                {currentTab === 'tanimlar_ders_programi' && 'Ders Prog.'}
-                {currentTab === 'risk_limitleri' && 'Risk'}
+                {currentTab === 'mesaj' && 'MESAJ'}
               </span>
             </div>
-
-            <div className="flex items-center gap-2">
-              <BildirimKutusu 
-                user={user} 
-                onNavigate={(tab) => setCurrentTab(tab as any)} 
-              />
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700/50 cursor-pointer transition flex items-center justify-center"
-              >
-                {isMobileMenuOpen ? <X size={15} /> : <Menu size={15} />}
-              </button>
-            </div>
+            
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-1.5 bg-slate-800 rounded-lg text-white hover:bg-slate-700"
+            >
+              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
-
+          
           {/* Mobile Navigation Drawer */}
           <AnimatePresence>
             {isMobileMenuOpen && (
               <motion.div
-                initial={{ opacity: 0, y: -20 }}
+                initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-                className="fixed inset-x-0 top-[53px] bottom-0 bg-slate-950/98 backdrop-blur-xl z-40 p-4 flex flex-col justify-between overflow-y-auto border-t border-slate-900 md:hidden"
+                exit={{ opacity: 0, y: -10 }}
+                className="md:hidden absolute top-[60px] left-0 w-full h-[calc(100vh-60px)] bg-slate-950/95 backdrop-blur-xl z-40 flex flex-col overflow-y-auto"
               >
-                <div className="space-y-4">
-                  {/* Mobile Drawer Logo Header */}
-                  <div className="flex items-center gap-2.5 px-2 py-2 border-b border-slate-900 mb-2">
-                    <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
-                      <img src="/K.A.S logo.png" alt="K.A.S Logo" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-blue-400 font-black uppercase tracking-wider block leading-none">KURUM ANALİZ</span>
-                      <span className="text-xs font-black text-slate-200 tracking-wide">SİSTEMLERİ</span>
-                    </div>
-                  </div>
-                  
-                  <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-2 mb-1">Menü Seçenekleri</div>
-                  <div className="grid grid-cols-1 gap-1.5">
-                    {/* Tab: Dashboard (All staff roles) */}
-                    {user.rol !== 'veli' && user.rol !== 'ogrenci' && (
-                      <button
-                        onClick={() => { setCurrentTab('dashboard'); setIsMobileMenuOpen(false); }}
-                        className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
-                          currentTab === 'dashboard'
-                            ? "bg-blue-600 text-white shadow"
-                            : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
-                        }`}
-                      >
-                        <LayoutDashboard size={14} /> Genel Özet
-                      </button>
-                    )}
-
-                    {/* Tab: Veli Panel */}
-                    {user.rol === 'veli' && (
-                      <button
-                        onClick={() => { setCurrentTab('veli-panel'); setIsMobileMenuOpen(false); }}
-                        className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
-                          currentTab === 'veli-panel'
-                            ? "bg-blue-600 text-white shadow"
-                            : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
-                        }`}
-                      >
-                        <Award size={14} /> Gelişim Karnesi
-                      </button>
-                    )}
-
-                    {/* Tab: Student Panel */}
-                    {user.rol === 'ogrenci' && (
-                      <button
-                        onClick={() => { setCurrentTab('ogrenci-panel'); setIsMobileMenuOpen(false); }}
-                        className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
-                          currentTab === 'ogrenci-panel'
-                            ? "bg-blue-600 text-white shadow"
-                            : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
-                        }`}
-                      >
-                        <Award size={14} /> Gelişim Karnem
-                      </button>
-                    )}
-
-                    {/* Tab: Öğrenci Yönetimi */}
-                    {user.rol !== 'admin' && user.rol !== 'veli' && user.rol !== 'ogrenci' && (
-                      <button
-                        onClick={() => { setCurrentTab('ogrenci'); setIsMobileMenuOpen(false); }}
-                        className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
-                          currentTab === 'ogrenci'
-                            ? "bg-blue-600 text-white shadow"
-                            : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
-                        }`}
-                      >
-                        <Users size={14} /> Öğrenci Yönetimi
-                      </button>
-                    )}
-
-                    {/* Tab: PDF Sonuç Okuma */}
-                    {(user.rol === 'admin' || user.rol === 'rehber') && (
-                      <button
-                        onClick={() => { setCurrentTab('pdf'); setIsMobileMenuOpen(false); }}
-                        className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
-                          currentTab === 'pdf'
-                            ? "bg-blue-600 text-white shadow"
-                            : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
-                        }`}
-                      >
-                        <Sparkles size={14} /> PDF Sınav Okuyucu
-                      </button>
-                    )}
-
-                    {/* Tab: Kitaplığım (PDF Not Alma ve Çalışma Alanı) */}
-                    {(user.rol === 'admin' || user.rol === 'ogretmen' || user.rol === 'rehber' || user.rol === 'ogrenci') && (
-                      <button
-                        onClick={() => { setCurrentTab('kitapligim'); setIsMobileMenuOpen(false); }}
-                        className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
-                          currentTab === 'kitapligim'
-                            ? "bg-blue-600 text-white shadow"
-                            : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
-                        }`}
-                      >
-                        <BookOpen size={14} /> Kitaplığım (Çalışma Alanı)
-                      </button>
-                    )}
-
-                    {/* Tab: Mesajlaşma */}
-                    <button
-                      onClick={() => { setCurrentTab('mesaj'); setIsMobileMenuOpen(false); }}
-                      className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
-                        currentTab === 'mesaj'
-                          ? "bg-blue-600 text-white shadow"
-                          : "bg-slate-900/40 text-slate-400 border border-slate-900/60"
-                      }`}
-                    >
-                      <Mail size={14} /> Mesaj Merkezi
-                    </button>
-
-                    {/* Tab: KAS.ai AI Chatbot */}
+                <div className="p-4 flex-1 flex flex-col gap-2">
+                {/* Mobile Menu Items */}
+                <button
+                  onClick={() => { setCurrentTab('dashboard'); setIsMobileMenuOpen(false); }}
+                  className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
+                    currentTab === 'dashboard' ? 'bg-blue-600 text-white shadow' : 'bg-slate-900/40 text-slate-400 border border-slate-900/60'
+                  }`}
+                >
+                  <LayoutDashboard size={14} /> Panel Özeti
+                </button>
+                <button
+                  onClick={() => { setCurrentTab('mesaj'); setIsMobileMenuOpen(false); }}
+                  className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
+                    currentTab === 'mesaj' ? 'bg-blue-600 text-white shadow' : 'bg-slate-900/40 text-slate-400 border border-slate-900/60'
+                  }`}
+                >
+                  <Mail size={14} /> Mesaj Merkezi
+                </button>
+                {user.rol === 'admin' && (
+                  <button
+                    onClick={() => { setCurrentTab('taksit-yonetimi'); setIsMobileMenuOpen(false); }}
+                    className={`flex items-center gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer ${
+                      currentTab === 'taksit-yonetimi' ? 'bg-blue-600 text-white shadow' : 'bg-slate-900/40 text-slate-400 border border-slate-900/60'
+                    }`}
+                  >
+                    <Coins size={14} /> Taksit Takibi
+                  </button>
+                )}
+                
+                {/* Tab: KAS.ai AI Chatbot */}
                     <button
                       onClick={() => { setCurrentTab("kas-ai"); setIsMobileMenuOpen(false); }}
                       className={`flex items-center justify-between gap-3 px-3.5 py-3 text-xs font-bold rounded-xl w-full text-left transition cursor-pointer relative overflow-hidden group border ${
@@ -3287,7 +3191,6 @@ export default function App() {
                       </div>
                     </div>
                   )}
-                </div>
 
                 <div className="pt-4 border-t border-slate-900 mt-6 space-y-3">
                   {/* License Info */}
@@ -3426,6 +3329,20 @@ export default function App() {
                 >
                   <Sparkles size={16} className={currentTab === 'pdf' ? 'text-[#29D8FF]' : 'text-slate-400'} /> 
                   <span>PDF Sınav Okuyucu</span>
+                </button>
+              )}
+              {/* Taksit Yönetimi */}
+              {user.rol === 'admin' && (
+                <button
+                  onClick={() => setCurrentTab('taksit-yonetimi')}
+                  className={`flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-2xl w-full text-left transition cursor-pointer shrink-0 ${
+                    currentTab === 'taksit-yonetimi'
+                      ? "active-menu-glow"
+                      : "text-slate-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Coins size={16} className={currentTab === 'taksit-yonetimi' ? 'text-[#FFB347]' : 'text-slate-400'} /> 
+                  <span>Taksit Takibi</span>
                 </button>
               )}
 
@@ -3795,6 +3712,11 @@ export default function App() {
                 )}
 
                 {/* MOUNT VIEW: Messenger Hub */}
+                {/* MOUNT VIEW: Taksit Yönetimi */}
+                {currentTab === 'taksit-yonetimi' && user.rol === 'admin' && (
+                  <TaksitYonetimi user={user} />
+                )}
+
                 {currentTab === 'mesaj' && (
                   <Mesajlar user={user} token={token} />
                 )}

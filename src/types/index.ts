@@ -146,3 +146,26 @@ export interface PDFAnnotation {
   annotationData: string;
   updatedAt: string;
 }
+
+export interface TaksitPlani {
+  id: number;
+  ogrenci_id: number;
+  ogrenci_adi?: string;
+  kurum_id: number;
+  toplam_tutar: number;
+  pesinat: number;
+  taksit_sayisi: number;
+  baslangic_tarihi: string;
+  durum: 'aktif' | 'tamamlandi' | 'iptal';
+}
+
+export interface Taksit {
+  id: number;
+  plan_id: number;
+  ogrenci_id: number;
+  vade_tarihi: string;
+  tutar: number;
+  odenen_tutar: number;
+  durum: 'odendi' | 'bekliyor' | 'gecikti';
+  odeme_tarihi?: string;
+}

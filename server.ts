@@ -4504,3 +4504,109 @@ async function startServer() {
 }
 
 startServer();
+
+app.get('/api/taksitler', (req, res) => {
+  const requester = getRequesterFromToken(req);
+  if (!requester || requester.rol !== 'admin') {
+    return res.status(401).json({ error: 'Yetkisiz erişim.' });
+  }
+  const kurum_id = requester.kurum_id;
+
+  const planlar = db.getTaksitPlanlari().filter(p => p.kurum_id === kurum_id);
+  const taksitler = db.getTaksitler();
+
+  const ogrenciler = db.getOgrenciler();
+
+  const result = planlar.map(plan => {
+    const ogr = ogrenciler.find(o => o.id === plan.ogrenci_id);
+    const planTaksitleri = taksitler.filter(t => t.plan_id === plan.id);
+    return {
+      ...plan,
+      ogrenci_adi: ogr ? ogr.ad_soyad : 'Bilinmeyen Öğrenci',
+      taksit_listesi: planTaksitleri
+    };
+  });
+
+  res.json(result);
+});
+
+app.post('/api/taksitler/plan', (req, res) => {
+  const requester = getRequesterFromToken(req);
+  if (!requester || requester.rol !== 'admin') {
+    return res.status(401).json({ error: 'Yetkisiz erişim.' });
+  }
+
+  const { ogrenci_id, toplam_tutar, pesinat, taksit_sayisi, baslangic_tarihi } = req.body;
+  if (!ogrenci_id || !toplam_tutar || !taksit_sayisi || !baslangic_tarihi) {
+    return res.status(400).json({ error: 'Eksik bilgi.' });
+  }
+
+  // Check if a plan already exists
+  const existing = db.getTaksitPlanlari().find(p => p.ogrenci_id === Number(ogrenci_id));
+  if (existing) {
+    return res.status(400).json({ error: 'Öğrenciye ait mevcut bir ödeme planı bulunuyor.' });
+  }
+
+  const plan = db.insert('taksit_planlari', {
+    ogrenci_id: Number(ogrenci_id),
+    kurum_id: requester.kurum_id,
+    toplam_tutar: Number(toplam_tutar),
+    pesinat: Number(pesinat),
+    taksit_sayisi: Number(taksit_sayisi),
+    baslangic_tarihi,
+    durum: 'aktif'
+  });
+
+  const kalan_tutar = Number(toplam_tutar) - Number(pesinat);
+  const aylik_tutar = Number((kalan_tutar / Number(taksit_sayisi)).toFixed(2));
+  
+  const baslangic = new Date(baslangic_tarihi);
+  for (let i = 0; i < Number(taksit_sayisi); i++) {
+    const vade = new Date(baslangic);
+    vade.setMonth(vade.getMonth() + i);
+    db.insert('taksitler', {
+      plan_id: plan.id,
+      ogrenci_id: Number(ogrenci_id),
+      vade_tarihi: vade.toISOString(),
+      tutar: aylik_tutar,
+      odenen_tutar: 0,
+      durum: 'bekliyor'
+    });
+  }
+
+  res.json({ success: true, plan });
+});
+
+app.put('/api/taksitler/odeme/:taksitId', (req, res) => {
+  const requester = getRequesterFromToken(req);
+  if (!requester || requester.rol !== 'admin') {
+    return res.status(401).json({ error: 'Yetkisiz erişim.' });
+  }
+  const id = Number(req.params.taksitId);
+  const { odenen_tutar, durum } = req.body;
+  
+  const taksit = db.getTaksitler().find(t => t.id === id);
+  if (!taksit) return res.status(404).json({ error: 'Taksit bulunamadı' });
+
+  const success = db.update('taksitler', id, { 
+    odenen_tutar: Number(odenen_tutar), 
+    durum,
+    odeme_tarihi: durum === 'odendi' ? new Date().toISOString() : null
+  });
+
+  if (success) {
+    // Check if plan is completed
+    const planTaksitleri = db.getTaksitler().filter(t => t.plan_id === taksit.plan_id);
+    const updatedTaksitleri = planTaksitleri.map(t => t.id === id ? { ...t, durum } : t);
+    const allPaid = updatedTaksitleri.every(t => t.durum === 'odendi');
+    if (allPaid) {
+      db.update('taksit_planlari', taksit.plan_id, { durum: 'tamamlandi' });
+    } else {
+      db.update('taksit_planlari', taksit.plan_id, { durum: 'aktif' });
+    }
+    res.json({ success: true });
+  } else {
+    res.status(500).json({ error: 'Güncelleme başarısız.' });
+  }
+});
+
