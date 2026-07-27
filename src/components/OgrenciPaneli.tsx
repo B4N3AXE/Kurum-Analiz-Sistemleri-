@@ -370,6 +370,24 @@ export default function OgrenciPaneli({ user, token }: OgrenciPaneliProps) {
     }
   };
 
+  // Listen for global search navigation to open student detail
+  useEffect(() => {
+    // Check if there is a pending student to open from sessionStorage
+    const pendingStudentId = sessionStorage.getItem('openStudentId');
+    if (pendingStudentId) {
+      sessionStorage.removeItem('openStudentId');
+      loadStudentDetail(Number(pendingStudentId));
+    }
+
+    const handleOpenStudentDetail = (e: any) => {
+      if (e.detail && e.detail.studentId) {
+        loadStudentDetail(e.detail.studentId);
+      }
+    };
+    window.addEventListener('open-student-detail', handleOpenStudentDetail);
+    return () => window.removeEventListener('open-student-detail', handleOpenStudentDetail);
+  }, []);
+
   // Reset AI Karne analysis whenever selected exam changes
   useEffect(() => {
     setAiKarneAnalysis(null);

@@ -73,7 +73,9 @@ export default function GlobalSearch({ token, onNavigate }: GlobalSearchProps) {
                     onClick={() => {
                       setSearchTerm('');
                       setIsFocused(false);
+                      sessionStorage.setItem('openStudentId', student.id.toString());
                       onNavigate('ogrenci'); // Navigate to student management or details
+                      window.dispatchEvent(new CustomEvent('open-student-detail', { detail: { studentId: student.id } }));
                     }}
                   >
                     <div className="w-8 h-8 rounded-full bg-[#4F7DFF]/20 text-[#4F7DFF] flex items-center justify-center font-bold text-xs border border-[#4F7DFF]/30 shrink-0">
