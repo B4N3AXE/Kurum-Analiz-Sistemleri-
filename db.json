@@ -1129,8 +1129,9 @@
       "ogrenci_id": 15,
       "vade_tarihi": "2026-07-26T00:00:00.000Z",
       "tutar": -12500,
-      "odenen_tutar": 0,
-      "durum": "bekliyor"
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-26T08:20:08.002Z"
     },
     {
       "id": 2,
@@ -1138,8 +1139,9 @@
       "ogrenci_id": 15,
       "vade_tarihi": "2026-08-26T00:00:00.000Z",
       "tutar": -12500,
-      "odenen_tutar": 0,
-      "durum": "bekliyor"
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-26T08:20:06.801Z"
     },
     {
       "id": 3,
@@ -1147,8 +1149,9 @@
       "ogrenci_id": 15,
       "vade_tarihi": "2026-09-26T00:00:00.000Z",
       "tutar": -12500,
-      "odenen_tutar": 0,
-      "durum": "bekliyor"
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-26T08:20:06.162Z"
     },
     {
       "id": 4,
@@ -1156,8 +1159,9 @@
       "ogrenci_id": 15,
       "vade_tarihi": "2026-10-26T00:00:00.000Z",
       "tutar": -12500,
-      "odenen_tutar": 0,
-      "durum": "bekliyor"
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-27T09:06:40.018Z"
     },
     {
       "id": 5,
@@ -1192,8 +1196,9 @@
       "ogrenci_id": 15,
       "vade_tarihi": "2027-02-26T00:00:00.000Z",
       "tutar": -12500,
-      "odenen_tutar": 0,
-      "durum": "bekliyor"
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-26T08:42:13.704Z"
     },
     {
       "id": 9,
@@ -1229,8 +1234,9 @@
       "ogrenci_id": 15,
       "vade_tarihi": "2027-06-26T00:00:00.000Z",
       "tutar": -12500,
-      "odenen_tutar": 0,
-      "durum": "bekliyor"
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-26T08:42:15.552Z"
     }
   ]
 }

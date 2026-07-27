@@ -7,7 +7,8 @@ const ASSETS_TO_CACHE = [
   '/favicons/favicon-32x32.png',
   '/apple-touch-icon.png',
   '/favicon.png',
-  '/logo.jpg'
+  '/logo.jpg',
+  '/kas_logo.png'
 ];
 
 // Install Event
