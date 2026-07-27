@@ -1121,7 +1121,7 @@ export default function App() {
                 >
                   <div className="absolute -inset-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2.5rem] blur opacity-40"></div>
                   <img 
-                    src="/K.A.S logo.png" 
+                    src="/kas_logo.png" 
                     alt="K.A.S Logo" 
                     className="w-full h-full object-contain rounded-[2.2rem] shadow-inner"
                     referrerPolicy="no-referrer"
@@ -1154,7 +1154,7 @@ export default function App() {
             >
               <div className="flex items-center gap-2.5">
                 <div className="p-1 bg-blue-600/5 rounded-xl border border-slate-800 shadow-lg shadow-blue-500/5">
-                  <img src="/K.A.S logo.png" alt="Kurum Analiz Logo" className="w-9 h-9 object-contain" referrerPolicy="no-referrer" />
+                  <img src="/kas_logo.png" alt="Kurum Analiz Logo" className="w-9 h-9 object-contain" referrerPolicy="no-referrer" />
                 </div>
                 <div>
                   <span className="text-[10px] font-black tracking-widest text-blue-400 uppercase">Yapay Zeka Destekli Eğitim Yönetimi</span>
@@ -1243,7 +1243,7 @@ export default function App() {
                       >
                         <div className="absolute -inset-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2.5rem] blur opacity-15 group-hover:opacity-30 transition duration-1000 group-hover:duration-200"></div>
                         <img 
-                          src="/K.A.S logo.png" 
+                          src="/kas_logo.png" 
                           alt="Kurum Analiz Sistemleri Logo" 
                           className="w-full aspect-square object-contain rounded-[2.2rem] shadow-inner transform group-hover:scale-[1.02] transition-transform duration-500"
                           referrerPolicy="no-referrer"
@@ -2427,7 +2427,7 @@ export default function App() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
-                      <img src="/K.A.S logo.png" alt="K.A.S" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />
+                      <img src="/kas_logo.png" alt="K.A.S" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />
                     </div>
                     <span className="text-xs font-black text-slate-200 tracking-wider">KURUM ANALİZ SİSTEMLERİ</span>
                   </div>
@@ -2571,7 +2571,7 @@ export default function App() {
                 </button>
                 <div className="flex items-center gap-2">
                   <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
-                    <img src="/K.A.S logo.png" alt="K.A.S" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />
+                    <img src="/kas_logo.png" alt="K.A.S" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />
                   </div>
                   <span className="text-[10px] font-black text-slate-300 tracking-wider">K.A.S PORTAL</span>
                 </div>
@@ -3017,7 +3017,7 @@ export default function App() {
           <div className="md:hidden w-full bg-slate-900 border-b border-slate-800/80 px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-md">
             <div className="flex items-center gap-2.5">
               <div className="p-1 bg-blue-600/5 rounded-lg border border-slate-800">
-                <img src="/K.A.S logo.png" alt="K.A.S" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />
+                <img src="/kas_logo.png" alt="K.A.S" className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />
               </div>
               <div>
                 <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider block leading-none">Kurum Analiz</span>
@@ -3260,7 +3260,7 @@ export default function App() {
             {/* Sidebar Logo Header */}
             <div className="flex items-center gap-3 px-3 py-3.5 border-b border-white/10 mb-1 shrink-0 bg-white/5 rounded-2xl">
               <div className="p-1.5 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-xl border border-blue-500/30 shadow-lg shadow-blue-500/10">
-                <img src="/K.A.S logo.png" alt="K.A.S Logo" className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
+                <img src="/kas_logo.png" alt="K.A.S Logo" className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
               </div>
               <div>
                 <span className="text-[10px] text-[#29D8FF] font-black uppercase tracking-widest block leading-none">KURUM ANALİZ</span>

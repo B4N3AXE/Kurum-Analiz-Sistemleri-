@@ -4757,6 +4757,23 @@ async function startServer() {
   }
 
   // Start Server on configured port
+  
+  // Error handling for API routes
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    next();
+  });
+
+  app.use((err, req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      console.error(err);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+    next(err);
+  });
+
   httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Server started on http://0.0.0.0:${PORT} under NODE_ENV=${process.env.NODE_ENV}`);
   });
