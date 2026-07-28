@@ -339,6 +339,8 @@ export default function Dashboard({ user, token }: DashboardProps) {
     totalClasses: 0,
     totalExams: 0,
     riskCount: 0,
+    averageTytNet: 0,
+    activeStudyingCount: 0,
     riskStudents: [] as RiskStudent[],
     trends: [] as TrendData[],
     recentExams: [] as any[],
@@ -346,6 +348,49 @@ export default function Dashboard({ user, token }: DashboardProps) {
     classAnalysis: [] as any[],
     teacherAnalysis: [] as any[]
   });
+
+  const getDynamicInsights = () => {
+    if (stats.totalExams === 0 && stats.totalStudents === 0) {
+      return {
+        oneriler: "Kurumunuza ait henüz yeterli veri bulunmuyor. Analiz için öğrencileri ve sınav sonuçlarını sisteme ekleyin.",
+        basari: "Veri bekleniyor. Sınav analizleri yüklendiğinde kurum gelişim grafikleri burada oluşacaktır.",
+        risk: "Sistemde risk grubunu belirlemek için sınav sonuçlarına ihtiyaç duyulmaktadır.",
+        calisma: "Öğrencilerinizi kütüphane ve etüt modülünü kullanmaya teşvik ederek çalışma verilerini oluşturun.",
+        akilli: "K.A.S. yapay zeka asistanı, kurumunuzun veri akışı başladığında size özel stratejiler üretecektir."
+      };
+    }
+
+    if (stats.totalExams === 0) {
+      return {
+        oneriler: "Öğrencileriniz sisteme kayıtlı ancak henüz sınav verisi girilmemiş. İlk deneme sınavı sonuçlarını yükleyin.",
+        basari: "Öğrenci profilleriniz hazır. Sınav analizleri yüklendiğinde başarı raporları aktifleşecektir.",
+        risk: "Risk analizi yapabilmek için öğrencilerin sınavlardaki performans verilerine ihtiyaç var.",
+        calisma: "Öğrencilerin bireysel çalışma sürelerini artırmak için Pomodoro ve kütüphane teşviki yapabilirsiniz.",
+        akilli: "Sınav verileri yüklendiğinde K.A.S. eksik konuları belirleyerek otomatik etüt planı oluşturabilir."
+      };
+    }
+
+    let basariText = `Genel sınav ortalaması ${stats.averageTytNet > 0 ? stats.averageTytNet : 0} net seviyesinde.`;
+    if (stats.trends && stats.trends.length > 1) {
+      const son = stats.trends[stats.trends.length - 1].ortalama_net;
+      const onceki = stats.trends[stats.trends.length - 2].ortalama_net;
+      if (son > onceki) {
+        basariText = `Son denemede ortalama netlerde ${(son - onceki).toFixed(1)} netlik artış kaydedildi.`;
+      } else if (son < onceki) {
+        basariText = `Son denemede ortalama netlerde ${(onceki - son).toFixed(1)} netlik bir düşüş gözlendi.`;
+      }
+    }
+
+    return {
+      oneriler: stats.riskCount > 0 ? `Risk grubundaki ${stats.riskCount} öğrenci için ek etüt ve birebir destek planlaması yapılması önerilir.` : "Öğrencilerin genel ilerleyişi hedeflere uygun ilerliyor, mevcut etüt programını koruyabilirsiniz.",
+      basari: basariText,
+      risk: stats.riskCount > 0 ? `Eşik netin altında kalan ${stats.riskCount} öğrenci için rehberlik servisiyle iletişime geçilmesi öneriliyor.` : "Şu an belirlenen başarı eşiklerinin altında kalan, kritik seviyede riskli öğrenci bulunmuyor.",
+      calisma: stats.activeStudyingCount > 0 ? `Şu an kütüphanede ${stats.activeStudyingCount} öğrenci aktif olarak çalışıyor. Odak süreleri verimli seviyede.` : "Genel etüt katılımını artırmak için öğrencilere deneme sonrası eksik konu bildirimleri gönderebilirsiniz.",
+      akilli: "Gelecek haftaki denemeler öncesi K.A.S. sistemi üzerinden düşük ortalamalı dersler için toplu etüt çağrısı açabilirsiniz."
+    };
+  };
+
+  const dynamicInsights = getDynamicInsights();
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeChartTab, setActiveChartTab] = useState<'TYT' | 'AYT' | 'LGS'>('TYT');
@@ -1107,8 +1152,14 @@ export default function Dashboard({ user, token }: DashboardProps) {
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Ortalama Başarı</span>
               <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-3xl font-black text-white tracking-tight">%78.4</span>
-                <span className="text-xs font-extrabold text-[#30D158] bg-[#30D158]/10 px-2 py-0.5 rounded-full border border-[#30D158]/20">+4.2% Yükseliş</span>
+                <span className="text-3xl font-black text-white tracking-tight">
+                  {stats.totalExams > 0 ? (stats.averageTytNet > 0 ? `%${stats.averageTytNet}` : '%0') : 'N/A'}
+                </span>
+                {stats.trends && stats.trends.length > 1 && stats.trends[stats.trends.length - 1].ortalama_net > stats.trends[stats.trends.length - 2].ortalama_net && (
+                  <span className="text-xs font-extrabold text-[#30D158] bg-[#30D158]/10 px-2 py-0.5 rounded-full border border-[#30D158]/20">
+                    +{((stats.trends[stats.trends.length - 1].ortalama_net - stats.trends[stats.trends.length - 2].ortalama_net) / stats.trends[stats.trends.length - 2].ortalama_net * 100).toFixed(1)}% Yükseliş
+                  </span>
+                )}
               </div>
               <p className="text-[11px] font-bold text-slate-400 mt-1">Genel Sınav Net Performansı</p>
             </div>
@@ -1119,8 +1170,16 @@ export default function Dashboard({ user, token }: DashboardProps) {
           {/* Mini Sparkline Chart */}
           <div className="mt-4 pt-3 border-t border-white/5 flex items-end justify-between h-8">
             <svg className="w-full h-8" viewBox="0 0 100 25">
-              <path d="M0,22 Q30,18 60,8 T100,3" fill="none" stroke="#29D8FF" strokeWidth="2.5" />
-              <path d="M0,22 Q30,18 60,8 T100,3 L100,25 L0,25 Z" fill="rgba(41, 216, 255, 0.15)" />
+              {stats.trends && stats.trends.length > 0 ? (
+                <>
+                  <path d={`M0,22 Q30,${22 - (stats.trends.length > 1 ? (stats.trends[1].ortalama_net / 120 * 20) : 10)} 60,${22 - (stats.trends.length > 2 ? (stats.trends[2].ortalama_net / 120 * 20) : 15)} T100,${25 - (stats.trends[stats.trends.length-1].ortalama_net / 120 * 25)}`} fill="none" stroke="#29D8FF" strokeWidth="2.5" />
+                  <path d={`M0,22 Q30,${22 - (stats.trends.length > 1 ? (stats.trends[1].ortalama_net / 120 * 20) : 10)} 60,${22 - (stats.trends.length > 2 ? (stats.trends[2].ortalama_net / 120 * 20) : 15)} T100,${25 - (stats.trends[stats.trends.length-1].ortalama_net / 120 * 25)} L100,25 L0,25 Z`} fill="rgba(41, 216, 255, 0.15)" />
+                </>
+              ) : (
+                <>
+                  <path d="M0,22 Q30,22 60,22 T100,22" fill="none" stroke="#29D8FF" strokeWidth="2.5" strokeDasharray="4 4" />
+                </>
+              )}
             </svg>
           </div>
         </div>
@@ -1185,7 +1244,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
               <span className="text-lg">💡</span>
             </div>
             <p className="text-xs font-bold text-slate-200 leading-snug">
-              Son deneme sonrası Matematik konu eksiklerini kütüphane etütleriyle destekleyin.
+              {dynamicInsights.oneriler}
             </p>
           </div>
 
@@ -1196,7 +1255,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
               <span className="text-lg">📈</span>
             </div>
             <p className="text-xs font-bold text-slate-200 leading-snug">
-              TYT Fen Bilimleri ortalamasında geçen aya göre <span className="text-[#30D158] font-black">+3.8 net artış</span> kaydedildi.
+              {dynamicInsights.basari}
             </p>
           </div>
 
@@ -1207,7 +1266,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
               <span className="text-lg">🚨</span>
             </div>
             <p className="text-xs font-bold text-slate-200 leading-snug">
-              Eşik netin altında kalan <span className="text-[#FF5F57] font-black">{stats.riskCount ?? 0} öğrenci</span> için birebir veli bilgilendirmesi öneriliyor.
+              {dynamicInsights.risk}
             </p>
           </div>
 
@@ -1218,7 +1277,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
               <span className="text-lg">📖</span>
             </div>
             <p className="text-xs font-bold text-slate-200 leading-snug">
-              12. Sınıflara özel Paragraf & Problem odaklı <span className="text-[#29D8FF] font-black">25 dk Pomodoro</span> çalışma odaları aktif.
+              {dynamicInsights.calisma}
             </p>
           </div>
 
@@ -1229,7 +1288,7 @@ export default function Dashboard({ user, token }: DashboardProps) {
               <span className="text-lg">🎯</span>
             </div>
             <p className="text-xs font-bold text-slate-200 leading-snug">
-              Gelecek haftaki TYT provası öncesi soru çözümlerini dijital kitaplıkta yayımlayın.
+              {dynamicInsights.akilli}
             </p>
           </div>
         </div>
