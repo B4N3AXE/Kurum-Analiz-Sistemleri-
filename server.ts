@@ -249,9 +249,12 @@ function checkStudentAccess(req: express.Request, studentId: number): { allowed:
     return { allowed: false, error: 'Öğrenci bulunamadı.', status: 404 };
   }
 
-  // 1. Admin always allowed
+  // 1. Admin always allowed for their own kurum
   if (requester.rol === 'admin') {
-    return { allowed: true };
+    const studentClass = db.getSiniflar().find(c => c.id === student.sinif_id);
+    if (studentClass && studentClass.kurum_id === requester.kurum_id) {
+      return { allowed: true };
+    }
   }
 
   // 2. Student themselves allowed
@@ -663,7 +666,10 @@ app.get('/api/dashboard/stats', (req, res) => {
        students = students.filter(s => classIds.includes(s.sinif_id));
        teachers = teachers.filter(t => t.kurum_id === kurumId);
     }
-    const exams = db.getSinavTanimlari();
+    let exams = db.getSinavTanimlari();
+    if (kurumId) {
+      exams = exams.filter(e => e.kurum_id === kurumId);
+    }
     const results = db.getSinavSonuclari();
     const guidanceNotes = db.getRehberlikNotlari();
 
@@ -1061,7 +1067,12 @@ app.post('/api/classes', (req, res) => {
 
 // Exam and Results API Routes
 app.get('/api/exams', (req, res) => {
-  res.json(db.getSinavTanimlari());
+  const kurumId = Number(req.query.kurum_id);
+  let exams = db.getSinavTanimlari();
+  if (kurumId) {
+    exams = exams.filter(e => e.kurum_id === kurumId);
+  }
+  res.json(exams);
 });
 
 app.delete('/api/exams/:id', (req, res) => {
@@ -1098,7 +1109,7 @@ app.get('/api/students/:id/results', (req, res) => {
 // PDF & OCR parser endpoint using Google GenAI SDK (multimodality!)
 app.post('/api/exams/upload', upload.single('file'), async (req, res) => {
   try {
-    const { sinav_adi, sinav_turu, tarih, sablon } = req.body;
+    const { sinav_adi, sinav_turu, tarih, sablon, kurum_id } = req.body;
     
     if (!sinav_adi || !sinav_turu || !req.file) {
       return res.status(400).json({ error: 'Sınav adı, türü ve PDF/Görsel dosyası zorunludur.' });
@@ -1202,7 +1213,7 @@ app.post('/api/exams/upload', upload.single('file'), async (req, res) => {
       ad: sinav_adi,
       tur: sinav_turu,
       tarih: tarih || new Date().toISOString().split('T')[0],
-      kurum_id: 1
+      kurum_id: Number(kurum_id) || 1
     });
 
     // 3. Match names and insert into sinav_sonuclari
@@ -2866,11 +2877,16 @@ app.post('/api/pdf/:pdfId/annotations', (req, res) => {
 
 // 2. SINIF (CLASSES) ENDPOINTS
 app.get('/api/sinif', (req, res) => {
-  res.json(db.getSiniflar());
+  const kurumId = Number(req.query.kurum_id);
+  let classes = db.getSiniflar();
+  if (kurumId) {
+    classes = classes.filter(c => c.kurum_id === kurumId);
+  }
+  res.json(classes);
 });
 
 app.post('/api/sinif', (req, res) => {
-  const { ad, seviye, alan } = req.body;
+  const { ad, seviye, alan, kurum_id } = req.body;
   if (!ad || !seviye) {
     return res.status(400).json({ error: 'Sınıf adı ve seviye gereklidir.' });
   }
@@ -2878,7 +2894,7 @@ app.post('/api/sinif', (req, res) => {
     ad,
     seviye: Number(seviye),
     alan: alan || 'Sayısal',
-    kurum_id: 1
+    kurum_id: Number(kurum_id) || 1
   });
   res.json(cls);
 });
@@ -3002,12 +3018,16 @@ app.get('/api/kullanici/liste', (req, res) => {
 });
 
 app.get('/api/veli', (req, res) => {
-  const parents = db.getKullanicilar().filter(u => u.rol === 'veli');
+  const kurumId = Number(req.query.kurum_id);
+  let parents = db.getKullanicilar().filter(u => u.rol === 'veli');
+  if (kurumId) {
+    parents = parents.filter(u => u.kurum_id === kurumId);
+  }
   res.json(parents);
 });
 
 app.post('/api/veli', (req, res) => {
-  const { ad_soyad, email, sifre, telefon } = req.body;
+  const { ad_soyad, email, sifre, telefon, kurum_id } = req.body;
   if (!ad_soyad || !email || !sifre) {
     return res.status(400).json({ error: 'Ad Soyad, E-posta ve Şifre gereklidir.' });
   }
@@ -3017,7 +3037,7 @@ app.post('/api/veli', (req, res) => {
     sifre,
     rol: 'veli',
     telefon,
-    kurum_id: 1
+    kurum_id: Number(kurum_id) || 1
   });
   res.json(parent);
 });
@@ -3052,7 +3072,11 @@ app.delete('/api/veli/:id', (req, res) => {
 
 // 4. OGRETMEN (TEACHERS) ENDPOINTS
 app.get('/api/ogretmen', (req, res) => {
-  const teachers = db.getKullanicilar().filter(u => u.rol === 'ogretmen');
+  const kurumId = Number(req.query.kurum_id);
+  let teachers = db.getKullanicilar().filter(u => u.rol === 'ogretmen');
+  if (kurumId) {
+    teachers = teachers.filter(u => u.kurum_id === kurumId);
+  }
   const ogretmenSinifList = db.getOgretmenSinif();
   const classesList = db.getSiniflar();
   
@@ -3073,7 +3097,7 @@ app.get('/api/ogretmen', (req, res) => {
 });
 
 app.post('/api/ogretmen', (req, res) => {
-  const { ad_soyad, email, sifre, telefon, sinif_ids } = req.body;
+  const { ad_soyad, email, sifre, telefon, sinif_ids, kurum_id } = req.body;
   if (!ad_soyad || !email || !sifre) {
     return res.status(400).json({ error: 'Ad Soyad, E-posta ve Şifre gereklidir.' });
   }
@@ -3083,7 +3107,7 @@ app.post('/api/ogretmen', (req, res) => {
     sifre,
     rol: 'ogretmen',
     telefon,
-    kurum_id: 1
+    kurum_id: Number(kurum_id) || 1
   });
 
   // Save class assignments if passed
@@ -3153,12 +3177,16 @@ app.delete('/api/ogretmen/:id', (req, res) => {
 
 // 5. REHBER (COUNSELORS) ENDPOINTS
 app.get('/api/rehber', (req, res) => {
-  const counselors = db.getKullanicilar().filter(u => u.rol === 'rehber');
+  const kurumId = Number(req.query.kurum_id);
+  let counselors = db.getKullanicilar().filter(u => u.rol === 'rehber');
+  if (kurumId) {
+    counselors = counselors.filter(u => u.kurum_id === kurumId);
+  }
   res.json(counselors);
 });
 
 app.post('/api/rehber', (req, res) => {
-  const { ad_soyad, email, sifre, telefon } = req.body;
+  const { ad_soyad, email, sifre, telefon, kurum_id } = req.body;
   if (!ad_soyad || !email || !sifre) {
     return res.status(400).json({ error: 'Ad Soyad, E-posta ve Şifre gereklidir.' });
   }
@@ -3168,7 +3196,7 @@ app.post('/api/rehber', (req, res) => {
     sifre,
     rol: 'rehber',
     telefon,
-    kurum_id: 1
+    kurum_id: Number(kurum_id) || 1
   });
   res.json(counselor);
 });
@@ -3203,11 +3231,13 @@ app.delete('/api/rehber/:id', (req, res) => {
 
 // 6. SINAV (EXAMS) ENDPOINTS
 app.get('/api/sinav', (req, res) => {
-  res.json(db.getSinavTanimlari());
+  const kurumId = Number(req.query.kurum_id);
+  const exams = db.getSinavTanimlari();
+  res.json(exams);
 });
 
 app.post('/api/sinav', (req, res) => {
-  const { ad, tur, tarih } = req.body;
+  const { ad, tur, tarih, kurum_id } = req.body;
   if (!ad || !tur) {
     return res.status(400).json({ error: 'Sınav adı ve türü gereklidir.' });
   }
@@ -3215,7 +3245,7 @@ app.post('/api/sinav', (req, res) => {
     ad,
     tur,
     tarih: tarih || new Date().toISOString().split('T')[0],
-    kurum_id: 1
+    kurum_id: Number(kurum_id) || 1
   });
   res.json(exam);
 });
@@ -3962,24 +3992,25 @@ app.post('/api/pdf-parser/upload', async (req, res) => {
 
 app.post('/api/pdf/save', (req, res) => {
   try {
-    const { examName, examType, examDate, results } = req.body;
+    const { examName, examType, examDate, results, kurum_id } = req.body;
     if (!examName || !examType || !results || !Array.isArray(results)) {
       return res.status(400).json({ error: 'Sınav adı, türü ve sonuç verileri zorunludur.' });
     }
+    const resolvedKurumId = Number(kurum_id) || 1;
 
     // Create or find Exam
-    let exam = db.getSinavTanimlari().find(e => e.ad.toLowerCase() === examName.toLowerCase());
+    let exam = db.getSinavTanimlari().find(e => e.ad.toLowerCase() === examName.toLowerCase() && e.kurum_id === resolvedKurumId);
     if (!exam) {
       exam = db.insert('sinav_tanimlari', {
         ad: examName,
         tur: examType,
         tarih: examDate || new Date().toISOString().split('T')[0],
-        kurum_id: 1
+        kurum_id: resolvedKurumId
       });
     }
 
     let savedCount = 0;
-    const defaultClasses = db.getSiniflar();
+    const defaultClasses = db.getSiniflar().filter(c => c.kurum_id === resolvedKurumId);
     const defaultClassId = defaultClasses.length > 0 ? defaultClasses[0].id : 1;
 
     results.forEach((row: any) => {
@@ -4050,7 +4081,7 @@ app.post('/api/paytr/validate-coupon', (req, res) => {
     let coupon = dbCoupons.find(c => c.code.toUpperCase() === codeClean && c.active);
     
     if (!coupon && (codeClean === 'KURUM100' || codeClean === 'KAS100')) {
-      coupon = { id: 999, code: codeClean, discount_type: 'percentage', discount_value: 100, active: true, applies_to: 'all' };
+      coupon = { id: 999, code: codeClean, discount_type: 'percentage', discount_value: 100, active: true, applies_to: 'forever' };
     }
 
     if (!coupon) {
@@ -4115,7 +4146,7 @@ app.post('/api/paytr/token', async (req, res) => {
       let coupon = dbCoupons.find(c => c.code.toUpperCase() === codeClean && c.active);
       
       if (!coupon && (codeClean === 'KURUM100' || codeClean === 'KAS100')) {
-        coupon = { id: 999, code: codeClean, discount_type: 'percentage', discount_value: 100, active: true, applies_to: 'all' };
+        coupon = { id: 999, code: codeClean, discount_type: 'percentage', discount_value: 100, active: true, applies_to: 'forever' };
       }
 
       if (coupon) {
