@@ -318,7 +318,24 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                               <span className="flex items-center gap-1.5"><ShieldCheck size={14} className="text-emerald-400" /> Güvenli PayTR SSL Bağlantısı</span>
                               <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">Mağaza Canlı Mod</span>
                             </div>
-                            <div className="w-full aspect-[4/3] min-h-[450px] bg-slate-900 rounded-2xl overflow-hidden border border-slate-800">
+                            <div className="w-full aspect-[4/3] min-h-[450px] bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 relative">
+                              {window.location.hostname.includes('run.app') && (
+                                <div className="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center p-6 text-center z-10 backdrop-blur-sm">
+                                  <ShieldCheck size={48} className="text-amber-400 mb-4" />
+                                  <h3 className="text-lg font-bold text-slate-100 mb-2">Test Ortamı Kısıtlaması</h3>
+                                  <p className="text-sm text-slate-400 mb-6 max-w-md">
+                                    PayTR güvenlik politikaları gereği, ödeme sayfası bu önizleme alanında (iframe) görüntülenemez. Ödeme işlemini tamamlamak veya test etmek için lütfen sayfayı yeni sekmede açın.
+                                  </p>
+                                  <a 
+                                    href={`https://www.paytr.com/odeme/guvenli/${paytrToken}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-bold transition-colors"
+                                  >
+                                    Ödeme Sayfasını Yeni Sekmede Aç
+                                  </a>
+                                </div>
+                              )}
                               <iframe
                                 src={`https://www.paytr.com/odeme/guvenli/${paytrToken}`}
                                 className="w-full h-full border-0"
