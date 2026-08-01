@@ -16,7 +16,7 @@ export interface Kurum {
   id: number;
   ad: string;
   tur: string;
-  abonelik_turu?: 'trial' | 'premium';
+  abonelik_turu?: 'trial' | 'mikro' | 'bronz' | 'gumus' | 'altin' | 'platin' | 'elmas' | 'premium';
   deneme_bitis?: string;
 }
 

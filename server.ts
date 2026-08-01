@@ -286,6 +286,33 @@ function checkStudentAccess(req: express.Request, studentId: number): { allowed:
   return { allowed: false, error: 'Bu öğrencinin verilerine erişim yetkiniz bulunmamaktadır.', status: 403 };
 }
 
+function checkStudentLimit(req: any, db: any): { allowed: boolean; limit?: number; current?: number; error?: string } {
+  const requester = getRequesterFromToken(req);
+  if (!requester) return { allowed: false, error: 'Yetkisiz erişim' };
+  
+  const kurumId = requester.kurum_id || 1;
+  const kurum = db.getKurumlar().find((k: any) => k.id === kurumId);
+  const abonelik = kurum?.abonelik_turu || 'mikro';
+  
+  let limit = 25;
+  if (abonelik === 'mikro') limit = 25;
+  else if (abonelik === 'bronz') limit = 50;
+  else if (abonelik === 'gumus') limit = 100;
+  else if (abonelik === 'altin') limit = 150;
+  else if (abonelik === 'platin') limit = 200;
+  else if (abonelik === 'elmas' || abonelik === 'premium' || abonelik === 'trial') limit = 999999;
+  
+  const classIds = db.getSiniflar().filter((c: any) => c.kurum_id === kurumId).map((c: any) => c.id);
+  const currentStudents = db.getOgrenciler().filter((s: any) => classIds.includes(s.sinif_id)).length;
+  
+  if (currentStudents >= limit) {
+    return { allowed: false, limit, current: currentStudents, error: `Öğrenci kapasiteniz (${limit}) doldu. Daha fazla öğrenci ekleyebilmek için K.A.S Abonelik Paketleri bölümünden lisansınızı yükseltmelisiniz.` };
+  }
+  
+  return { allowed: true };
+}
+
+
 // Auth API Routes
 app.post('/api/auth/login', (req, res) => {
   const { email, sifre } = req.body;
@@ -975,6 +1002,8 @@ app.get('/api/students', (req, res) => {
 });
 
 app.post('/api/students', (req, res) => {
+  const limitCheck = checkStudentLimit(req, db);
+  if (!limitCheck.allowed) return res.status(403).json({ error: limitCheck.error });
   const { ad_soyad, tc_no, sinif_id, veli_id, alan, aktif } = req.body;
   
   if (!ad_soyad || !sinif_id || !alan) {
@@ -1659,6 +1688,8 @@ app.get('/api/ogrenci', (req, res) => {
 });
 
 app.post('/api/ogrenci', (req, res) => {
+  const limitCheck = checkStudentLimit(req, db);
+  if (!limitCheck.allowed) return res.status(403).json({ error: limitCheck.error });
   const { ad_soyad, tc_no, sinif_id, veli_id, alan, aktif, hedef_net, danisman_id, sifre } = req.body;
   if (!ad_soyad || !sinif_id || !alan) {
     return res.status(400).json({ error: 'Ad Soyad, Sınıf ve Alan gereklidir.' });
@@ -3992,6 +4023,8 @@ app.post('/api/pdf-parser/upload', async (req, res) => {
 
 app.post('/api/pdf/save', (req, res) => {
   try {
+    const limitCheck = checkStudentLimit(req, db);
+    if (!limitCheck.allowed) return res.status(403).json({ error: limitCheck.error });
     const { examName, examType, examDate, results, kurum_id } = req.body;
     if (!examName || !examType || !results || !Array.isArray(results)) {
       return res.status(400).json({ error: 'Sınav adı, türü ve sonuç verileri zorunludur.' });
@@ -4063,8 +4096,19 @@ app.post('/api/pdf/save', (req, res) => {
 // 1. Kupon Doğrulama Servisi (POST /api/paytr/validate-coupon)
 app.post('/api/paytr/validate-coupon', (req, res) => {
   try {
-    const { isAnnualBilling, couponCode } = req.body;
-    const basePrice = isAnnualBilling ? 39000 : 3250;
+    const { isAnnualBilling, couponCode, planId } = req.body;
+    const PLAN_PRICES: any = {
+      'mikro': 2900,
+      'bronz': 5900,
+      'gumus': 9900,
+      'altin': 14900,
+      'platin': 24500,
+      'elmas': 50000,
+      'premium': 39000
+    };
+    const targetPlanId = planId || 'premium';
+    const annualPrice = PLAN_PRICES[targetPlanId] || 39000;
+    const basePrice = isAnnualBilling ? annualPrice : Math.round(annualPrice / 12);
 
     if (!couponCode || typeof couponCode !== 'string' || !couponCode.trim()) {
       return res.json({
@@ -4133,11 +4177,22 @@ app.post('/api/paytr/validate-coupon', (req, res) => {
 // 2. PayTR iFrame Token Oluşturma (POST /api/paytr/token)
 app.post('/api/paytr/token', async (req, res) => {
   try {
-    const { isAnnualBilling, couponCode, userEmail, userName, userPhone, userId, clientIp } = req.body;
+    const { isAnnualBilling, couponCode, userEmail, userName, userPhone, userId, clientIp, planId } = req.body;
 
-    // Fiyatı kesinlikle sadece backend üzerinde hesaplıyoruz ve doğruluyoruz.
-    // İstemciden gelen tutarı doğrudan kabul etmiyoruz.
-    const baseAmount = isAnnualBilling ? 39000 : 3250;
+    const PLAN_PRICES: any = {
+      'mikro': 2900,
+      'bronz': 5900,
+      'gumus': 9900,
+      'altin': 14900,
+      'platin': 24500,
+      'elmas': 50000,
+      'premium': 39000
+    };
+
+    const targetPlanId = planId || 'premium';
+    const annualPrice = PLAN_PRICES[targetPlanId] || 39000;
+    const baseAmount = isAnnualBilling ? annualPrice : Math.round(annualPrice / 12);
+    
     let final_amount = baseAmount;
 
     if (couponCode && typeof couponCode === 'string' && couponCode.trim()) {
@@ -4168,8 +4223,8 @@ app.post('/api/paytr/token', async (req, res) => {
       // 100% discount, bypass PayTR and return success
       const user = db.getKullanicilar().find(u => u.id === userId);
       if (user && user.kurum_id) {
-        db.update('kurumlar', user.kurum_id, { abonelik_turu: 'premium' });
-        console.log(`100% İndirim ile Üyelik Veritabanında Kalıcı Olarak Onaylandı! Kullanıcı: ${user.ad_soyad}, Kurum ID: ${user.kurum_id}`);
+        db.update('kurumlar', user.kurum_id, { abonelik_turu: targetPlanId });
+        console.log(`100% İndirim ile Üyelik Veritabanında Kalıcı Olarak Onaylandı! Kullanıcı: ${user.ad_soyad}, Kurum ID: ${user.kurum_id}, Plan: ${targetPlanId}`);
       }
       
       return res.json({
@@ -4586,11 +4641,15 @@ app.post('/api/paytr/callback', (req, res) => {
       const parts = payload.split('X');
       if (parts.length >= 2) {
         const userId = Number(parts[0]);
+        let purchasedPlan = 'premium';
+        if (parts.length >= 3) {
+           purchasedPlan = parts[1]; // The second part is the plan ID
+        }
         const user = db.getKullanicilar().find(u => u.id === userId);
         if (user && user.kurum_id) {
           // Kurumun abonelik statüsünü veritabanında (db.json) kalıcı olarak güncelle
-          db.update('kurumlar', user.kurum_id, { abonelik_turu: 'premium' });
-          console.log(`PayTR Bildirimi ile Üyelik Veritabanında Kalıcı Olarak Onaylandı! Kullanıcı: ${user.ad_soyad}, Kurum ID: ${user.kurum_id}`);
+          db.update('kurumlar', user.kurum_id, { abonelik_turu: purchasedPlan });
+          console.log(`PayTR Bildirimi ile Üyelik Veritabanında Kalıcı Olarak Onaylandı! Kullanıcı: ${user.ad_soyad}, Kurum ID: ${user.kurum_id}, Plan: ${purchasedPlan}`);
         }
       }
     }

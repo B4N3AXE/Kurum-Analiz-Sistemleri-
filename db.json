@@ -13,6 +13,13 @@
       "tur": "Anadolu Lisesi",
       "abonelik_turu": "premium",
       "deneme_bitis": "2026-08-08T23:02:13.854Z"
+    },
+    {
+      "id": 3,
+      "ad": "SAZZOPP",
+      "tur": "Anadolu Lisesi",
+      "abonelik_turu": "trial",
+      "deneme_bitis": "2026-08-11T16:39:37.977Z"
     }
   ],
   "kullanicilar": [
@@ -43,6 +50,24 @@
       "rol": "admin",
       "telefon": "5426105632",
       "kurum_id": 2
+    },
+    {
+      "id": 4,
+      "ad_soyad": "ÇAĞOP",
+      "email": "cagop@kas.com",
+      "sifre": "cagop",
+      "rol": "veli",
+      "telefon": "5426105632",
+      "kurum_id": 1
+    },
+    {
+      "id": 5,
+      "ad_soyad": "BATIN asd",
+      "email": "batin@kas.com",
+      "sifre": "Master1.M",
+      "rol": "admin",
+      "telefon": "5426105631",
+      "kurum_id": 3
     }
   ],
   "siniflar": [
@@ -191,11 +216,13 @@
     {
       "id": 15,
       "ad_soyad": "ÇAĞRI",
-      "tc_no": "",
+      "tc_no": "41842479784",
       "sinif_id": 1,
-      "veli_id": null,
+      "veli_id": 4,
       "alan": "Sayısal",
-      "aktif": true
+      "aktif": true,
+      "danisman_id": null,
+      "sifre": "123456789"
     },
     {
       "id": 16,
@@ -920,6 +947,39 @@
       "fen_net": 0,
       "toplam_net": 21.75,
       "puan": 208.47
+    },
+    {
+      "id": 58,
+      "ogrenci_id": 21,
+      "sinav_id": 1,
+      "turkce_net": 34.5,
+      "sosyal_net": 17.5,
+      "matematik_net": 2.75,
+      "fen_net": 0,
+      "toplam_net": 54.75,
+      "puan": 304.72
+    },
+    {
+      "id": 59,
+      "ogrenci_id": 22,
+      "sinav_id": 1,
+      "turkce_net": 28.25,
+      "sosyal_net": 10.5,
+      "matematik_net": 6.5,
+      "fen_net": -1.5,
+      "toplam_net": 43.75,
+      "puan": 272.24
+    },
+    {
+      "id": 60,
+      "ogrenci_id": 23,
+      "sinav_id": 1,
+      "turkce_net": 17,
+      "sosyal_net": 6.5,
+      "matematik_net": 0,
+      "fen_net": -0.25,
+      "toplam_net": 23.5,
+      "puan": 213.48
     }
   ],
   "ogretmen_sinif": [],
@@ -1082,6 +1142,27 @@
       "konu_key": "turkce_sözcükte ve söz öbeklerinde anlam",
       "tamamlandi": true,
       "tarih": "2026-07-25T10:40:11.246Z"
+    },
+    {
+      "id": 3,
+      "ogrenci_id": 15,
+      "konu_key": "turkce_cümlenin anlamı ve yorumu",
+      "tamamlandi": true,
+      "tarih": "2026-07-31T18:39:00.262Z"
+    },
+    {
+      "id": 4,
+      "ogrenci_id": 15,
+      "konu_key": "turkce_yazım kuralları",
+      "tamamlandi": true,
+      "tarih": "2026-07-31T18:39:05.856Z"
+    },
+    {
+      "id": 5,
+      "ogrenci_id": 15,
+      "konu_key": "matematik_rasyonel sayılar",
+      "tamamlandi": true,
+      "tarih": "2026-07-31T18:39:08.662Z"
     }
   ],
   "calisma_seanslari": [
@@ -1105,6 +1186,13 @@
       "ders_adi": "Matematik",
       "sure": 9,
       "tarih": "2026-07-25T10:45:03.931Z"
+    },
+    {
+      "id": 4,
+      "ogrenci_id": 15,
+      "ders_adi": "Matematik",
+      "sure": 1,
+      "tarih": "2026-07-31T18:41:26.197Z"
     }
   ],
   "haftalik_gorevler": [],
@@ -1169,8 +1257,9 @@
       "ogrenci_id": 15,
       "vade_tarihi": "2026-11-26T00:00:00.000Z",
       "tutar": -12500,
-      "odenen_tutar": 0,
-      "durum": "bekliyor"
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-31T18:34:51.116Z"
     },
     {
       "id": 6,
@@ -1178,8 +1267,9 @@
       "ogrenci_id": 15,
       "vade_tarihi": "2026-12-26T00:00:00.000Z",
       "tutar": -12500,
-      "odenen_tutar": 0,
-      "durum": "bekliyor"
+      "odenen_tutar": -12500,
+      "durum": "odendi",
+      "odeme_tarihi": "2026-07-31T18:34:51.853Z"
     },
     {
       "id": 7,

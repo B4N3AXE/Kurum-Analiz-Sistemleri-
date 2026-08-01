@@ -1797,114 +1797,135 @@ export default function App() {
               </div>
 
               {/* Pricing Grid (2 Cards layout without price tags) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                
-                {/* Free Trial Card */}
-                <div className="border border-slate-850 bg-slate-900/10 rounded-3xl p-6 space-y-6 flex flex-col justify-between hover:border-slate-800 transition-all duration-300">
-                  <div className="space-y-4">
-                    <div>
-                      <span className="bg-slate-800/80 text-slate-300 text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider">
-                        KART GEREKMEZ • ANINDA ERİŞİM
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                <div className="md:col-span-2 lg:col-span-3 bg-slate-900/40 border border-slate-800 rounded-3xl p-6 mb-4">
+                  <h4 className="text-sm font-black text-slate-200 mb-4 flex items-center gap-2">
+                    <CheckCircle size={16} className="text-emerald-400" />
+                    Tüm Paketlerde Bulunan Sınırsız Özellikler
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[
+                      "🤖 KAS.ai Yapay Zeka Analiz Motoru (Konu/Kazanım Tespiti & Akıllı Rehberlik)",
+                      "👨‍🏫 Sınırsız Öğretmen & Personel Tanımlama (Kişi başı ücret yok)",
+                      "🏫 Sınırsız Sınıf & Şube Oluşturma",
+                      "📊 Sınırsız Deneme Sınavı Yükleme & PDF Raporlama",
+                      "📱 Öğrenci & Veli Analiz Paneli Erişimi"
+                    ].map((f, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-xs text-slate-300 font-medium">
+                        <CheckCircle size={14} className="text-emerald-500 shrink-0 mt-0.5" />
+                        <span>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {[
+                  {
+                    title: 'Mikro Paket',
+                    capacity: '0 - 25 Öğrenci',
+                    desc: 'VIP Özel Ders Büroları ve Bireysel Koçlar İçin.',
+                    features: [
+                      '🤖 KAS.ai Temel Sınav & Net Analizi',
+                      '📄 Otomatik PDF Öğrenci Karnesi Oluşturma',
+                      '📊 Konu & Kazanım Eksik Tespiti',
+                      '♾️ Sınırsız Öğretmen & Sınıf Ekleme'
+                    ]
+                  },
+                  {
+                    title: 'Bronz Paket',
+                    capacity: '25 - 50 Öğrenci',
+                    desc: 'Butik Kurslar ve VIP Etüt Merkezleri İçin.',
+                    features: [
+                      'Mikro Paket Özelliklerinin Tamamı',
+                      '🧠 KAS.ai Derin Konu & Soru Tipi Analizi',
+                      '📈 Sınıf Genel Başarı ve Öğrenme Kaybı Grafikleri',
+                      '💬 Tek Tıkla Veliye Gönderilebilir AI Rapor Özetleri'
+                    ]
+                  },
+                  {
+                    title: 'Gümüş Paket',
+                    capacity: '50 - 100 Öğrenci',
+                    desc: 'Büyümekte Olan Hazırlık Kursları İçin.',
+                    features: [
+                      'Bronz Paket Özelliklerinin Tamamı',
+                      '🎯 KAS.ai Akıllı Çalışma & Soru Çözüm Tavsiye Motoru',
+                      '📱 WhatsApp / SMS Formatında Hazır AI Veli Bildirimleri',
+                      '🔍 Öğrenci Bazlı İlerleme ve Hedef Takip Analitiği'
+                    ]
+                  },
+                  {
+                    title: 'Altın (Gold) Paket',
+                    capacity: '100 - 150 Öğrenci',
+                    desc: 'Butik Dershaneler İçin Tam Kapsamlı AI Çözümü.',
+                    features: [
+                      'Gümüş Paket Özelliklerinin Tamamı',
+                      '🎨 Kuruma Özel Logo & Tema Özelleştirme',
+                      '📊 Detaylı Ders & Branş Bazlı Performans Raporları',
+                      '⚡ VIP Hızlı Destek & Kurulum Rehberliği'
+                    ]
+                  },
+                  {
+                    title: 'Platin (Platinum) Paket',
+                    capacity: '150 - 200 Öğrenci',
+                    desc: 'Standart Dershaneler ve Hazırlık Kursları İçin.',
+                    isPopular: true,
+                    features: [
+                      'Altın Paket Özelliklerinin Tamamı',
+                      '👨‍🏫 KAS.ai Zümre & Öğretmen Performans AI Analizi',
+                      '🎓 YKS / LGS Tahmini Sıralama & Başarı Motoru',
+                      '📞 VIP Hızlı Destek & Birebir Kurulum Eğitimi'
+                    ]
+                  },
+                  {
+                    title: 'Elmas (Diamond) / Kurumsal',
+                    capacity: '200+ Öğrenci & Çoklu Şube',
+                    desc: 'Büyük Dershaneler, Kolejler ve Franchise Markalar İçin.',
+                    features: [
+                      '🏢 Çoklu Şube & Merkezi Kampüs Yönetimi',
+                      '🤝 Kuruma Özel Birebir Müşteri Temsilcisi & 7/24 VIP Destek',
+                      '🔌 Özel Veri & API Entegrasyonları',
+                      '🛠️ Kuruma Özel Eğitim ve Yerinde Kurulum Desteği'
+                    ]
+                  }
+                ].map((plan, i) => (
+                  <div key={i} className={`border bg-slate-900/40 rounded-3xl p-6 flex flex-col justify-between relative transition-all duration-300 ${plan.isPopular ? 'border-blue-500/50 shadow-lg shadow-blue-500/10 scale-105 z-10' : 'border-slate-800 hover:border-slate-700'}`}>
+                    {plan.isPopular && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[9px] font-black uppercase px-3 py-1 rounded-full tracking-wider border border-blue-400/50 shadow-md">
+                        EN POPÜLER
                       </span>
-                      <h4 className="text-base font-black text-slate-100 mt-2">14 Günlük Ücretsiz Deneme</h4>
-                      <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Sistemi risksiz ve sınırsız test edin</span>
+                    )}
+                    <div className="space-y-4 mb-6">
+                      <div>
+                        <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">{plan.capacity}</span>
+                        <h4 className="text-xl font-black text-slate-100 mt-1">{plan.title}</h4>
+                        <p className="text-[11px] text-slate-400 font-medium mt-2">{plan.desc}</p>
+                      </div>
+                      <div className="border-t border-slate-800/80 pt-4 space-y-2.5">
+                        {plan.features.map((f, idx) => (
+                          <div key={idx} className="flex items-start gap-2 text-[11px] text-slate-300 font-medium">
+                            <CheckCircle size={12} className="text-blue-500 shrink-0 mt-0.5" />
+                            <span>{f}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    
-                    <div className="bg-slate-950/60 border border-slate-900/80 px-4 py-3 rounded-2xl flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-400">Deneme Süresi:</span>
-                      <span className="text-xs font-black text-emerald-400 uppercase tracking-wider">14 Gün Tam Sürüm</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 block font-bold">
-                      *Kredi kartı veya ödeme bilgisi girmeden anında profil oluşturun.
-                    </span>
-
-                    <div className="border-t border-slate-900/60 pt-4 space-y-2">
-                      {[
-                        "Tüm Gelişmiş Modüllere Erişim",
-                        "Öğrenci & Öğretmen Tanımlama",
-                        "Sınırlandırılmamış PDF Analiz Hakkı",
-                        "Birebir Ders ve Etüt Programlama",
-                        "Rehberlik Görüşme Günlükleri",
-                        "Deneme Sonrası Verileriniz Silinmez"
-                      ].map((f, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-[11px] text-slate-300 font-medium">
-                          <CheckCircle size={12} className="text-blue-500 shrink-0" />
-                          <span>{f}</span>
-                        </div>
-                      ))}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsRegistering(true);
+                        setRegKurum("");
+                        setShowAuthScreen(true);
+                        setTimeout(() => {
+                          document.getElementById('auth-form-card')?.scrollIntoView({ behavior: 'smooth' });
+                        }, 100);
+                      }}
+                      className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${plan.isPopular ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/15' : 'bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-850'}`}
+                    >
+                      Sisteme Kaydol & Aboneliği Başlat ⚡
+                    </button>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsRegistering(true);
-                      setRegKurum("");
-                      setShowAuthScreen(true);
-                      setTimeout(() => {
-                        document.getElementById('auth-form-card')?.scrollIntoView({ behavior: 'smooth' });
-                      }, 100);
-                    }}
-                    className="w-full py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-850"
-                  >
-                    Ücretsiz Denemeyi Başlat ⚡
-                  </button>
-                </div>
-
-                {/* Sınırsız Premium Card */}
-                <div className="border border-blue-500/30 bg-blue-500/5 shadow-lg shadow-blue-500/5 rounded-3xl p-6 space-y-6 flex flex-col justify-between relative hover:border-blue-500/50 transition-all duration-300">
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-full tracking-wider border border-blue-400">
-                    EN POPÜLER • SINIRSIZ SEÇENEK
-                  </span>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-base font-black text-slate-100 mt-2">Kurum Analiz Sınırsız Premium</h4>
-                      <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Sınırsız Öğrenci, Veli, Şube & Altyapı</span>
-                    </div>
-                    
-                    <div className="bg-blue-600/10 border border-blue-500/20 px-4 py-3 rounded-2xl flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-400">Üyelik Tipi:</span>
-                      <span className="text-xs font-black text-blue-400 uppercase tracking-wider">Kurumsal Lisans</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 block font-bold leading-relaxed">
-                      *Kurumunuzun büyüklüğüne ve öğrenci sayınıza göre esnek lisanslama ve indirim avantajları giriş panelinizde tanımlanır.
-                    </span>
-
-                    <div className="border-t border-slate-900/60 pt-4 space-y-2">
-                      {[
-                        "Tüm SaaS Özellikleri & Modüller Sınırsız",
-                        "Yapay Zeka Destekli PDF Sınav Okuyucu",
-                        "Akıllı Birebir Ders Çakışma Engelleyici",
-                        "Veli Gelişim Raporları & Anlık Karneler",
-                        "Rehberlik & Görüşme Günlükleri",
-                        "7/24 WhatsApp & Telefon Destek Hattı",
-                        "Sürekli Güncellenen Bulut Altyapısı"
-                      ].map((f, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-[11px] text-slate-300 font-medium">
-                          <CheckCircle size={12} className="text-blue-500 shrink-0" />
-                          <span>{f}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsRegistering(true);
-                      setRegKurum("");
-                      setShowAuthScreen(true);
-                      setTimeout(() => {
-                        document.getElementById('auth-form-card')?.scrollIntoView({ behavior: 'smooth' });
-                      }, 100);
-                    }}
-                    className="w-full py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/15"
-                  >
-                    Sisteme Kaydol & Planları Gör 💎
-                  </button>
-                </div>
-
+                ))}
               </div>
 
               {/* Informational Guidance Warning Banner for payments */}

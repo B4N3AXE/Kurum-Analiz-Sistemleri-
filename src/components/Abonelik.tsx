@@ -61,6 +61,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
           userName: user?.ad_soyad || 'K.A.S Kullanıcısı',
           userPhone: user?.telefon || '05555555555',
           userId: user?.id || 1,
+          planId: selectedPlan?.id || 'premium',
           clientIp
         })
       });
@@ -242,8 +243,9 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                   setSelectedPlan({
                     id: "premium",
                     title: "K.A.S Sınırsız Premium",
-                    price: isAnnualBilling ? "₺35.100" : "₺3.250",
-                    isAnnual: isAnnualBilling
+                    price: "₺" + new Intl.NumberFormat('tr-TR').format(39000),
+                    priceNum: 39000,
+                    isAnnual: true
                   });
                   setTimeout(() => {
                     document.getElementById('checkout-form')?.scrollIntoView({ behavior: 'smooth' });
@@ -361,7 +363,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                           <button
                             type="button"
                             onClick={() => {
-                              setSelectedPlan(prev => prev ? { ...prev, isAnnual: false, price: "₺3.250" } : null);
+                              setSelectedPlan(prev => prev ? { ...prev, isAnnual: false } : null);
                             }}
                             className={`py-1.5 text-[10px] font-extrabold rounded-lg transition ${!selectedPlan.isAnnual ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"}`}
                           >
@@ -370,7 +372,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                           <button
                             type="button"
                             onClick={() => {
-                              setSelectedPlan(prev => prev ? { ...prev, isAnnual: true, price: "₺39.000" } : null);
+                              setSelectedPlan(prev => prev ? { ...prev, isAnnual: true } : null);
                             }}
                             className={`py-1.5 text-[10px] font-extrabold rounded-lg transition ${selectedPlan.isAnnual ? "bg-blue-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"}`}
                           >
@@ -413,7 +415,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                       <div className="space-y-2.5 text-xs text-slate-300 font-semibold pt-1">
                         <div className="flex justify-between">
                           <span className="text-slate-400">Normal Fiyat</span>
-                          <span>{selectedPlan.isAnnual ? "₺39.000" : "₺3.250"}</span>
+                          <span>{"₺" + new Intl.NumberFormat('tr-TR').format(selectedPlan.isAnnual ? selectedPlan.priceNum : Math.round(selectedPlan.priceNum / 12))}</span>
                         </div>
 
                         {selectedPlan.isAnnual && appliedCoupon === 'YENISEZON10' && (
@@ -431,7 +433,12 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                         <div className="border-t border-slate-800/80 pt-3 flex justify-between font-black text-slate-100 text-sm">
                           <span>Ödenecek Tutar</span>
                           <span className="text-blue-400">
-                            {selectedPlan.isAnnual && appliedCoupon === 'YENISEZON10' ? "₺35.100" : (selectedPlan.isAnnual ? "₺39.000" : "₺3.250")}
+                            {(() => {
+                              let finalVal = selectedPlan.isAnnual ? selectedPlan.priceNum : Math.round(selectedPlan.priceNum / 12);
+                              if (appliedCoupon === 'YENISEZON10') finalVal = finalVal * 0.9;
+                              else if (appliedCoupon === 'KURUM100' || appliedCoupon === 'KAS100') finalVal = 0;
+                              return "₺" + new Intl.NumberFormat('tr-TR').format(finalVal);
+                            })()}
                           </span>
                         </div>
                       </div>
@@ -447,111 +454,220 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
             </div>
           )}
 
+          
           {/* Pricing Grid Section */}
           <div id="planlar" className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="space-y-1">
-                <span className="text-xs font-extrabold text-blue-500 uppercase tracking-wider">ŞEFFAF VE TEK FİYAT</span>
-                <h3 className="text-xl font-extrabold text-slate-100 font-sans tracking-tight">K.A.S Sınırsız Portal Lisansı</h3>
-                <p className="text-xs text-slate-400 font-medium">Bütün modüller, sınırsız öğrenci ve şube yönetimi tek paket altında birleşti.</p>
+                <span className="text-xs font-extrabold text-blue-500 uppercase tracking-wider">ŞEFFAF VE ESNEK FİYATLANDIRMA</span>
+                <h3 className="text-xl font-extrabold text-slate-100 font-sans tracking-tight">K.A.S Abonelik Paketleri</h3>
+                <p className="text-xs text-slate-400 font-medium">Kurumunuzun kapasitesine en uygun paketi seçerek sınırsız yapay zeka deneyimine başlayın.</p>
               </div>
-
-              {/* Billing Toggle Switcher */}
-              <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1 rounded-xl">
-                <button
-                  type="button"
+              <div className="flex items-center gap-3 bg-slate-900/50 p-1.5 rounded-2xl border border-slate-800">
+                <button 
                   onClick={() => setIsAnnualBilling(false)}
-                  className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition ${!isAnnualBilling ? "bg-slate-800 text-white shadow" : "text-slate-400 hover:text-slate-200"}`}
+                  className={`px-4 py-2 text-[11px] font-extrabold rounded-xl transition-all ${!isAnnualBilling ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                 >
-                  Aylık Ödeme
+                  Aylık Gösterim
                 </button>
-                <button
-                  type="button"
+                <button 
                   onClick={() => setIsAnnualBilling(true)}
-                  className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition flex items-center gap-1 ${isAnnualBilling ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-slate-200"}`}
+                  className={`px-4 py-2 text-[11px] font-extrabold rounded-xl transition-all ${isAnnualBilling ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                 >
-                  Yıllık Ödeme <span className="bg-emerald-500 text-slate-950 font-black text-[8px] px-1 rounded-md">%10 İndirim</span>
+                  Yıllık Gösterim
                 </button>
               </div>
             </div>
 
-            {/* Single Plan Card */}
-            <div className="max-w-2xl mx-auto bg-gradient-to-b from-blue-500/10 to-slate-900/40 border border-blue-500/30 rounded-3xl p-6 md:p-8 space-y-6 relative hover:border-blue-500/50 transition-all duration-300 shadow-xl shadow-blue-500/5">
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[9px] font-black uppercase px-3 py-1 rounded-full tracking-wider border border-blue-400">
-                TEK LİSANS • HER ŞEY DAHİL
-              </span>
-              
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800/80 pb-5">
-                <div>
-                  <h4 className="text-lg font-black text-slate-100">K.A.S Sınırsız Premium Lisansı</h4>
-                  <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Sınırsız Öğrenci, Veli, Şube ve Tüm Özellikler</span>
-                </div>
-                
-                <div className="text-left sm:text-right">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-black text-slate-50 tracking-tight">
-                      {isAnnualBilling ? "₺2.925" : "₺3.250"}
-                    </span>
-                    <span className="text-[10px] font-bold text-slate-500">/aylık</span>
-                  </div>
-                  <span className="text-[9px] text-slate-500 block font-bold">
-                    {isAnnualBilling ? (
-                      <>
-                        <span className="line-through text-slate-600">₺39.000 yerine</span>{" "}
-                        <span className="text-emerald-400 font-extrabold">₺35.100</span> faturalandırılır (%10 İndirim).
-                      </>
-                    ) : "*Aylık (₺3.250) faturalandırılır."}
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            {/* Common Features Banner */}
+            <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-6">
+              <h4 className="text-sm font-black text-slate-200 mb-4 flex items-center gap-2">
+                <CheckCircle size={16} className="text-emerald-400" />
+                Tüm Paketlerde Bulunan Ortak Özellikler
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
-                  "Sınırsız Öğrenci, Veli ve Öğretmen Girişi",
-                  "Akıllı PDF Sınav Sonuç Analizi & OCR",
-                  "YKS Hedef ve Sayaç Entegrasyonları",
-                  "Birebir Ders Planlama & Çakışma Kontrolü",
-                  "Rehberlik Görüşme Günlükleri",
-                  "Karne & Rapor Çıktıları (PDF/Grafik)",
-                  "E-posta & WhatsApp Destek Hattı",
-                  "Sürekli Güncellenen SaaS Bulut Altyapısı"
+                  "🤖 KAS.ai Yapay Zeka Analiz Motoru",
+                  "👨‍🏫 Sınırsız Öğretmen & Personel Tanımlama",
+                  "🏫 Sınırsız Sınıf & Şube Oluşturma",
+                  "📊 Sınırsız Deneme Sınavı Yükleme",
+                  "📱 Öğrenci & Veli Analiz Paneli Erişimi"
                 ].map((f, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-[11px] text-slate-300 font-medium">
-                    <CheckCircle size={12} className="text-blue-500 shrink-0" />
+                  <div key={idx} className="flex items-start gap-2 text-xs text-slate-300 font-medium">
+                    <CheckCircle size={14} className="text-emerald-500 shrink-0 mt-0.5" />
                     <span>{f}</span>
                   </div>
                 ))}
               </div>
+            </div>
 
-              <button
-                type="button"
-                disabled={currentPlan === 'premium'}
-                onClick={() => {
-                  setSelectedPlan({
-                    id: "premium",
-                    title: "K.A.S Sınırsız Premium",
-                    price: isAnnualBilling ? "₺35.100" : "₺3.250",
-                    isAnnual: isAnnualBilling
-                  });
-                  setTimeout(() => {
-                    document.getElementById('checkout-form')?.scrollIntoView({ behavior: 'smooth' });
-                  }, 100);
-                }}
-                className={`w-full py-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                  currentPlan === 'premium'
-                    ? "bg-slate-950 border border-slate-850 text-slate-500 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20"
-                }`}
-              >
-                {currentPlan === 'premium' ? "✓ Aktif Lisansınız" : "Sınırsız Premium'a Yükselt ⚡"}
-              </button>
+            {/* Plans Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {[
+                {
+                  id: 'mikro',
+                  title: 'Mikro Paket',
+                  capacity: '0 - 25 Öğrenci',
+                  price: 2900,
+                  desc: 'VIP Özel Ders Büroları ve Bireysel Koçlar İçin.',
+                  features: [
+                    '🤖 KAS.ai Temel Sınav & Net Analizi',
+                    '📄 Otomatik PDF Öğrenci Karnesi Oluşturma',
+                    '📊 Konu & Kazanım Eksik Tespiti',
+                    '♾️ Sınırsız Öğretmen & Sınıf Ekleme'
+                  ]
+                },
+                {
+                  id: 'bronz',
+                  title: 'Bronz Paket',
+                  capacity: '25 - 50 Öğrenci',
+                  price: 5900,
+                  desc: 'Butik Kurslar ve VIP Etüt Merkezleri İçin.',
+                  features: [
+                    'Mikro Paket Özelliklerinin Tamamı',
+                    '🧠 KAS.ai Derin Konu & Soru Tipi Analizi',
+                    '📈 Sınıf Genel Başarı ve Öğrenme Kaybı Grafikleri',
+                    '💬 Tek Tıkla Veliye Gönderilebilir AI Rapor Özetleri'
+                  ]
+                },
+                {
+                  id: 'gumus',
+                  title: 'Gümüş Paket',
+                  capacity: '50 - 100 Öğrenci',
+                  price: 9900,
+                  desc: 'Büyümekte Olan Hazırlık Kursları İçin.',
+                  features: [
+                    'Bronz Paket Özelliklerinin Tamamı',
+                    '🎯 KAS.ai Akıllı Çalışma & Soru Çözüm Tavsiye Motoru',
+                    '📱 WhatsApp / SMS Formatında Hazır AI Veli Bildirimleri',
+                    '🔍 Öğrenci Bazlı İlerleme ve Hedef Takip Analitiği'
+                  ]
+                },
+                {
+                  id: 'altin',
+                  title: 'Altın (Gold) Paket',
+                  capacity: '100 - 150 Öğrenci',
+                  price: 14900,
+                  desc: 'Butik Dershaneler İçin Tam Kapsamlı AI Çözümü.',
+                  features: [
+                    'Gümüş Paket Özelliklerinin Tamamı',
+                    '🎨 Kuruma Özel Logo & Tema Özelleştirme',
+                    '📊 Detaylı Ders & Branş Bazlı Performans Raporları',
+                    '⚡ VIP Hızlı Destek & Kurulum Rehberliği'
+                  ]
+                },
+                {
+                  id: 'platin',
+                  title: 'Platin (Platinum) Paket',
+                  capacity: '150 - 200 Öğrenci',
+                  price: 24500,
+                  desc: 'Standart Dershaneler ve Hazırlık Kursları İçin.',
+                  isPopular: true,
+                  features: [
+                    'Altın Paket Özelliklerinin Tamamı',
+                    '👨‍🏫 KAS.ai Zümre & Öğretmen Performans AI Analizi',
+                    '🎓 YKS / LGS Tahmini Sıralama & Başarı Motoru',
+                    '📞 VIP Hızlı Destek & Birebir Kurulum Eğitimi'
+                  ]
+                },
+                {
+                  id: 'elmas',
+                  title: 'Elmas (Diamond) / Kurumsal',
+                  capacity: '200+ Öğrenci & Çoklu Şube',
+                  price: 0,
+                  isCustom: true,
+                  desc: 'Büyük Dershaneler, Kolejler ve Franchise Markalar İçin.',
+                  features: [
+                    '🏢 Çoklu Şube & Merkezi Kampüs Yönetimi',
+                    '🤝 Kuruma Özel Birebir Müşteri Temsilcisi & 7/24 VIP Destek',
+                    '🔌 Özel Veri & API Entegrasyonları',
+                    '🛠️ Kuruma Özel Eğitim ve Yerinde Kurulum Desteği'
+                  ]
+                }
+              ].map((plan, i) => (
+                <div key={i} className={`bg-gradient-to-b ${plan.isPopular ? 'from-blue-500/10 to-slate-900/40 border-blue-500/50 shadow-xl shadow-blue-500/10 scale-105 z-10' : 'from-slate-900/40 to-slate-950/40 border-slate-800 hover:border-slate-700'} border rounded-3xl p-6 flex flex-col justify-between relative transition-all duration-300`}>
+                  {plan.isPopular && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[9px] font-black uppercase px-3 py-1 rounded-full tracking-wider border border-blue-400/50 shadow-md">
+                      EN POPÜLER
+                    </span>
+                  )}
+                  
+                  <div className="space-y-4 mb-6">
+                    <div>
+                      <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">{plan.capacity}</span>
+                      <h4 className="text-xl font-black text-slate-100 mt-1">{plan.title}</h4>
+                      <p className="text-[11px] text-slate-400 font-medium mt-2 min-h-[32px]">{plan.desc}</p>
+                    </div>
+
+                    <div className="flex flex-col justify-center min-h-[64px] py-2">
+                      {plan.isCustom ? (
+                        <span className="text-2xl font-black text-slate-50 tracking-tight">Özel Teklif</span>
+                      ) : (
+                        <>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-4xl font-black text-slate-50 tracking-tight">
+                              ₺{!isAnnualBilling ? new Intl.NumberFormat('tr-TR').format(Math.round(plan.price / 12)) : new Intl.NumberFormat('tr-TR').format(plan.price)}
+                            </span>
+                            <span className="text-[11px] font-bold text-slate-500">{!isAnnualBilling ? "/ ay" : "/ yıl"}</span>
+                          </div>
+                          {!isAnnualBilling && (
+                            <span className="text-[10px] font-semibold text-slate-400 mt-1">
+                              (Yıllık ₺{new Intl.NumberFormat('tr-TR').format(plan.price)} olarak faturalandırılır)
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    <div className="border-t border-slate-800/80 pt-4 space-y-2.5">
+                      {plan.features.map((f, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-[11px] text-slate-300 font-medium">
+                          <CheckCircle size={12} className="text-blue-500 shrink-0 mt-0.5" />
+                          <span>{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={currentPlan === plan.id}
+                    onClick={() => {
+                      if (plan.isCustom) {
+                        alert('Özel teklif için lütfen müşteri temsilcimizle (0850 000 00 00) iletişime geçin.');
+                        return;
+                      }
+                      setSelectedPlan({
+                        id: plan.id,
+                        title: plan.title,
+                        price: `₺${new Intl.NumberFormat('tr-TR').format(plan.price)}`,
+                        priceNum: plan.price,
+                        isAnnual: true
+                      });
+                      setTimeout(() => {
+                        document.getElementById('checkout-form')?.scrollIntoView({ behavior: 'smooth' });
+                      }, 100);
+                    }}
+                    className={`w-full py-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                      currentPlan === plan.id
+                        ? "bg-slate-950 border border-slate-850 text-slate-500 cursor-not-allowed"
+                        : plan.isPopular 
+                          ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20"
+                          : "bg-slate-800 hover:bg-slate-700 text-white"
+                    }`}
+                  >
+                    {currentPlan === plan.id ? "✓ Aktif Lisansınız" : plan.isCustom ? "İletişime Geç" : "Bu Planı Seç ⚡"}
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 
 
-        </div>
-      )}
 
+
+      </div>
+      )}
 
       {paymentStep === 'processing' && (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center flex flex-col items-center justify-center space-y-6 min-h-[400px] animate-fade-in">
