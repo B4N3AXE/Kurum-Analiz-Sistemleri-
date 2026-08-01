@@ -243,8 +243,8 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                   setSelectedPlan({
                     id: "premium",
                     title: "K.A.S Sınırsız Premium",
-                    price: "₺" + new Intl.NumberFormat('tr-TR').format(39000),
-                    priceNum: 39000,
+                    price: "₺" + new Intl.NumberFormat('tr-TR').format(39100),
+                    priceNum: 39100,
                     isAnnual: true
                   });
                   setTimeout(() => {
@@ -508,7 +508,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                   id: 'mikro',
                   title: 'Mikro Paket',
                   capacity: '0 - 25 Öğrenci',
-                  price: 2900,
+                  price: 3000,
                   desc: 'VIP Özel Ders Büroları ve Bireysel Koçlar İçin.',
                   features: [
                     '🤖 KAS.ai Temel Sınav & Net Analizi',
@@ -521,7 +521,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                   id: 'bronz',
                   title: 'Bronz Paket',
                   capacity: '25 - 50 Öğrenci',
-                  price: 5900,
+                  price: 6000,
                   desc: 'Butik Kurslar ve VIP Etüt Merkezleri İçin.',
                   features: [
                     'Mikro Paket Özelliklerinin Tamamı',
@@ -534,7 +534,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                   id: 'gumus',
                   title: 'Gümüş Paket',
                   capacity: '50 - 100 Öğrenci',
-                  price: 9900,
+                  price: 10000,
                   desc: 'Büyümekte Olan Hazırlık Kursları İçin.',
                   features: [
                     'Bronz Paket Özelliklerinin Tamamı',
@@ -547,7 +547,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                   id: 'altin',
                   title: 'Altın (Gold) Paket',
                   capacity: '100 - 150 Öğrenci',
-                  price: 14900,
+                  price: 15000,
                   desc: 'Butik Dershaneler İçin Tam Kapsamlı AI Çözümü.',
                   features: [
                     'Gümüş Paket Özelliklerinin Tamamı',
@@ -610,11 +610,9 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                             </span>
                             <span className="text-[11px] font-bold text-slate-500">{!isAnnualBilling ? "/ ay" : "/ yıl"}</span>
                           </div>
-                          {!isAnnualBilling && (
-                            <span className="text-[10px] font-semibold text-slate-400 mt-1">
-                              (Yıllık ₺{new Intl.NumberFormat('tr-TR').format(plan.price)} olarak faturalandırılır)
-                            </span>
-                          )}
+                          <span className="text-[10px] font-semibold text-slate-400 mt-1">
+                            {!isAnnualBilling ? `(Yıllık ₺${new Intl.NumberFormat('tr-TR').format(plan.price)} olarak faturalandırılır)` : `(Aylık ₺${new Intl.NumberFormat('tr-TR').format(Math.round(plan.price / 12))} avantajıyla)`}
+                          </span>
                         </>
                       )}
                     </div>

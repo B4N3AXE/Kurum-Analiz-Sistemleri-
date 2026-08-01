@@ -4098,16 +4098,16 @@ app.post('/api/paytr/validate-coupon', (req, res) => {
   try {
     const { isAnnualBilling, couponCode, planId } = req.body;
     const PLAN_PRICES: any = {
-      'mikro': 2900,
-      'bronz': 5900,
-      'gumus': 9900,
-      'altin': 14900,
+      'mikro': 3000,
+      'bronz': 6000,
+      'gumus': 10000,
+      'altin': 15000,
       'platin': 24500,
-      'elmas': 50000,
-      'premium': 39000
+      'elmas': 50100,
+      'premium': 39100
     };
     const targetPlanId = planId || 'premium';
-    const annualPrice = PLAN_PRICES[targetPlanId] || 39000;
+    const annualPrice = PLAN_PRICES[targetPlanId] || 39100;
     const basePrice = isAnnualBilling ? annualPrice : Math.round(annualPrice / 12);
 
     if (!couponCode || typeof couponCode !== 'string' || !couponCode.trim()) {
@@ -4180,17 +4180,17 @@ app.post('/api/paytr/token', async (req, res) => {
     const { isAnnualBilling, couponCode, userEmail, userName, userPhone, userId, clientIp, planId } = req.body;
 
     const PLAN_PRICES: any = {
-      'mikro': 2900,
-      'bronz': 5900,
-      'gumus': 9900,
-      'altin': 14900,
+      'mikro': 3000,
+      'bronz': 6000,
+      'gumus': 10000,
+      'altin': 15000,
       'platin': 24500,
-      'elmas': 50000,
-      'premium': 39000
+      'elmas': 50100,
+      'premium': 39100
     };
 
     const targetPlanId = planId || 'premium';
-    const annualPrice = PLAN_PRICES[targetPlanId] || 39000;
+    const annualPrice = PLAN_PRICES[targetPlanId] || 39100;
     const baseAmount = isAnnualBilling ? annualPrice : Math.round(annualPrice / 12);
     
     let final_amount = baseAmount;
