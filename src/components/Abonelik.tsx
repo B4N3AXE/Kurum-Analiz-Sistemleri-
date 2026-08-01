@@ -654,7 +654,7 @@ export default function Abonelik({ user, token, onUpgradeSuccess, currentPlan, t
                           : "bg-slate-800 hover:bg-slate-700 text-white"
                     }`}
                   >
-                    {currentPlan === plan.id ? "✓ Aktif Lisansınız" : plan.isCustom ? "İletişime Geç" : "Bu Planı Seç ⚡"}
+                    {currentPlan === plan.id ? "✓ Bu plana zaten sahipsiniz" : plan.isCustom ? "İletişime Geç" : "Bu Planı Seç ⚡"}
                   </button>
                 </div>
               ))}
