@@ -2419,7 +2419,7 @@ export default function App() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[9px] text-slate-600 font-mono font-bold">{rev.date}</span>
-                        {(isAdminLoggedIn || !["rev-1", "rev-2", "rev-3", "rev-4"].includes(rev.id)) && (
+                        {isAdminLoggedIn && (
                           <button
                             type="button"
                             onClick={() => {
