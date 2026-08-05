@@ -314,6 +314,24 @@ function checkStudentLimit(req: any, db: any): { allowed: boolean; limit?: numbe
 
 
 // Auth API Routes
+
+// Super Admin Endpoints
+app.get('/api/super-admin/users', (req, res) => {
+  const users = db.getKullanicilar();
+  const kurumlar = db.getKurumlar();
+  
+  const enrichedUsers = users.map(u => {
+    const k = kurumlar.find(k => k.id === u.kurum_id);
+    return {
+      ...u,
+      kurum_adi: k ? k.ad : null,
+      abonelik_turu: k ? k.abonelik_turu : null
+    };
+  }).sort((a, b) => b.id - a.id);
+  
+  res.json(enrichedUsers);
+});
+
 app.post('/api/auth/login', (req, res) => {
   const { email, sifre } = req.body;
   if (!email || !sifre) {
