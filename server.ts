@@ -87,15 +87,19 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 8080;
 
 // Setup JSON and multipart body parsing
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
 
-// Health Check Endpoint
+// Health Check Endpoints for Railway and container orchestration
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', uptime: Math.round(process.uptime()), timestamp: new Date().toISOString() });
+});
+
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.status(200).json({ status: 'ok', uptime: Math.round(process.uptime()), timestamp: new Date().toISOString() });
 });
 
 // Memory-based brute force protection count
@@ -4864,7 +4868,12 @@ app.put('/api/taksitler/odeme/:taksitId', (req, res) => {
 
 
 async function startServer() {
-  await db.loadFromFirestore();
+  try {
+    // Attempt Firestore sync with timeout so it never blocks or causes platform startup timeout
+    await db.loadFromFirestore(5000);
+  } catch (err: any) {
+    console.warn('Initial Firestore sync error (continuing with local database):', err?.message || err);
+  }
 
   // Serve frontend SPA in development or production
   if (process.env.NODE_ENV !== 'production') {
@@ -4876,15 +4885,19 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.resolve('dist');
-    app.use(express.static(distPath));
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+    }
     app.get('*', (req, res, next) => {
       if (req.path.startsWith('/api')) return next();
-      res.sendFile(path.join(distPath, 'index.html'));
+      const indexPath = path.join(distPath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        return res.sendFile(indexPath);
+      }
+      return res.status(200).send('OK - KAS.ai Server is running.');
     });
   }
 
-  // Start Server on configured port
-  
   // Error handling for API routes
   app.use((req, res, next) => {
     if (req.path.startsWith('/api')) {
@@ -4893,17 +4906,52 @@ async function startServer() {
     next();
   });
 
-  app.use((err, req, res, next) => {
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (req.path.startsWith('/api')) {
-      console.error(err);
+      console.error('API Error:', err);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
     next(err);
   });
 
   httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server started on http://0.0.0.0:${PORT} under NODE_ENV=${process.env.NODE_ENV}`);
+    console.log(`Server started on http://0.0.0.0:${PORT} under NODE_ENV=${process.env.NODE_ENV || 'development'}`);
   });
 }
 
-startServer();
+// Global exception and rejection handlers to prevent unhandled process termination on Railway
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception thrown:', err);
+});
+
+// Graceful SIGTERM / SIGINT handling for Railway lifecycle management
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: gracefully shutting down HTTP server...');
+  httpServer.close(() => {
+    console.log('HTTP server closed.');
+    process.exit(0);
+  });
+  setTimeout(() => {
+    console.error('Forced shutdown after 5s timeout.');
+    process.exit(0);
+  }, 5000);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT signal received: gracefully shutting down HTTP server...');
+  httpServer.close(() => {
+    console.log('HTTP server closed.');
+    process.exit(0);
+  });
+  setTimeout(() => {
+    process.exit(0);
+  }, 5000);
+});
+
+startServer().catch((err) => {
+  console.error('Fatal error during startServer:', err);
+});

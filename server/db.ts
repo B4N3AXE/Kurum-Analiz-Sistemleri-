@@ -378,12 +378,16 @@ export class Database {
     }
   }
 
-  public async loadFromFirestore() {
+  public async loadFromFirestore(timeoutMs = 5000) {
      if (!dbFirestore) return;
      try {
        console.log("Syncing database from Firestore...");
-       const snapshot = await getDoc(doc(dbFirestore, 'system', 'database'));
-       if (snapshot.exists()) {
+       const fetchPromise = getDoc(doc(dbFirestore, 'system', 'database'));
+       const timeoutPromise = new Promise((_, reject) =>
+         setTimeout(() => reject(new Error(`Firestore request timed out after ${timeoutMs}ms`)), timeoutMs)
+       );
+       const snapshot: any = await Promise.race([fetchPromise, timeoutPromise]);
+       if (snapshot && snapshot.exists && snapshot.exists()) {
           const docData = snapshot.data();
           if (docData && docData.data) {
              const parsed = JSON.parse(docData.data);
@@ -391,8 +395,8 @@ export class Database {
              console.log("Successfully synced database from Firestore.");
           }
        }
-     } catch (e) {
-        console.error("Error loading from Firestore:", e);
+     } catch (e: any) {
+        console.warn("Firestore sync skipped or timed out (continuing with local database):", e?.message || e);
      }
   }
 
@@ -411,10 +415,10 @@ export class Database {
          setDoc(doc(dbFirestore, 'system', 'database'), { 
             data: JSON.stringify(this.data),
             updatedAt: new Date().toISOString()
-         }).catch(e => console.error("Firestore background sync error", e));
+         }).catch(e => console.warn("Firestore background sync warning:", e?.message || e));
       }
-    } catch (e) {
-      console.error('Error triggering Firestore sync:', e);
+    } catch (e: any) {
+      console.warn('Error triggering Firestore sync:', e?.message || e);
     }
   }
 
